@@ -201,6 +201,13 @@ Un nome non riconosciuto diventa bianco.
 - Se la cassa scrivesse nel file i comandi fiscali (`SF`, `VEND …`), il monitor li mostrerebbe come testo nella
   barra alta: quindi, presumibilmente, non lo fa.
 
+**Osservato sul campo (19/10/2026)**: con `SovrascriviSeEsistente=false` e nessuno che toglie il file, Passepartout
+ha scritto `Scontrino.txt` una sola volta e poi più nulla per tutta la sessione (2 minuti e mezzo di prove in cassa,
+nessuna modifica né file nuovo nella cartella). L'interpretazione coerente: Passepartout non sovrascrive un file
+esistente, aspetta che il lettore lo "consumi" (lo tolga) e dopo `NumeroTentativi` × `SecondiAttesa` rinuncia.
+Il vecchio monitor non toglie mai il file: va chiarito come funziona in produzione (parametro a `true`, o altro).
+Il registratore ha una modalità consumo (`/consuma`) per verificarlo.
+
 **Opportunità**: essendo un template, possiamo definire noi l'output dei comandi (es. `StampaRigaArticolo` →
 `ART|{0}|{1}|{2}|{5}`) e ottenere dati **strutturati** (quantità, prezzo unitario, reparto, sconti, metodo di
 pagamento) invece di interpretare testo impaginato a 30 colonne. Va verificato quali comandi il driver invoca

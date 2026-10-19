@@ -282,6 +282,93 @@ public sealed class RecordingSessionTests : IDisposable
         Assert.Contains("\"righe\":1,", entry);
     }
 
+    /// <summary>
+    /// Come Passepartout con SovrascriviSeEsistente=false: scrive solo se il file non c'è,
+    /// altrimenti ritenta (3 volte) e poi rinuncia. Restituisce true se ha scritto.
+    /// </summary>
+    bool WriteIfAbsent(byte[] bytes, int attempts = 3, int waitMilliseconds = 300)
+    {
+        for (var attempt = 0; attempt < attempts; attempt++)
+        {
+            try
+            {
+                using var stream = new FileStream(_target, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                stream.Write(bytes, 0, bytes.Length);
+                return true;
+            }
+            catch (IOException) when (File.Exists(_target))
+            {
+                Thread.Sleep(waitMilliseconds);
+            }
+        }
+        return false;
+    }
+
+    [Fact]
+    public void Without_consume_mode_a_no_overwrite_writer_gives_up_and_the_operator_is_warned()
+    {
+        Write(Receipt(" CONTO PRECEDENTE         1,00"));
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        WaitUntil(() => session.Versions == 1, "file già presente");
+
+        session.AddNote("inserimento prodotti");
+        Assert.False(WriteIfAbsent(Receipt(" CAFFE                    1,10")));
+        session.AddNote("passo al conto");
+        session.Stop();
+
+        Assert.Equal(1, session.Versions);
+        Assert.True(_log.Contains("Attenzione: dalla nota precedente"));
+        Assert.Contains(IndexLines(session), l => l.Contains("\"tipo\":\"avviso\""));
+    }
+
+    [Fact]
+    public void Consume_mode_removes_each_version_so_a_no_overwrite_writer_can_continue()
+    {
+        Write(Receipt(" CONTO PRECEDENTE         1,00"));
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        WaitUntil(() => session.Versions == 1, "file già presente");
+        session.SetConsumeMode(true);
+        WaitUntil(() => !File.Exists(_target), "file tolto all'attivazione");
+
+        session.AddNote("tre articoli");
+        var items = new List<string>();
+        for (var i = 0; i < 3; i++)
+        {
+            items.Add($" PIATTO {i}                 1,00");
+            Assert.True(WriteIfAbsent(Receipt(items.ToArray())), "scrittura " + i);
+            var expected = i + 2;
+            WaitUntil(() => session.Versions == expected && !File.Exists(_target), "versione " + expected + " registrata e tolta");
+        }
+
+        // Lo stesso conto rimandato identico è una riscrittura, non una versione nuova.
+        Assert.True(WriteIfAbsent(Receipt(items.ToArray())));
+        WaitUntil(() => IndexLines(session).Any(l => l.Contains("\"tipo\":\"riscrittura\"")) && !File.Exists(_target), "riscrittura tolta");
+        session.AddNote("fine prova");
+        session.Stop();
+
+        var lines = IndexLines(session);
+        Assert.Equal(4, session.Versions);
+        Assert.Equal(5, lines.Count(l => l.Contains("\"tipo\":\"consumato\"")));
+        Assert.DoesNotContain(lines, l => l.Contains("\"tipo\":\"assente\""));
+        Assert.DoesNotContain(lines, l => l.Contains("\"tipo\":\"avviso\""));
+        Assert.Contains("\"aggiunte\":[{\"riga\":3,\"testo\":\"PIATTO 2                 1,00\"}]", lines.Single(l => l.Contains("\"seq\":4,")));
+    }
+
+    [Fact]
+    public void No_warning_when_the_file_changed_between_notes()
+    {
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        session.AddNote("primo articolo");
+        Write(Receipt(" CAFFE 1,00"));
+        WaitUntil(() => session.Versions == 1, "versione");
+        session.AddNote("secondo articolo");
+        session.Stop();
+        Assert.False(_log.Contains("Attenzione"));
+    }
+
     sealed class TestLog : IRecorderLog
     {
         readonly List<string> _lines = new();
@@ -290,6 +377,12 @@ public sealed class RecordingSessionTests : IDisposable
         {
             lock (_lines)
                 _lines.Add(text);
+        }
+
+        public bool Contains(string fragment)
+        {
+            lock (_lines)
+                return _lines.Any(l => l.Contains(fragment));
         }
     }
 }

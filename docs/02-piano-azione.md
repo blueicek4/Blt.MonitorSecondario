@@ -81,6 +81,9 @@ riceve subito lo stato corrente.
 ### Fase 0 — Raccolta dati reali (2–3 giorni) — *bloccante per il parser*
 - **Registratore pronto**: [tools/](../tools/README.md) — `BluetechRecorder.exe` salva ogni versione di `Scontrino.txt`
   byte per byte, con note dell'operatore, differenze riga per riga e uno zip finale da inviare.
+- **Primo giro (19/10)**: una sola versione registrata. Passepartout, con `SovrascriviSeEsistente=false`, non riscrive
+  un file esistente finché qualcuno non lo toglie. Da ripetere con `/consuma`, e da chiarire come si comporta in
+  produzione con il vecchio monitor (che non toglie mai il file).
 - Casi da registrare su una cassa vera: vendita semplice, quantità > 1, sconto riga e subtotale, maggiorazione, storno,
   annullo, reso, preconto, conto separato, fattura, pagamento contanti / carta / **Satispay**, messaggi del visore.
 - Verificare: codifica (UTF-8? ANSI? il simbolo €), se il file viene riscritto o ricreato, ordine degli eventi
@@ -164,6 +167,7 @@ riceve subito lo stato corrente.
 | Rischio | Impatto | Mitigazione |
 |---|---|---|
 | Il formato del file cambia con un aggiornamento di Passepartout | Scontrino mal interpretato | Test golden, parser tollerante, ripiego "testo grezzo" sempre leggibile |
+| Passepartout non sovrascrive il file (`SovrascriviSeEsistente=false`) | Il monitor resta fermo al primo conto | L'Agent "consuma" il file dopo averlo letto (come il registratore con `/consuma`), oppure si imposta il parametro a `true`; mai Agent e vecchio monitor insieme sullo stesso file |
 | Nessun segnale di esito Satispay | Niente animazione "pagato" | Non promettere l'esito; Fase 0 per cercare un segnale |
 | PC cassa lenti o Windows vecchi (7/8.1) | Effetti a scatti / player non installabile | Profili animazione automatici; censimento in Fase 0; Windows 10+ come requisito |
 | Monitor cliente staccato o cambio risoluzione | Display sulla cassa | Gestito dal Player (si nasconde e ricompare) |

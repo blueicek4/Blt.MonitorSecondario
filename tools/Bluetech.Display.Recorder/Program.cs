@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -10,12 +11,13 @@ static class Program
 {
     const string DefaultTarget = @"C:\MonitorSecondario\Scontrino.txt";
     const string StopCommand = "/fine";
+    const string ConsumeCommand = "/consuma";
 
     static RecordingSession _session;
     static int _finished;
 
     /// <summary>
-    /// BluetechRecorder.exe [file o cartella] [--out cartella]
+    /// BluetechRecorder.exe [file o cartella] [--out cartella] [--consuma]
     /// Senza argomenti registra C:\MonitorSecondario\Scontrino.txt.
     /// Si può anche trascinare il file Scontrino.txt sull'eseguibile.
     /// </summary>
@@ -27,10 +29,13 @@ static class Program
         Console.Title = "Bluetech Recorder";
 
         string target = null, output = null;
+        var consume = false;
         for (var i = 0; i < args.Length; i++)
         {
             if (string.Equals(args[i], "--out", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 output = CleanPath(args[++i]);
+            else if (string.Equals(args[i], "--consuma", StringComparison.OrdinalIgnoreCase))
+                consume = true;
             else
                 target ??= CleanPath(args[i]);
         }
@@ -82,10 +87,28 @@ static class Program
 
         log.Line("Registro:     " + _session.TargetPath);
         log.Line("Salvo in:     " + _session.SessionFolder);
+        var existing = new FileInfo(_session.TargetPath);
+        if (existing.Exists)
+        {
+            var age = DateTime.Now - existing.LastWriteTime;
+            log.Line($"Il file c'è già: ultima modifica {existing.LastWriteTime.ToString("HH:mm:ss", CultureInfo.InvariantCulture)} ({Describe(age)} fa).");
+            if (!consume)
+            {
+                log.Line("Se Passepartout ha SovrascriviSeEsistente=false non lo riscriverà finché non viene tolto:", ConsoleColor.DarkYellow);
+                log.Line($"in quel caso scrivi {ConsumeCommand} (il registratore lo toglierà dopo ogni lettura).", ConsoleColor.DarkYellow);
+            }
+        }
+        else
+        {
+            log.Line("Il file non c'è ancora: aspetto che Passepartout lo scriva.");
+        }
         log.Line("");
         log.Line("Scrivi una nota e premi Invio per segnare cosa stai facendo in cassa", ConsoleColor.Yellow);
         log.Line("(es. \"storno seconda riga\", \"pago con Satispay\"). Per terminare scrivi /fine oppure Ctrl+C.", ConsoleColor.Yellow);
+        log.Line($"{ConsumeCommand} attiva o disattiva la modalità consumo.", ConsoleColor.Yellow);
         log.Line("");
+        if (consume)
+            _session.SetConsumeMode(true);
 
         Console.CancelKeyPress += (_, e) =>
         {
@@ -104,6 +127,11 @@ static class Program
                 continue;
             if (string.Equals(line, StopCommand, StringComparison.OrdinalIgnoreCase))
                 break;
+            if (string.Equals(line, ConsumeCommand, StringComparison.OrdinalIgnoreCase))
+            {
+                _session.SetConsumeMode(!_session.ConsumeMode);
+                continue;
+            }
             _session.AddNote(line);
         }
 
@@ -153,6 +181,17 @@ static class Program
         {
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Registrazioni Monitor");
         }
+    }
+
+    static string Describe(TimeSpan age)
+    {
+        if (age.TotalSeconds < 90)
+            return $"{Math.Max(0, (int)age.TotalSeconds)} s";
+        if (age.TotalMinutes < 90)
+            return $"{(int)age.TotalMinutes} min";
+        if (age.TotalHours < 48)
+            return $"{(int)age.TotalHours} ore";
+        return $"{(int)age.TotalDays} giorni";
     }
 
     static void WaitForEnter()

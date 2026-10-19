@@ -63,6 +63,17 @@ public sealed class RecordingSession : IDisposable
     int _unstableReads;
     int _notes;
     int _folderEvents;
+    int _consumed;
+    readonly Dictionary<string, int> _otherFileChanges = new(StringComparer.OrdinalIgnoreCase);
+
+    // Modalità consumo: dopo ogni versione il file viene tolto, per i casi in cui Passepartout non sovrascrive un file
+    // esistente (SovrascriviSeEsistente=false) e aspetta che qualcuno lo tolga prima di scrivere il successivo.
+    volatile bool _consume;
+    volatile bool _removedByUs;
+    // Quante cose sono successe al file (versioni, riscritture, letture instabili, sparizioni): serve a capire
+    // se tra due note dell'operatore Passepartout ha scritto qualcosa.
+    int _activity;
+    int _activityAtLastNote = -1;
     bool _started;
     bool _stopping;     // Stop() chiamato: niente nuove notifiche e note, ma la coda viene smaltita
     bool _stopped;      // indice chiuso
@@ -85,6 +96,25 @@ public sealed class RecordingSession : IDisposable
     public string ZipPath { get; private set; }
     public int Versions => _seq;
     public bool IsStopped { get { lock (_sync) return _stopping; } }
+    public bool ConsumeMode => _consume;
+
+    /// <summary>Attiva o disattiva la modalità consumo; se il file c'è già, viene registrato (se nuovo) e tolto subito.</summary>
+    public void SetConsumeMode(bool enabled)
+    {
+        lock (_sync)
+        {
+            if (_stopping || !_started)
+                return;
+            _consume = enabled;
+            _activityAtLastNote = -1;   // dopo un cambio di modalità si riparte: niente avviso alla prima nota
+            WriteIndexLocked(new JsonObject { { "tipo", "consumo" }, { "ora", Now() }, { "ms", _clock.ElapsedMilliseconds }, { "attivo", enabled } });
+        }
+        _log.Line(enabled
+            ? $"{Clock()}  Modalità consumo attiva: dopo ogni lettura {FileName} viene tolto, così Passepartout può scrivere il successivo."
+            : $"{Clock()}  Modalità consumo disattivata: {FileName} non viene più tolto.", ConsoleColor.Cyan);
+        if (enabled)
+            Trigger("consumo-attivato");
+    }
 
     public void Start(string machineInfo = null)
     {
@@ -139,10 +169,14 @@ public sealed class RecordingSession : IDisposable
     /// <summary>Annotazione dell'operatore (es. "ora pago con Satispay"), salvata nell'indice con l'ora.</summary>
     public void AddNote(string text)
     {
+        bool stalled;
         lock (_sync)
         {
             if (_stopping || !_started)
                 return;
+            var activity = Volatile.Read(ref _activity);
+            stalled = _activityAtLastNote >= 0 && activity == _activityAtLastNote;
+            _activityAtLastNote = activity;
             _notes++;
             WriteIndexLocked(new JsonObject
             {
@@ -154,6 +188,30 @@ public sealed class RecordingSession : IDisposable
             });
         }
         _log.Line($"{Clock()}  NOTA   {text}", ConsoleColor.Yellow);
+        if (stalled)
+            WarnNoChanges();
+    }
+
+    /// <summary>Avviso immediato all'operatore: tra due note il file non è cambiato.</summary>
+    void WarnNoChanges()
+    {
+        var meta = FileMeta.Read(TargetPath);
+        var since = meta.Exists ? "ultima modifica " + meta.LastWriteUtc.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture) : "il file non c'è";
+        lock (_sync)
+        {
+            if (!_stopping)
+                WriteIndexLocked(new JsonObject { { "tipo", "avviso" }, { "ora", Now() }, { "testo", "Nessuna modifica del file dalla nota precedente" } });
+        }
+        _log.Line($"       Attenzione: dalla nota precedente {FileName} non è cambiato ({since}).", ConsoleColor.Magenta);
+        if (_consume)
+        {
+            _log.Line("       Passepartout non sta scrivendo questo file: controlla il percorso impostato nel dispositivo monitor.", ConsoleColor.Magenta);
+        }
+        else
+        {
+            _log.Line("       Se in cassa hai fatto operazioni, Passepartout forse non sovrascrive un file esistente", ConsoleColor.Magenta);
+            _log.Line("       (SovrascriviSeEsistente=false): scrivi /consuma e riprova, oppure controlla il percorso impostato.", ConsoleColor.Magenta);
+        }
     }
 
     /// <summary>
@@ -242,15 +300,33 @@ public sealed class RecordingSession : IDisposable
     {
         if (IsTarget(e.Name))
         {
-            if (e.ChangeType != WatcherChangeTypes.Changed)
-                LogFolderEvent(EventName(e.ChangeType), e.Name, null);
+            // In modalità consumo creazioni ed eliminazioni sono la norma: restano nell'indice ma non a video.
+            if (e.ChangeType != WatcherChangeTypes.Changed && !(e.ChangeType == WatcherChangeTypes.Deleted && _removedByUs))
+                LogFolderEvent(EventName(e.ChangeType), e.Name, null, quiet: _consume);
             Trigger(EventName(e.ChangeType));
             return;
         }
+        if (IsOwnOutput(e.Name))
+            return;
 
-        // Altri file della cartella: interessano solo creazioni ed eliminazioni (es. file temporanei di Passepartout).
-        if (e.ChangeType is WatcherChangeTypes.Created or WatcherChangeTypes.Deleted && !IsOwnOutput(e.Name))
+        // Altri file della cartella: creazioni ed eliminazioni sempre, modifiche solo la prima volta per nome
+        // (se Passepartout scrive con un altro nome, si vede subito).
+        if (e.ChangeType is WatcherChangeTypes.Created or WatcherChangeTypes.Deleted)
+        {
             LogFolderEvent(EventName(e.ChangeType), e.Name, null);
+        }
+        else if (e.ChangeType == WatcherChangeTypes.Changed)
+        {
+            bool first;
+            lock (_sync)
+            {
+                _otherFileChanges.TryGetValue(e.Name, out var count);
+                _otherFileChanges[e.Name] = count + 1;
+                first = count == 0;
+            }
+            if (first)
+                LogFolderEvent("modificato", e.Name, null);
+        }
     }
 
     void OnRenamed(object sender, RenamedEventArgs e)
@@ -340,7 +416,12 @@ public sealed class RecordingSession : IDisposable
             if (_lastMissing)
                 return;
             _lastMissing = true;
+            // Tolto da noi (modalità consumo): non è un evento di Passepartout, e lo stesso conto riscritto
+            // va riconosciuto come riscrittura, non come versione nuova.
+            if (_removedByUs)
+                return;
             _lastHash = null;
+            Interlocked.Increment(ref _activity);
             lock (_sync)
             {
                 if (_stopped) return;
@@ -361,10 +442,12 @@ public sealed class RecordingSession : IDisposable
         }
 
         _lastMissing = false;
+        _removedByUs = false;
         _readRetries += read.Retries;
         var hash = Sha256(read.Bytes);
         if (!read.Stable)
         {
+            Interlocked.Increment(ref _activity);
             RecordUnstable(read, hash, sources);
             return;
         }
@@ -376,6 +459,7 @@ public sealed class RecordingSession : IDisposable
             {
                 _lastWriteUtc = read.Meta.LastWriteUtc;
                 _rewrites++;
+                Interlocked.Increment(ref _activity);
                 lock (_sync)
                 {
                     if (_stopped) return;
@@ -396,10 +480,51 @@ public sealed class RecordingSession : IDisposable
             {
                 _duplicateNotifications++;
             }
+            ConsumeIfEnabled();
             return;
         }
 
         RecordVersion(read.Bytes, hash, read.Meta, read.Retries, read.WriterWaitMs, sources);
+        ConsumeIfEnabled();
+    }
+
+    /// <summary>
+    /// Modalità consumo: toglie il file appena registrato, come farebbe un lettore che "consuma" i file di scambio.
+    /// Si chiama solo dopo una lettura stabile, quindi Passepartout ha già finito di scriverlo.
+    /// </summary>
+    void ConsumeIfEnabled()
+    {
+        if (!_consume)
+            return;
+        for (var attempt = 0; attempt < 25; attempt++)
+        {
+            try
+            {
+                _removedByUs = true;
+                File.Delete(TargetPath);
+                _consumed++;
+                lock (_sync)
+                {
+                    if (!_stopped)
+                        WriteIndexLocked(new JsonObject { { "tipo", "consumato" }, { "ora", Now() }, { "ms", _clock.ElapsedMilliseconds }, { "dopoVersione", _seq } });
+                }
+                _log.Line("         file tolto: Passepartout può scrivere il prossimo", ConsoleColor.DarkGray);
+                return;
+            }
+            catch (IOException)
+            {
+                // Riaperto da qualcuno proprio ora (Passepartout o il vecchio monitor): si riprova tra un attimo.
+                Thread.Sleep(20);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _removedByUs = false;
+                _log.Line($"{Clock()}  Avviso: impossibile togliere {FileName} ({ex.Message}). Avvia il registratore con un utente che può modificare la cartella.", ConsoleColor.DarkYellow);
+                return;
+            }
+        }
+        _removedByUs = false;
+        _log.Line($"{Clock()}  Avviso: {FileName} è rimasto aperto da un altro programma, non è stato tolto", ConsoleColor.DarkYellow);
     }
 
     /// <summary>
@@ -582,6 +707,7 @@ public sealed class RecordingSession : IDisposable
             _seq = seq;
             WriteIndexLocked(entry);
         }
+        Interlocked.Increment(ref _activity);
 
         _seqByHash[hash] = seq;
         _lastHash = hash;
@@ -713,7 +839,7 @@ public sealed class RecordingSession : IDisposable
         return null;
     }
 
-    void LogFolderEvent(string kind, string name, string oldName)
+    void LogFolderEvent(string kind, string name, string oldName, bool quiet = false)
     {
         lock (_sync)
         {
@@ -730,7 +856,8 @@ public sealed class RecordingSession : IDisposable
                 { "vecchioNome", oldName },
             });
         }
-        _log.Line($"{Clock()}  cartella: {kind} {(oldName != null ? oldName + " → " : "")}{name}", ConsoleColor.DarkGray);
+        if (!quiet)
+            _log.Line($"{Clock()}  cartella: {kind} {(oldName != null ? oldName + " → " : "")}{name}", ConsoleColor.DarkGray);
     }
 
     void WriteIndex(JsonObject entry)
@@ -801,6 +928,12 @@ public sealed class RecordingSession : IDisposable
         sb.AppendLine($"  Letture prese durante la scrittura (messe da parte): {_unstableReads}");
         sb.AppendLine($"  Letture ritentate (file bloccato): {_readRetries}");
         sb.AppendLine($"  Eventi della cartella: {_folderEvents}");
+        sb.AppendLine($"  File tolti in modalità consumo: {_consumed}");
+        lock (_sync)
+        {
+            foreach (var pair in _otherFileChanges.OrderBy(p => p.Key))
+                sb.AppendLine($"  Altro file modificato nella cartella: {pair.Key} ({pair.Value} volte)");
+        }
         sb.AppendLine($"  Note: {_notes}");
         sb.AppendLine($"  Codifiche viste: {(_encodings.Count == 0 ? "-" : string.Join(", ", _encodings))}");
         return sb.ToString();

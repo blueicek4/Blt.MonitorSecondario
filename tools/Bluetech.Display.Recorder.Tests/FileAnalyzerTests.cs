@@ -30,6 +30,16 @@ public class FileAnalyzerTests
     }
 
     [Fact]
+    public void Restaurant_receipt_keeps_mixed_case_and_descriptions_cut_at_30_columns()
+    {
+        var a = FileAnalyzer.Analyze(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "samples", "scontrino-ristorante-3-righe.txt")));
+        Assert.Equal(FileKind.Scontrino, a.Kind);
+        Assert.Equal(new[] { " Tagliata Al Rosmarino   15,50", " Hamburger Vecchia Malg  16,50", " Gelato alla crema con    3,50" }, a.ReceiptLines);
+        Assert.All(a.ReceiptLines, l => Assert.Equal(30, l.Length));
+        Assert.Equal("35,50", a.Total);
+    }
+
+    [Fact]
     public void Utf8_with_bom_is_detected()
     {
         var bytes = new byte[] { 0xEF, 0xBB, 0xBF }.Concat(Encoding.UTF8.GetBytes("SNF\r\n TIRAMISÙ   5,00 €\r\n")).ToArray();

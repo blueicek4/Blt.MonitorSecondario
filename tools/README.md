@@ -17,6 +17,7 @@ quell'istante Passepartout volesse scrivere, riproverebbe da sé, come già succ
    - Altro percorso: trascina il file `Scontrino.txt` (o la sua cartella) sull'exe, oppure
      `BluetechRecorder.exe D:\percorso\Scontrino.txt`.
    - Altra cartella di destinazione: `--out D:\Registrazioni`.
+   - Modalità consumo da subito: `--consuma` (vedi sotto).
 3. Lavora in cassa. Prima di ogni prova **scrivi una nota** nella finestra e premi Invio
    (es. `storno seconda riga`): finisce nell'indice con l'ora, così ogni file si collega a cosa stavi facendo.
 4. Per finire scrivi `/fine` (oppure Ctrl+C, oppure chiudi la finestra: lo zip viene creato lo stesso, di norma
@@ -26,6 +27,23 @@ quell'istante Passepartout volesse scrivere, riproverebbe da sé, come già succ
 
 Se la cartella non è scrivibile, le registrazioni vanno sul Desktop in `Registrazioni Monitor`.
 La selezione del testo col mouse nella finestra è disattivata: in Windows bloccherebbe la console.
+
+## Se registra una sola versione
+
+Succede quando Passepartout **non sovrascrive un file che esiste già** (`SovrascriviSeEsistente=false` nel modello
+XML): scrive `Scontrino.txt` la prima volta, poi aspetta che qualcuno lo tolga e, dopo 3 tentativi, rinuncia.
+Il registratore te lo segnala:
+
+- all'avvio, se il file c'è già;
+- appena scrivi una nota e dalla nota precedente il file non è cambiato.
+
+Scrivi `/consuma` (o avvia con `--consuma`): dopo ogni lettura il registratore toglie il file, così Passepartout
+può scrivere il successivo. `/consuma` di nuovo la disattiva. Il contenuto di ogni versione resta salvato nella
+registrazione. Non usarla se sulla stessa cassa è acceso il vecchio `MonitorCliente.exe`: gli toglieresti il file.
+
+Se anche con `/consuma` non arriva niente, Passepartout scrive in un'altra cartella o con un altro nome: controlla il
+percorso del dispositivo monitor. Gli altri file modificati nella stessa cartella compaiono comunque a video
+(`cartella: modificato …`).
 
 ## Cosa vedi a video
 

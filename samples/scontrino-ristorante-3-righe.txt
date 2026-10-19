@@ -1,0 +1,10 @@
+SNF
+ 
+ Tagliata Al Rosmarino   15,50
+ Hamburger Vecchia Malg  16,50
+ Gelato alla crema con    3,50
+SUBTOT.                  35,50
+ 
+TOT. DA PAGARE           35,50
+ 
+ 
