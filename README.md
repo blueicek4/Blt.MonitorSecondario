@@ -12,6 +12,7 @@ personalizzabile con il brand del locale e sempre firmata "powered by Bluetech".
 | [docs/03-prompt-claude-design.md](docs/03-prompt-claude-design.md) | Cosa allegare al brief e come gestire le iterazioni |
 | [docs/reference/](docs/reference/) | Configurazione e modello XML originali, per i test di compatibilità |
 | [samples/](samples/) | File reali scritti dalla cassa, usati nei test |
+| [design/](design/ALLINEAMENTO.md) | Pacchetto di handoff di Claude Design (`design/handoff/`, tale e quale) e allineamento con la cassa reale |
 
 ## Componenti
 
