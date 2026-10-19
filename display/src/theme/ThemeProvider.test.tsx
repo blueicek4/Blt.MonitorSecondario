@@ -5,6 +5,7 @@ import { render, resizeTo } from '../test/render';
 import { presetConfig, type ThemeConfig } from './theme';
 import { ThemeProvider } from './ThemeProvider';
 import { useTheme } from './themeContext';
+import type { DisplayPhase } from '../types/protocol';
 
 const root = document.documentElement;
 const cssVar = (name: string) => root.style.getPropertyValue(name);
@@ -22,9 +23,9 @@ describe('ThemeProvider', () => {
     vi.restoreAllMocks();
   });
 
-  const mount = (config: ThemeConfig, now?: () => Date) => {
+  const mount = (config: ThemeConfig, now?: () => Date, phase?: DisplayPhase) => {
     const view = render(
-      <ThemeProvider config={config} now={now}>
+      <ThemeProvider config={config} now={now} phase={phase}>
         <Probe />
       </ThemeProvider>,
     );
@@ -43,9 +44,27 @@ describe('ThemeProvider', () => {
       motion: 'light',
       format: '1920x1080',
       layout: 'wide',
-      qr: 'beside',
       compactRows: 'true',
     });
+    expect(root.dataset.qr).toBeUndefined();
+  });
+
+  it('data-qr solo durante il pagamento: fuori dal pagamento lo scontrino resta largo', () => {
+    const config = presetConfig('bluetech', 'notte', { qrLayout: 'beside' });
+    const view = mount(config, undefined, 'sale');
+    expect(root.dataset.qr).toBeUndefined();
+    view.rerender(
+      <ThemeProvider config={config} phase="payment">
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(root.dataset.qr).toBe('beside');
+    view.rerender(
+      <ThemeProvider config={config} phase="thanks">
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(root.dataset.qr).toBeUndefined();
   });
 
   it('cambiare tema e modo cambia le variabili, non il formato', () => {
@@ -68,7 +87,11 @@ describe('ThemeProvider', () => {
 
   it('su narrow il QR è sempre a tutto schermo, anche se il tema dice beside', () => {
     resizeTo(1024, 768);
-    const view = mount(presetConfig('bluetech', 'notte', { qrLayout: 'beside' }));
+    const view = mount(
+      presetConfig('bluetech', 'notte', { qrLayout: 'beside' }),
+      undefined,
+      'payment',
+    );
     expect(root.dataset.qr).toBe('fullscreen');
     expect(view.container.textContent).toBe('bluetech-notte fullscreen');
   });

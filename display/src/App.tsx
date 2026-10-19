@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { ThemeProvider } from './theme/ThemeProvider';
 import { presetConfig, type ThemeConfig } from './theme/theme';
 import { createMockTransport } from './transport/mock';
 import { Bench } from './dev/Bench';
@@ -12,9 +11,6 @@ export function App() {
   const [config, setConfig] = useState<ThemeConfig>(() => presetConfig('bluetech', 'notte'));
   const cashier = useMemo(() => createMockTransport(), []);
 
-  return (
-    <ThemeProvider config={config}>
-      <Bench config={config} onConfigChange={setConfig} cashier={cashier} />
-    </ThemeProvider>
-  );
+  // Il banco monta il ThemeProvider: è lui a sapere in che fase è la cassa finta.
+  return <Bench config={config} onConfigChange={setConfig} cashier={cashier} />;
 }

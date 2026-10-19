@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type {
   CashIn,
+  DisplayState,
   LinkState,
   MotionLevel,
   QrLayout,
@@ -8,6 +9,7 @@ import type {
   ThemeMode,
 } from '../types/protocol';
 import { formatAmount, formatEuro } from '../money/money';
+import { ThemeProvider } from '../theme/ThemeProvider';
 import { useTheme } from '../theme/themeContext';
 import { presetConfig, type ThemeConfig } from '../theme/theme';
 import type { MockCashier } from '../transport/mock';
@@ -40,19 +42,23 @@ const QR_LAYOUTS: Array<[QrLayout, string]> = [
   ['fullscreen', 'A tutto schermo'],
 ];
 
-/** Banco di prova di M1: non è un'interfaccia per il cliente. */
+/**
+ * Banco di prova di M1: non è un'interfaccia per il cliente.
+ *
+ * L'anteprima mostra quello che il display avrebbe ricevuto: si aggiorna a ogni messaggio della
+ * cassa, quindi a connessione persa resta ferma, e al ritorno si allinea col `sync`.
+ */
 export function Bench({ config, onConfigChange, cashier }: BenchProps) {
-  const theme = useTheme();
   const [log, setLog] = useState<CashIn[]>([]);
   const [link, setLink] = useState<LinkState>('online');
-  const [, setRevision] = useState(0);
+  const [view, setView] = useState<Partial<DisplayState>>(() => cashier.snapshot());
 
   useEffect(
     () =>
       cashier.connect({
         onMessage: (message) => {
           setLog((entries) => [message, ...entries].slice(0, 14));
-          setRevision((n) => n + 1);
+          setView(cashier.snapshot());
         },
         onLink: (state) => {
           setLink(state);
@@ -62,6 +68,28 @@ export function Bench({ config, onConfigChange, cashier }: BenchProps) {
     [cashier],
   );
 
+  return (
+    <ThemeProvider config={config} phase={view.phase}>
+      <BenchView
+        config={config}
+        onConfigChange={onConfigChange}
+        cashier={cashier}
+        log={log}
+        link={link}
+        sale={view}
+      />
+    </ThemeProvider>
+  );
+}
+
+interface BenchViewProps extends BenchProps {
+  log: CashIn[];
+  link: LinkState;
+  sale: Partial<DisplayState>;
+}
+
+function BenchView({ config, onConfigChange, cashier, log, link, sale }: BenchViewProps) {
+  const theme = useTheme();
   const tokens = config.tokens;
   const change = (behavior: Partial<typeof tokens>) =>
     onConfigChange({ ...config, tokens: { ...tokens, ...behavior } });
@@ -75,7 +103,6 @@ export function Bench({ config, onConfigChange, cashier }: BenchProps) {
       }),
     );
 
-  const sale = cashier.snapshot();
   const offline = link !== 'online';
 
   return (

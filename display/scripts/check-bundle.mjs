@@ -4,8 +4,10 @@
 // 3. Nessun alert/confirm/prompt nel codice (CLAUDE.md).
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const dist = new URL('../dist/', import.meta.url).pathname;
+// fileURLToPath e non URL.pathname: su Windows (e con spazi o accenti nel percorso) pathname non è un percorso.
+const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 const problems = [];
 
 const files = [];

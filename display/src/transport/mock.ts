@@ -8,6 +8,7 @@ import type {
   Transport,
 } from '../types/protocol';
 import { formatEuro } from '../money/money';
+import { grayPngDataUri } from './png';
 
 /**
  * Cassa finta per sviluppare senza Passepartout (TASKS M1). Riproduce i comandi del prototipo di
@@ -201,11 +202,15 @@ export function createMockTransport(): MockCashier {
   };
 }
 
+/** Moduli per lato del QR finto (versione 2). */
+export const FAKE_QR_MODULES = 25;
+
 /**
- * QR finto come nei mockup: geometria corretta (tre finder, timing, alignment, quiet zone di 4
- * moduli) ma NON scansionabile. In produzione il PNG arriva dalla cassa.
+ * QR finto come nei mockup: geometria corretta (tre finder, timing, alignment) ma NON scansionabile.
+ * Arriva come quello vero: un PNG in Base64, un pixel per modulo e senza quiet zone, che aggiunge
+ * QrStage. In produzione il PNG arriva dalla cassa.
  */
-const FAKE_QR = fakeQrDataUri(25, 18901019);
+const FAKE_QR = fakeQrDataUri(FAKE_QR_MODULES, 18901019);
 
 function fakeQrDataUri(size: number, seed: number): string {
   const grid: boolean[][] = Array.from({ length: size }, () => Array<boolean>(size).fill(false));
@@ -254,13 +259,5 @@ function fakeQrDataUri(size: number, seed: number): string {
   for (let r = 0; r < size; r++)
     for (let c = 0; c < size; c++) if (!reserved(r, c)) set(r, c, random() > 0.52);
 
-  const quiet = 4;
-  const total = size + quiet * 2;
-  const modules = grid
-    .flatMap((row, r) => row.map((on, c) => (on ? `M${c + quiet} ${r + quiet}h1v1h-1z` : '')))
-    .join('');
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges">` +
-    `<rect width="${total}" height="${total}" fill="#fff"/><path d="${modules}" fill="#000"/></svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  return grayPngDataUri(size, size, (x, y) => (grid[y]?.[x] ? 0 : 255));
 }

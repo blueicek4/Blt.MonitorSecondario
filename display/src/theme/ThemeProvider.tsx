@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import { paletteToCssVars } from '../tokens/themes';
-import type { QrLayout, ThemeMode } from '../types/protocol';
+import type { DisplayPhase, QrLayout, ThemeMode } from '../types/protocol';
 import { useFormat } from '../format/useFormat';
 import { DEFAULT_DAY_HOURS, modeAt, resolveTheme, type DayHours, type ThemeConfig } from './theme';
 import { ThemeContext, type ThemeContextValue } from './themeContext';
@@ -10,6 +10,11 @@ const AUTO_MODE_CHECK_MS = 30_000;
 
 interface ThemeProviderProps {
   config: ThemeConfig;
+  /**
+   * Fase dello schermo. `data-qr` c'è solo durante il pagamento: tokens.css restringe lo scontrino
+   * quando il QR gli sta accanto, e fuori dal pagamento lo scontrino è largo (SPEC §2.2, §2.4).
+   */
+  phase?: DisplayPhase;
   children: ReactNode;
   /** Orologio iniettabile, per i test. */
   now?: () => Date;
@@ -20,9 +25,13 @@ interface ThemeProviderProps {
  * Applica il tema sul nodo radice: custom properties da `paletteToCssVars()` e gli attributi
  * `data-motion`, `data-format`, `data-layout`, `data-qr`, `data-compact-rows` letti da tokens.css.
  * Cambiare tema o modo cambia solo variabili: nessun layout.
+ *
+ * Da fare in M2: con `mode: 'auto'` il passaggio giorno/notte è secco, la SPEC §6 vuole una
+ * dissolvenza di 900 ms (ALLINEAMENTO §7).
  */
 export function ThemeProvider({
   config,
+  phase = 'idle',
   children,
   now,
   dayHours = DEFAULT_DAY_HOURS,
@@ -50,7 +59,8 @@ export function ThemeProvider({
     root.dataset.motion = config.tokens.motion;
     root.dataset.format = screen.format;
     root.dataset.layout = screen.layout;
-    root.dataset.qr = qrLayout;
+    if (phase === 'payment') root.dataset.qr = qrLayout;
+    else root.removeAttribute('data-qr');
     root.dataset.compactRows = String(config.tokens.compactRows);
   }, [
     resolved,
@@ -59,6 +69,7 @@ export function ThemeProvider({
     screen.format,
     screen.layout,
     qrLayout,
+    phase,
   ]);
 
   const value = useMemo<ThemeContextValue>(

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CashIn, LinkState } from '../types/protocol';
-import { createMockTransport } from './mock';
+import { FAKE_QR_MODULES, createMockTransport } from './mock';
 
 function connect() {
   const cashier = createMockTransport();
@@ -72,7 +72,7 @@ describe('cassa finta', () => {
     cashier.showQr();
     const qr = messages.at(-1);
     expect(qr).toMatchObject({ t: 'pay.qr', provider: 'satispay', amount: 400 });
-    expect(qr?.t === 'pay.qr' && qr.png.startsWith('data:image/svg+xml')).toBe(true);
+    expect(qr?.t === 'pay.qr' && qr.png.startsWith('data:image/png;base64,')).toBe(true);
     cashier.clearQr();
     cashier.endSale();
     expect(messages.slice(-2).map((m) => m.t)).toEqual(['pay.clear', 'sale.close']);
@@ -114,5 +114,19 @@ describe('cassa finta', () => {
     disconnect();
     cashier.addLine();
     expect(messages).toHaveLength(0);
+  });
+});
+
+describe('QR finto', () => {
+  it('è un PNG vero, un pixel per modulo, senza quiet zone', () => {
+    const { cashier, messages } = connect();
+    cashier.addLine();
+    cashier.showQr();
+    const qr = messages.at(-1);
+    if (qr?.t !== 'pay.qr') throw new Error('manca il QR');
+    const bytes = Uint8Array.from(atob(qr.png.split(',')[1] ?? ''), (c) => c.charCodeAt(0));
+    expect([...bytes.subarray(1, 4)].map((b) => String.fromCharCode(b)).join('')).toBe('PNG');
+    const header = new DataView(bytes.buffer, 16, 8);
+    expect([header.getUint32(0), header.getUint32(4)]).toEqual([FAKE_QR_MODULES, FAKE_QR_MODULES]);
   });
 });

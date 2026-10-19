@@ -1,0 +1,4 @@
+# Il display è sviluppato anche su Windows: righe LF ovunque, come vuole Prettier.
+* text=auto eol=lf
+*.woff2 binary
+*.png binary

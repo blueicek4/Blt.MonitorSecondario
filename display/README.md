@@ -28,7 +28,7 @@ npm run build          # dist/
 npm run check:bundle   # dopo la build: niente indirizzi esterni, font presenti, niente alert
 ```
 
-Node 22.12 o successivo.
+Node 22.22.2 o successivo, oppure 24.15 o successivo: è il minimo di jsdom, usato dai test.
 
 ## Regole del pacchetto che il codice già fa rispettare
 

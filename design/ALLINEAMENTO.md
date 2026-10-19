@@ -85,4 +85,13 @@ confrontando ogni versione del file con quella precedente.
 | `qrLayout` di default | Non indicato nella SPEC | `beside`, come il prototipo |
 | Rapporti d'aspetto 1–1,2 | La SPEC copre ≥1,5 / 1,2–1,5 / <1 | `narrow`, la variante più vicina |
 | Font in `public/fonts/` | — | Come da TASKS M0, quindi il display va servito dalla radice del sito (`/`): l'Agent lo servirà così |
+| Livello di animazione di default | Il prototipo parte da "piena", MOTION.md indica "leggera" come default consigliato | `light` (vale il pacchetto). "Piena" si sceglie dal pannello |
+| `data-qr` sul nodo radice | TASKS M1 lo dà al `ThemeProvider`, che non sa in che fase è lo schermo; tokens.css restringe lo scontrino a 760 px quando `data-qr='beside'` | L'attributo c'è solo durante il pagamento: il `ThemeProvider` riceve la fase (oggi dal banco di prova, da M2 da `DisplayRoot`). Fuori dal pagamento lo scontrino resta a 1180 px |
+| Colori del locale con giorno o notte fissi | I colori che il preset ricava dagli altri (blocco totale, bagliori, superficie opaca, filetti, testo tenue) restavano quelli del preset: il totale poteva diventare illeggibile | Si ricalcolano dai colori del locale. Il controllo di contrasto copre anche il testo sulla card e la cifra del totale; se non passa, `bluetech-notte` |
+| Font e raggio con `mode: 'auto'` | Ignorati insieme ai colori | Restano quelli del locale: sono uguali nelle due varianti di ogni tema |
+| QR della cassa finta | Era un SVG con la quiet zone già dentro | PNG vero, un pixel per modulo, senza quiet zone: come quello della cassa, che `QrStage` ingrandisce di un multiplo intero aggiungendo la quiet zone |
+
+**Aperto per M2**: con `mode: 'auto'` il passaggio giorno/notte oggi è secco, la SPEC §6 vuole una dissolvenza di 900 ms.
+Va fatta in sola opacità (due livelli, mai una transizione sui colori), sotto il footer e mai durante il pagamento:
+il QR non si copre, quindi il cambio aspetta la fine del pagamento.
 
