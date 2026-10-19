@@ -1,0 +1,20 @@
+# Bluetech Display — monitor cliente per Passepartout Menu
+
+Nuova generazione del "monitor secondario" della cassa: legge lo stesso file di scambio di Passepartout Menu
+dell'attuale `MonitorCliente.exe`, ma mostra scontrino, pubblicità e QR Satispay in un'interfaccia web moderna,
+personalizzabile con il brand del locale e sempre firmata "powered by Bluetech".
+
+| Documento | Contenuto |
+|---|---|
+| [docs/01-analisi-monitorcliente.md](docs/01-analisi-monitorcliente.md) | Reverse engineering completo del monitor attuale: protocollo del file, regole di parsing, configurazione, bug |
+| [docs/02-piano-azione.md](docs/02-piano-azione.md) | Architettura, fasi, rischi, decisioni aperte |
+| [docs/03-prompt-claude-design.md](docs/03-prompt-claude-design.md) | Brief da dare a Claude Design per l'interfaccia |
+| [docs/reference/](docs/reference/) | Configurazione e modello XML originali, per i test di compatibilità |
+
+## Componenti
+
+| Cartella | Stato |
+|---|---|
+| [`player/`](player/README.md) | **Bluetech Display Player** — WebView2 a schermo intero sul monitor secondario, avvio automatico, configurazione protetta da codice. Pronto per il collaudo |
+| `agent/` | Servizio Windows che legge `Scontrino.txt` e pubblica lo stato in tempo reale — da fare (Fase 1) |
+| `display/` | Interfaccia web del monitor e pannello di amministrazione — da fare (Fasi 3–4) |

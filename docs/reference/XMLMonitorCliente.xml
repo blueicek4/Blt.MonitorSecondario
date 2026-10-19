@@ -1,0 +1,298 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ProtocolloXml versione="1.3">
+  <Modello nome="Monitor">
+    <InizioStampaFiscale>
+      <Valore>SF</Valore>
+      <Descrizione></Descrizione>
+    </InizioStampaFiscale>
+    <FineStampaFiscale>
+      <Valore></Valore>
+      <Descrizione></Descrizione>
+    </FineStampaFiscale>
+    <TagliaCarta>
+      <Valore></Valore>
+      <Descrizione></Descrizione>
+    </TagliaCarta>
+    <InizioStampaNonFiscale>
+      <Valore>SNF</Valore>
+      <Descrizione></Descrizione>
+    </InizioStampaNonFiscale>
+    <FineStampaNonFiscale>
+      <Valore></Valore>
+      <Descrizione></Descrizione>
+    </FineStampaNonFiscale>
+    <StampaStringa>
+      <Valore stringa='{0}'>{0}</Valore>
+      <Descrizione>Stampa stringa in uno scontrino non fiscale</Descrizione>
+    </StampaStringa>
+    <StampaStringaScontrino>
+      <Valore stringa='{0}'>PRMSG RIGA='{0}'</Valore>
+      <Descrizione>Stampa stringa in uno scontrino fiscale</Descrizione>
+    </StampaStringaScontrino>
+    <AvanzamentoCarta>
+      <Valore></Valore>
+      <Descrizione>Avanzamento di una riga nello scontrino fiscale</Descrizione>
+    </AvanzamentoCarta>
+    <StampaRigaArticolo>
+      <Valore descrizione='{0}' quantita='{1}' prezzoUnitario='{2}' reparto='{3}' aliquotaIva='{4}' totaleRiga='{5}'>VEND REP={3}, QTY={1}, PREZZO={2}, DES='{0}'</Valore>
+      <Descrizione></Descrizione>
+    </StampaRigaArticolo>
+    <StampaRigaArticoloUnitario>
+      <Valore descrizione='{0}' prezzoUnitario='{1}' reparto='{2}' aliquotaIva='{3}' >VEND REP={2}, PREZZO={1}, DES='{0}'</Valore>
+      <Descrizione></Descrizione>
+    </StampaRigaArticoloUnitario>
+    <StampaRigaReparto>
+      <Valore quantita='{0}' prezzoUnitario='{1}' reparto='{2}' aliquotaIva='{3}' totaleRiga='{4}'>VEND REP={2}, QTY={0}, PREZZO={1}</Valore>
+      <Descrizione></Descrizione>
+    </StampaRigaReparto>
+    <StampaSubtotale>
+      <Valore>SUBT</Valore>
+      <Descrizione></Descrizione>
+    </StampaSubtotale>
+    <ScontoPercentualeRiga>
+      <Valore percentuale='{0}' reparto='{1}' descrizione='{2}'>PERCA ALIQ={0}</Valore>
+      <Descrizione>Configurare %A come sconto</Descrizione>
+    </ScontoPercentualeRiga>
+    <ScontoPercentualeSubtotale>
+      <Valore percentuale='{0}' descrizione='{1}' >PERCA ALIQ={0}, SUBT</Valore>
+      <Descrizione>Configurare %A come sconto</Descrizione>
+    </ScontoPercentualeSubtotale>
+    <ScontoValoreRiga>
+      <Valore importo='{0}' reparto='{1}' descrizione='{2}' descSecondaria='{3}' >SCONTO VAL={0}</Valore>
+      <Descrizione></Descrizione>
+    </ScontoValoreRiga>
+    <ScontoValoreSubtotale>
+      <Valore importo='{0}' descrizione='{1}' descSecondaria='{2}'>SCONTO VAL={0}, SUBT|SUBT</Valore>
+      <Descrizione></Descrizione>
+    </ScontoValoreSubtotale>
+    <MaggiorazionePercentualeRiga>
+      <Valore percentuale='{0}' reparto='{1}' descrizione='{2}'>PERCA ALIQ={0}</Valore>
+      <Descrizione>Configurare %B come maggiorazione</Descrizione>
+    </MaggiorazionePercentualeRiga>
+    <MaggiorazionePercentualeSubtotale>
+      <Valore percentuale='{0}' descrizione='{1}' >PERCB ALIQ={0}, SUBT</Valore>
+      <Descrizione>Configurare %B come maggiorazione</Descrizione>
+    </MaggiorazionePercentualeSubtotale>
+    <MaggiorazioneValoreRiga>
+      <Valore importo='{0}' reparto='{1}' descrizione='{2}' descSecondaria='{3}'></Valore>
+      <Descrizione></Descrizione>
+    </MaggiorazioneValoreRiga>
+    <MaggiorazioneValoreSubtotale>
+      <Valore importo='{0}' descrizione='{1}' descSecondaria='{2}'>INP NUM={0}, TERM=34|SUBT</Valore>
+      <Descrizione></Descrizione>
+    </MaggiorazioneValoreSubtotale>
+    <AnnullaScontrino>
+      <Valore>INP TERM=58</Valore>
+      <Descrizione></Descrizione>
+    </AnnullaScontrino>
+    <StornaRigaArticolo>
+    <Valore descrizione='{0}' quantita='{1}' prezzoUnitario='{2}' reparto='{3}' aliquotaIva='{4}' totaleRiga='{5}' descSecondaria='{6}'>VEND REP={3}, QTY={1}, PREZZO={2}, DES='{0}',STORNO</Valore>
+      <Descrizione></Descrizione>
+    </StornaRigaArticolo>
+    <StampaPagamentoContanti>
+      <Valore importo='{0}' descrizione='{1}'>CHIUS T=1, I={0}</Valore>
+      <Descrizione></Descrizione>
+    </StampaPagamentoContanti>
+    <StampaPagamentoAssegno>
+      <Valore importo='{0}' descrizione='{1}'>CHIUS T=3, I={0}</Valore>
+      <Descrizione></Descrizione>
+    </StampaPagamentoAssegno>
+    <StampaPagamentoCC>
+      <Valore importo='{0}' descrizione='{1}'>CHIUS T=5, I={0}</Valore>
+      <Descrizione></Descrizione>
+    </StampaPagamentoCC>
+    <StampaPagamentoBuonoPasto>
+      <Valore importo='{0}' descrizione='{1}'>CHIUS T=4, I={0}</Valore>
+      <Descrizione></Descrizione>
+    </StampaPagamentoBuonoPasto>
+    
+    <StampaPagamentoBancomat>
+      <Valore importo='{0}' descrizione='{1}'>INP NUM={0}, TERM=125</Valore>
+      <Descrizione>Configurare il subtender 1 come pagamento bancomat</Descrizione>
+    </StampaPagamentoBancomat>
+    <StampaPagamentoSospeso>
+      <Valore importo='{0}' descrizione='{1}'>CHIUS T=2, I={0}</Valore>
+      <Descrizione></Descrizione>
+    </StampaPagamentoSospeso>
+    
+    <StampaRigheFisse>
+      <Valore stringa='{0}' numRiga='{1}'>PRMSG RIGA='{0}'</Valore>
+      <Descrizione>Righe prima del pagamento</Descrizione>
+    </StampaRigheFisse>
+    <StampaCodiceFiscale>
+      <Valore codice='{0}'>INP TERM=61|INP ALFA='{0}', TERM=49</Valore>
+      <Descrizione></Descrizione>
+    </StampaCodiceFiscale>
+    <StampaPartitaIva>
+      <Valore codice='{0}'>INP TERM=61|INP ALFA='{0}', TERM=49</Valore>
+      <Descrizione></Descrizione>
+    </StampaPartitaIva>
+    <ChiusuraGiornaliera>
+      <Valore>AZZGIO TIPO=1|CHIAVE REG</Valore>
+      <Descrizione></Descrizione>
+    </ChiusuraGiornaliera>
+    <AperturaCassetto>
+      <Valore>INP TERM=37</Valore>
+      <Descrizione></Descrizione>
+    </AperturaCassetto>
+    <AzzeraReparti>
+      <Valore></Valore>
+      <Descrizione></Descrizione>
+    </AzzeraReparti>
+    <StampaLetturaReparti>
+      <Valore>REPORT NUM=11</Valore>
+      <Descrizione></Descrizione>
+    </StampaLetturaReparti>
+    <VisualizzaMessaggioDisplay>
+      <Valore messaggio='{0}' messaggioRiga1='{1}' messaggioRiga2='{2}'>{1} {2}</Valore>
+      <Descrizione></Descrizione>
+    </VisualizzaMessaggioDisplay>
+    <StampaTotRepartiGiornaliero>
+      <Valore></Valore>
+      <Descrizione></Descrizione>
+    </StampaTotRepartiGiornaliero>
+
+    <PrelievoCassa>
+      <Valore importo='{0}'>INP TERM=155|INP NUM={0}, TERM=49|INP TERM=145</Valore>
+      <Descrizione></Descrizione>
+    </PrelievoCassa>
+    <Deposito>
+      <Valore importo='{0}'>INP TERM=156|INP NUM={0}, TERM=49|INP TERM=145</Valore>
+      <Descrizione></Descrizione>
+    </Deposito>
+    <InizioPraticaDiReso>
+      <Valore></Valore>
+      <Descrizione></Descrizione>
+    </InizioPraticaDiReso>
+     <FinePraticaDiReso>
+      <Valore></Valore>
+      <Descrizione></Descrizione>
+    </FinePraticaDiReso>
+    <Reso>
+      <Valore importo='{0}' reparto='{1}' aliquotaIva='{2}' descrizione='{3}' >VEND REP={1}, QTY=1, PREZZO={0}, DES='{3}', RESO|</Valore>
+      <Descrizione></Descrizione>
+    </Reso>
+    <StampaLetturaGiornaliera>
+      <Valore></Valore>
+      <Descrizione></Descrizione>
+    </StampaLetturaGiornaliera>
+    <IsStampeNonFiscaliAbilitate>
+      <Valore>true</Valore>
+      <Descrizione></Descrizione>
+    </IsStampeNonFiscaliAbilitate>
+    <StampaIntestazione>
+      <Valore></Valore>
+      <Descrizione></Descrizione>
+    </StampaIntestazione>
+    <StampaData>
+      <Valore></Valore>
+      <Descrizione></Descrizione>
+    </StampaData>
+    <SetOperatore>
+      <Valore numeroOperatore='{0}'></Valore>
+      <Descrizione></Descrizione>
+    </SetOperatore>
+    <NumeroColonne>
+      <Valore>30</Valore>
+      <Descrizione></Descrizione>
+    </NumeroColonne>
+    <TestoSoloMaiuscole>
+      <Valore>false</Valore>
+      <Descrizione></Descrizione>
+    </TestoSoloMaiuscole>
+    <SeparatoreIstruzioni>
+      <Valore>|</Valore>
+      <Descrizione></Descrizione>
+    </SeparatoreIstruzioni>
+    <SeparatoreDecimali>
+      <Valore>.</Valore>
+      <Descrizione></Descrizione>
+    </SeparatoreDecimali>
+    <EscapeApostrofi>
+      <Valore>false</Valore>
+      <Descrizione>true se gli apostrofi devono essere duplicati "''"</Descrizione>
+    </EscapeApostrofi>
+    <VirgolaImporti>
+      <Valore>true</Valore>
+      <Descrizione>true se l'importo deve contenere la virgola oppure no (es: 1050 corrisponde a 10,50)</Descrizione>
+    </VirgolaImporti>
+    <StampaDescrizioneAggiuntivaArticolo >
+      <Valore stringa='{0}'>PRMSG RIGA='{0}'</Valore>
+      <Descrizione></Descrizione>
+    </StampaDescrizioneAggiuntivaArticolo>
+    <CaratteriNonAmmessi>
+      <Valore></Valore>
+      <Descrizione></Descrizione>
+    </CaratteriNonAmmessi>
+	<CaratteriAmmessi>
+      <Valore>!/:-=€</Valore>
+      <Descrizione></Descrizione>
+    </CaratteriAmmessi>
+    <StampaVenditeImportoZeroComeTestoFattura>
+      <Valore>true</Valore>
+      <Descrizione></Descrizione>
+    </StampaVenditeImportoZeroComeTestoFattura>
+    
+    <StampaBarCodeEan8>
+      <Valore valore='{0}' valoreNoCheck='{1}'>{0}</Valore>
+      <Descrizione></Descrizione>
+    </StampaBarCodeEan8>
+    <StampaBarCodeEan13>
+      <Valore valore='{0}' valoreNoCheck='{1}'>{0}</Valore>
+      <Descrizione></Descrizione>
+    </StampaBarCodeEan13>
+        <StampaBarCode39>
+      <Valore valore='{0}' valoreNoCheck='{1}'>{0}</Valore>
+      <Descrizione></Descrizione>
+    </StampaBarCode39>
+	<StampaQRCode>
+      <Valore valore='{0}' valoreNoCheck='{1}'>QRCODE
+{0}</Valore>
+      <Descrizione></Descrizione>
+    </StampaQRCode>
+    
+	
+    <IsFatturaSuFiscaleAbilitata>
+      <Valore>true</Valore>
+      <Descrizione></Descrizione>
+    </IsFatturaSuFiscaleAbilitata>
+    <InizioFattura>
+      <Valore numero='{0}' totale='{1}' cliRagSoc='{2}' cliPIVA='{3}' cliCF='{4}' cliInd='{5}' cliCap='{6}' cliCitta='{7}' cliProv='{8}' cliTessera='{9}'  cliPIVA_CF='{10}'>FATTURA TIPO=2,NOME1='{2}',NOME2='{5}',NOME3='{6} {7} {8}',NOME4='P.Iva-C.F.:{10}'</Valore>
+      <Descrizione></Descrizione>
+    </InizioFattura>
+    <InizioFatturaAnonima>
+      <Valore numero='{0}' totale='{1}'>FATTURA TIPO=2</Valore>
+      <Descrizione></Descrizione>
+    </InizioFatturaAnonima>
+    <StampaDatiClienteFattura>
+      <Valore cliRagSoc='{0}' cliPIVA='{1}' cliCF='{2}' cliInd='{3}' cliCap='{4}' cliCitta='{5}' cliProv='{6}' cliTessera='{7}' cliPIVA_CF='{8}'></Valore>
+      <Descrizione>Dati cliente stampati prima del pagamento</Descrizione>
+    </StampaDatiClienteFattura>
+    <StampaDatiClienteFatturaAnonima>
+      <Valore></Valore>
+      <Descrizione>Dati cliente stampati prima del pagamento</Descrizione>
+    </StampaDatiClienteFatturaAnonima>
+    <FineFattura>
+      <Valore numero='{0}' totale='{1}'></Valore>
+      <Descrizione></Descrizione>
+    </FineFattura>
+    
+    <NumMaxRigheFisse>
+      <Valore>-1</Valore>
+      <Descrizione></Descrizione>
+    </NumMaxRigheFisse>
+    <NumeroColonneDisplay>
+  		<Valore>16</Valore> 
+  		<Descrizione /> 
+  	</NumeroColonneDisplay>
+	
+	
+  	<ParametriStampaSuFile>
+  		<NumeroTentativi>3</NumeroTentativi> 
+  		<SecondiAttesa>1</SecondiAttesa> 
+ 		 <SovrascriviSeEsistente>false</SovrascriviSeEsistente> 
+		<DisplayInviaSNF>true</DisplayInviaSNF>
+		<DisplayInviaQRCode>true</DisplayInviaQRCode>
+ 	</ParametriStampaSuFile>
+  </Modello>
+</ProtocolloXml>
