@@ -82,7 +82,7 @@ riceve subito lo stato corrente.
 - **Registratore pronto**: [tools/](../tools/README.md) — `BluetechRecorder.exe` salva ogni versione di `Scontrino.txt`
   byte per byte, con note dell'operatore, differenze riga per riga e uno zip finale da inviare.
 - **Primo giro (19/10)**: una sola versione registrata, nessuna attività nella cartella; causa ancora da capire.
-- **Secondo giro (20/10)**: 42 versioni, 5 conti ([registrazione](../samples/registrazioni/2026-10-20_002138/README.md)).
+- **Secondo giro (20/10)**: 42 versioni, 6 conti ([registrazione](../samples/registrazioni/2026-10-20_002138/README.md)).
   Passepartout elimina e ricrea il file a ogni aggiornamento, mai prima di 3 s dal precedente: probabile attesa che il
   lettore tolga il file (`NumeroTentativi` × `SecondiAttesa`). Da verificare con la prova A/B/A (`/consuma`): se è così
   l'Agent deve togliere il file dopo averlo letto, e il display del cliente guadagna 3 s a battuta rispetto a oggi.

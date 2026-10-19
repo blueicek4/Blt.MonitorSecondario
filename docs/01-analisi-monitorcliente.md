@@ -204,15 +204,16 @@ Un nome non riconosciuto diventa bianco.
 **Osservato sul campo** (registratore, stesso PC):
 
 - **19/10**, modello a 30 colonne: il file c'era già (scritto un minuto e mezzo prima) e per 2 minuti e mezzo di prove
-  in cassa nella cartella non è successo niente, nemmeno un'eliminazione. Una sola versione.
+  in cassa nella cartella non è successo niente: nessuna eliminazione né creazione (un tentativo fallito, per esempio
+  su un file in sola lettura, non lascerebbe traccia). Una sola versione.
 - **20/10**, modello a 48 colonne, file assente all'avvio: 42 versioni in 14 minuti
   ([registrazione](../samples/registrazioni/2026-10-20_002138/README.md)). A ogni aggiornamento Passepartout **elimina il
   file e lo ricrea** 0,25 s dopo (vuoto, poi lo riempie). E **mai prima di 3,06 s** dalla scrittura precedente: 20
-  intervalli su 41 sono tra 3,06 e 3,14 s, quando si battono articoli di fila.
+  intervalli su 41 sono tra 3,06 e 3,14 s (articoli battuti di fila, e contenuti rimandati uguali).
 
 Ipotesi coerente con entrambe, **da verificare** (prova A/B/A del [registratore](../tools/README.md)): con
 `SovrascriviSeEsistente=false` Passepartout aspetta fino a `NumeroTentativi` × `SecondiAttesa` = 3 s che il file venga
-tolto. Poi lo toglie da sé (20/10), oppure in certe condizioni rinuncia (19/10: cosa è cambiato tra le due prove?).
+tolto (i valori 3 e 1 vengono dal modello a 30 colonne in `docs/reference`: quello a 48 provato il 20/10 non l'abbiamo ancora). Poi lo toglie da sé (20/10), oppure in certe condizioni rinuncia (19/10: cosa è cambiato tra le due prove?).
 Il vecchio monitor non toglie mai il file: se l'ipotesi regge, **oggi ogni battuta arriva al display circa 3 s dopo**,
 e quando si battono articoli di fila si accodano (5 articoli → l'ultimo dopo 16 s).
 

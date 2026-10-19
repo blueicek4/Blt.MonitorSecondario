@@ -213,6 +213,7 @@ public sealed class RecordingSession : IDisposable
             { "ora", Now() },
             { "file", TargetPath },
             { "esisteGia", existing.Exists },
+            { "attributiFile", existing.Exists ? SafeAttributes(TargetPath) : null },
             { "creazioneFile", existing.Exists ? FileTime(existing.CreationUtc) : null },
             { "ultimaModificaFile", existing.Exists ? FileTime(existing.LastWriteUtc) : null },
             { "vecchioMonitor", _oldMonitors },
@@ -573,15 +574,19 @@ public sealed class RecordingSession : IDisposable
         // sostituito da sé (sovrascrivendolo, o eliminandolo e ricreandolo).
         var replacedExisting = _seq > 0 && !_removedByUs;
         _lastMissing = false;
-        _removedByUs = false;
         _readRetries += read.Retries;
         var hash = Sha256(read.Bytes);
         if (!read.Stable)
         {
+            // _removedByUs resta com'è: un file appena ricreato e preso ancora vuoto o a metà (Passepartout lo crea
+            // vuoto e lo riempie subito dopo) non cambia chi aveva tolto il precedente.
             Interlocked.Increment(ref _activity);
             RecordUnstable(read, hash, sources);
             return;
         }
+        _removedByUs = false;
+        // Il file trovato all'avvio può essere stato scritto molto prima: non è una scrittura da cronometrare.
+        var timed = !sources.Split(',').Contains("avvio");
 
         if (hash == _lastHash)
         {
@@ -590,7 +595,8 @@ public sealed class RecordingSession : IDisposable
             {
                 if (replacedExisting)
                     _replacedByWriter = true;
-                NoteWriteGap();
+                if (timed)
+                    NoteWriteGap();
                 _lastWriteUtc = read.Meta.LastWriteUtc;
                 _rewrites++;
                 Interlocked.Increment(ref _activity);
@@ -623,7 +629,8 @@ public sealed class RecordingSession : IDisposable
             _replacedByWriter = true;
         if (RecordVersion(read.Bytes, hash, read.Meta, read.Retries, read.WriterWaitMs, sources))
         {
-            NoteWriteGap();
+            if (timed)
+                NoteWriteGap();
             ConsumeIfEnabled(hash);
         }
     }
@@ -648,6 +655,9 @@ public sealed class RecordingSession : IDisposable
     /// scrittura (se Passepartout vuole scrivere proprio ora, trova il file occupato e ritenta come fa di suo),
     /// ricontrolla il contenuto e lo elimina prima di chiuderlo. Una versione arrivata nel frattempo non viene tolta:
     /// si rilegge, si registra e solo dopo si toglie.
+    /// Resta un limite: il file è eliminato per nome, e l'handle lascia eliminare. Se Passepartout eliminasse e
+    /// ricreasse il file proprio tra il controllo e l'eliminazione (frazioni di millisecondo, contro scritture ad
+    /// almeno 3 s l'una dall'altra) si toglierebbe il nuovo.
     /// </summary>
     void ConsumeIfEnabled(string recordedHash)
     {
@@ -1134,6 +1144,19 @@ public sealed class RecordingSession : IDisposable
         sb.AppendLine($"  Note: {_notes}");
         sb.AppendLine($"  Codifiche viste: {(_encodings.Count == 0 ? "-" : string.Join(", ", _encodings))}");
         return sb.ToString();
+    }
+
+    /// <summary>Attributi del file (es. "ReadOnly, Archive"): un file in sola lettura Passepartout non lo può sostituire.</summary>
+    internal static string SafeAttributes(string path)
+    {
+        try
+        {
+            return File.GetAttributes(path).ToString();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     static string Seconds(long ms) =>
