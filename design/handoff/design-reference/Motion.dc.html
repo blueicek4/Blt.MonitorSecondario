@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Bluetech Display — motion design</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+@keyframes bt-demo-row { 0%, 12% { opacity: 0; transform: translateY(18px) scale(0.985); } 28% { opacity: 1; transform: translateY(-3px) scale(1.004); } 38%, 100% { opacity: 1; transform: none; } }
+@keyframes bt-demo-digit { 0%, 20% { transform: translateY(0); } 45%, 100% { transform: translateY(-2em); } }
+@keyframes bt-demo-pulse { 0%, 60%, 100% { transform: scale(1); } 72% { transform: scale(1.035); } }
+@keyframes bt-demo-ring { 0% { transform: scale(0.6); opacity: 0.9; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes bt-demo-kb { from { transform: scale(1) translateX(0); } to { transform: scale(1.08) translateX(-8px); } }
+.bt-d-row { animation: bt-demo-row 3.2s cubic-bezier(0.22, 1.2, 0.36, 1) infinite; }
+.bt-d-digit { animation: bt-demo-digit 3.2s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
+.bt-d-pulse { animation: bt-demo-pulse 3.2s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
+.bt-d-ring { animation: bt-demo-ring 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
+.bt-d-ring2 { animation: bt-demo-ring 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.14s infinite; }
+.bt-d-ring3 { animation: bt-demo-ring 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.28s infinite; }
+.bt-d-kb { animation: bt-demo-kb 8s linear infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .bt-d-row, .bt-d-digit, .bt-d-pulse, .bt-d-ring, .bt-d-ring2, .bt-d-ring3, .bt-d-kb { animation: none; }
+}
+</style>
+</helmet>
+
+<div style="--font-display: 'Archivo', 'Arial Narrow', sans-serif; --font-text: 'IBM Plex Sans', 'Segoe UI', sans-serif; width: 1240px; height: 2600px; box-sizing: border-box; padding: 64px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 52px">
+
+  <div style="display: flex; flex-direction: column; gap: 16px">
+    <div style="font-family: var(--font-display); font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95">Motion design</div>
+    <h1 style="margin: 0; font-family: var(--font-display); font-size: 54px; font-weight: 700; line-height: 1.04; letter-spacing: -0.02em">Spettacolare su un PC cassa del 2017</h1>
+    <p style="margin: 0; font-size: 18px; line-height: 1.6; color: #9AA6BA; max-width: 76ch">Il monitor gira su grafica integrata, dietro un browser in kiosk, su una macchina che sta anche stampando scontrini. Perciò la regola è una: <strong style="color: #E6EAF2; font-weight: 600">si animano solo <code>transform</code> e <code>opacity</code></strong>. Niente <code>width</code>, <code>top</code>, <code>box-shadow</code> o <code>filter</code> animati. Blur e mesh animato esistono solo nel livello Piena, e ogni effetto ha un equivalente Eco che resta bello da fermo.</p>
+  </div>
+
+  <!-- CURVE -->
+  <div style="display: flex; flex-direction: column; gap: 22px">
+    <div style="display: flex; align-items: baseline; gap: 18px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 22px">
+      <div style="font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #6F7E95">01</div>
+      <h2 style="margin: 0; font-family: var(--font-display); font-size: 32px; font-weight: 600">Tre curve, nessuna di più</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px">
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+        <svg width="100%" height="110" viewBox="0 0 120 110" role="img" aria-label="Curva a molla con sovraelongazione">
+          <line x1="10" y1="100" x2="112" y2="100" stroke="rgba(255,255,255,0.12)" stroke-width="1"></line>
+          <line x1="10" y1="100" x2="10" y2="8" stroke="rgba(255,255,255,0.12)" stroke-width="1"></line>
+          <line x1="10" y1="22" x2="112" y2="22" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="3 4"></line>
+          <path d="M10 100 C 32 -8 46 12 60 18 C 74 24 82 22 112 22" fill="none" stroke="#3DDC97" stroke-width="2.5"></path>
+        </svg>
+        <div style="font-family: var(--font-display); font-size: 17px; font-weight: 600">molla</div>
+        <code style="font-size: 14px; color: #9AA6BA; word-break: break-all">cubic-bezier(.22, 1.2, .36, 1)</code>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #9AA6BA">Solo per l'ingresso di una riga e per la foto articolo. La sovraelongazione dà la sensazione del “battuto adesso”.</p>
+      </div>
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+        <svg width="100%" height="110" viewBox="0 0 120 110" role="img" aria-label="Curva di uscita rapida">
+          <line x1="10" y1="100" x2="112" y2="100" stroke="rgba(255,255,255,0.12)" stroke-width="1"></line>
+          <line x1="10" y1="100" x2="10" y2="8" stroke="rgba(255,255,255,0.12)" stroke-width="1"></line>
+          <path d="M10 100 C 26 16 44 10 112 10" fill="none" stroke="#1F6FEB" stroke-width="2.5"></path>
+        </svg>
+        <div style="font-family: var(--font-display); font-size: 17px; font-weight: 600">uscita</div>
+        <code style="font-size: 14px; color: #9AA6BA; word-break: break-all">cubic-bezier(.16, 1, .3, 1)</code>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #9AA6BA">La curva di default. Totale, messaggi, comparse, dissolvenze. Parte veloce e si posa: sembra reattiva anche quando dura mezzo secondo.</p>
+      </div>
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+        <svg width="100%" height="110" viewBox="0 0 120 110" role="img" aria-label="Curva simmetrica entrata e uscita">
+          <line x1="10" y1="100" x2="112" y2="100" stroke="rgba(255,255,255,0.12)" stroke-width="1"></line>
+          <line x1="10" y1="100" x2="10" y2="8" stroke="rgba(255,255,255,0.12)" stroke-width="1"></line>
+          <path d="M10 100 C 44 100 78 10 112 10" fill="none" stroke="#8FA3C0" stroke-width="2.5"></path>
+        </svg>
+        <div style="font-family: var(--font-display); font-size: 17px; font-weight: 600">transito</div>
+        <code style="font-size: 14px; color: #9AA6BA; word-break: break-all">cubic-bezier(.33, 1, .68, 1)</code>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #9AA6BA">Solo per elementi che si spostano fra due stati (il totale che migra verso il blocco QR). Simmetrica, così la traiettoria si legge.</p>
+      </div>
+    </div>
+    <p style="margin: 0; font-size: 15px; color: #9AA6BA">Il ticker e il Ken Burns usano <code>linear</code>: un movimento continuo con una curva ease sembra un difetto.</p>
+  </div>
+
+  <!-- COREOGRAFIE -->
+  <div style="display: flex; flex-direction: column; gap: 22px">
+    <div style="display: flex; align-items: baseline; gap: 18px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 22px">
+      <div style="font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #6F7E95">02</div>
+      <h2 style="margin: 0; font-family: var(--font-display); font-size: 32px; font-weight: 600">Le sei coreografie</h2>
+    </div>
+
+    <!-- riga -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 28px; display: grid; grid-template-columns: 1fr 340px; gap: 28px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: var(--font-display); font-size: 22px; font-weight: 600">Ingresso di una riga</div>
+        <div style="font-size: 15px; line-height: 1.6; color: #9AA6BA"><strong style="color: #E6EAF2">420 ms · molla.</strong> <code>translateY(18px) → 0</code> con <code>scale(.985) → 1</code>; l'opacità arriva a 1 nei primi 180 ms, così il testo non “galleggia” trasparente. La lista non si ricompone: le righe sopra scorrono con la stessa curva nello stesso frame. Una riga per volta, nessuno stagger — il cassiere batte un articolo alla volta e due righe che entrano insieme sembrano un bug.</div>
+        <div style="font-size: 14px; color: #6F7E95">Leggera: 300 ms, curva uscita, nessuna sovraelongazione. &nbsp;·&nbsp; Eco: opacità 160 ms, nessun movimento.</div>
+      </div>
+      <div style="background: #0B1017; border-radius: 14px; padding: 20px; overflow: hidden">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; justify-content: space-between; font-size: 17px; color: #6F7E95; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.07)"><span>Coperto ×2</span><span>4,00</span></div>
+          <div class="bt-d-row" style="display: flex; justify-content: space-between; font-size: 19px; font-weight: 600; padding: 10px 0"><span>Pizza Margherita</span><span>8,50</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- totale -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 28px; display: grid; grid-template-columns: 1fr 340px; gap: 28px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: var(--font-display); font-size: 22px; font-weight: 600">Aggiornamento del totale — contachilometri</div>
+        <div style="font-size: 15px; line-height: 1.6; color: #9AA6BA"><strong style="color: #E6EAF2">520 ms · uscita.</strong> Ogni cifra vive in una colonna alta <code>3em</code> che contiene vecchio, nuovo e un ciclo intermedio; scorre di <code>-1em</code> per passo. <strong style="color: #E6EAF2">Solo le cifre che cambiano si muovono</strong>: da 17,40 a 18,90 si muovono le unità e i decimi, le decine stanno ferme. Il contenitore fa un battito <code>scale(1 → 1.035 → 1)</code> di 260 ms, sfalsato di 120 ms, che è ciò che l'occhio percepisce da due metri.</div>
+        <div style="font-size: 14px; color: #6F7E95">Leggera: scorrimento 320 ms, nessun battito. &nbsp;·&nbsp; Eco: sostituzione secca con dissolvenza 140 ms.</div>
+      </div>
+      <div style="background: #0B1017; border-radius: 14px; padding: 20px; display: flex; justify-content: center">
+        <div class="bt-d-pulse" style="display: flex; align-items: baseline; gap: 4px; font-family: var(--font-display); font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums">
+          <span>€&nbsp;1</span>
+          <span style="height: 1.1em; overflow: hidden; display: inline-block">
+            <span class="bt-d-digit" style="display: block; line-height: 1.1">7<br>8</span>
+          </span>
+          <span>,</span>
+          <span style="height: 1.1em; overflow: hidden; display: inline-block">
+            <span class="bt-d-digit" style="display: block; line-height: 1.1">4<br>9</span>
+          </span>
+          <span>0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- cambio stato -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+      <div style="font-family: var(--font-display); font-size: 22px; font-weight: 600">Cambio di stato — il totale è l'elemento condiviso</div>
+      <div style="font-size: 15px; line-height: 1.6; color: #9AA6BA; max-width: 100ch">Fra Conto e Satispay il totale non scompare e non ricompare: <strong style="color: #E6EAF2">si sposta</strong>. Tecnica FLIP, 520 ms, curva transito: si misura la posizione di partenza e di arrivo e si interpola con <code>transform</code>. Nello stesso intervallo la lista esce con <code>translateX(-40px)</code> + opacità in 280 ms (parte subito) e il blocco QR entra con <code>scale(.92 → 1)</code> + opacità in 360 ms con 160 ms di ritardo. Il QR non si anima mai da solo: si anima il suo contenitore, e l'immagine è già a pieno contrasto quando inizia a essere leggibile.</div>
+      <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 14px; color: #9AA6BA">
+        <div style="border-radius: 999px; padding: 8px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1)">0 ms · lista esce</div>
+        <div style="color: #6F7E95">→</div>
+        <div style="border-radius: 999px; padding: 8px 16px; background: rgba(31,111,235,0.18); border: 1px solid rgba(31,111,235,0.45); color: #E6EAF2">0–520 ms · totale migra (FLIP)</div>
+        <div style="color: #6F7E95">→</div>
+        <div style="border-radius: 999px; padding: 8px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1)">160–520 ms · QR entra</div>
+        <div style="color: #6F7E95">→</div>
+        <div style="border-radius: 999px; padding: 8px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1)">560 ms · attesa attorno al QR parte</div>
+      </div>
+      <div style="font-size: 14px; color: #6F7E95">Leggera: nessun FLIP, dissolvenza incrociata 320 ms. &nbsp;·&nbsp; Eco: taglio secco con dissolvenza 160 ms.</div>
+    </div>
+
+    <!-- playlist -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 28px; display: grid; grid-template-columns: 1fr 340px; gap: 28px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: var(--font-display); font-size: 22px; font-weight: 600">Playlist pubblicitaria</div>
+        <div style="font-size: 15px; line-height: 1.6; color: #9AA6BA">Immagine <strong style="color: #E6EAF2">7 s</strong>, video per la sua durata nativa. Transizione <strong style="color: #E6EAF2">1200 ms</strong> di dissolvenza con le due slide sovrapposte. Ken Burns: <code>scale(1 → 1.08)</code> più <code>translateX</code> di 8 px su tutta la durata della slide, <code>linear</code>, direzione alternata fra una slide e la successiva. Parallasse: il logo del locale e il testo scorrevole si muovono di 12 px in controfase. Due slide in memoria alla volta, mai tre: la terza si decodifica a transizione finita.</div>
+        <div style="font-size: 14px; color: #6F7E95">Leggera: dissolvenza 600 ms, nessun Ken Burns, nessuna parallasse. &nbsp;·&nbsp; Eco: cambio immagine con dissolvenza 200 ms, slide immobile; i video non partono, si usa il loro primo fotogramma.</div>
+      </div>
+      <div style="background: #0B1017; border-radius: 14px; overflow: hidden; height: 190px; position: relative">
+        <div class="bt-d-kb" style="position: absolute; inset: 0; background: linear-gradient(135deg, #16233A 0%, #1F6FEB 45%, #0B1017 100%); transform-origin: 60% 40%"></div>
+        <div style="position: absolute; inset: 0; display: flex; align-items: flex-end; padding: 18px; font-size: 13px; color: rgba(255,255,255,0.9)">[IMMAGINE DEL LOCALE · 1920×1080]</div>
+      </div>
+    </div>
+
+    <!-- celebrazione -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 28px; display: grid; grid-template-columns: 1fr 340px; gap: 28px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: var(--font-display); font-size: 22px; font-weight: 600">Celebrazione finale</div>
+        <div style="font-size: 15px; line-height: 1.6; color: #9AA6BA"><strong style="color: #E6EAF2">900 ms, una volta sola.</strong> Tre anelli nei colori del locale: <code>scale(.6 → 1.9)</code> con opacità <code>.9 → 0</code>, 1800 ms, sfalsati di 140 ms. Sopra, “Grazie e arrivederci” entra con <code>translateY(24px)</code> in 520 ms, curva uscita. Nessun coriandolo, nessuna particella: su grafica integrata costano quanto tutto il resto insieme e invecchiano male. Dopo 8 s si torna all'Attesa con una dissolvenza di 900 ms.</div>
+        <div style="font-size: 14px; color: #6F7E95">Leggera: un solo anello. &nbsp;·&nbsp; Eco: il fondo si schiarisce verso il colore primario per 300 ms e torna; il testo entra solo in opacità.</div>
+      </div>
+      <div style="background: #0B1017; border-radius: 14px; height: 190px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden">
+        <div class="bt-d-ring" style="position: absolute; width: 90px; height: 90px; border-radius: 50%; border: 2px solid #3DDC97"></div>
+        <div class="bt-d-ring2" style="position: absolute; width: 90px; height: 90px; border-radius: 50%; border: 2px solid #1F6FEB"></div>
+        <div class="bt-d-ring3" style="position: absolute; width: 90px; height: 90px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3)"></div>
+        <div style="font-family: var(--font-display); font-size: 20px; font-weight: 600; position: relative">Grazie</div>
+      </div>
+    </div>
+
+    <!-- messaggio + offline -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: var(--font-display); font-size: 22px; font-weight: 600">Messaggio dalla cassa</div>
+        <div style="font-size: 15px; line-height: 1.6; color: #9AA6BA">Entra in <strong style="color: #E6EAF2">320 ms</strong> con <code>translateY(-16px)</code> + opacità, spingendo la lista verso il basso con la stessa curva. Resta 6 s, poi esce in 240 ms. Un messaggio nuovo mentre uno è a schermo non lo fa uscire: sostituisce il testo con una dissolvenza incrociata di 180 ms, così la banda non lampeggia.</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: var(--font-display); font-size: 22px; font-weight: 600">Connessione assente</div>
+        <div style="font-size: 15px; line-height: 1.6; color: #9AA6BA">La pillola compare dopo <strong style="color: #E6EAF2">8 s</strong> di silenzio, con una dissolvenza di 400 ms. Il puntino respira in opacità da 0,4 a 1 ogni 2 s, <code>ease-in-out</code>: è l'unica animazione infinita permessa fuori dall'Attesa, e non si vede dal tavolo. Alla riconnessione la pillola esce in 300 ms e lo schermo riprende da dove era.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVELLI -->
+  <div style="display: flex; flex-direction: column; gap: 22px">
+    <div style="display: flex; align-items: baseline; gap: 18px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 22px">
+      <div style="font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #6F7E95">03</div>
+      <h2 style="margin: 0; font-family: var(--font-display); font-size: 32px; font-weight: 600">Piena, Leggera, Eco</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px">
+      <div style="background: #141B26; border: 1px solid rgba(31,111,235,0.4); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: var(--font-display); font-size: 20px; font-weight: 600">Piena</div>
+        <div style="font-size: 14px; color: #9AA6BA; line-height: 1.6">GPU dedicata o integrata recente. Tutto quanto sopra, più: <code>backdrop-filter</code> fino a 28 px sulla card dello scontrino, gradiente mesh animato sul fondo (4 blob, 24 s, <code>translate</code> + <code>scale</code>), Ken Burns, parallasse.</div>
+        <div style="font-size: 13px; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px">Budget: 60 fps, ≤ 3 elementi animati per frame.</div>
+      </div>
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: var(--font-display); font-size: 20px; font-weight: 600">Leggera · default consigliato</div>
+        <div style="font-size: 14px; color: #9AA6BA; line-height: 1.6">Durate ×0,7, nessuna sovraelongazione, nessun FLIP. Il vetro resta ma statico: si sostituisce <code>backdrop-filter</code> con una superficie semitrasparente pretinta. Mesh disegnato una volta, immobile. È il livello su cui va tarata la demo in sala.</div>
+        <div style="font-size: 13px; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px">Budget: 60 fps, ≤ 2 elementi animati per frame.</div>
+      </div>
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: var(--font-display); font-size: 20px; font-weight: 600">Eco</div>
+        <div style="font-size: 14px; color: #9AA6BA; line-height: 1.6">Solo opacità, 140–200 ms. Nessun blur, nessun mesh, nessun video: dei filmati si mostra il primo fotogramma. Resta bello perché la gerarchia tipografica e il colore non dipendono dal movimento. È anche ciò che si attiva con <code>prefers-reduced-motion: reduce</code>, qualunque cosa dica il token.</div>
+        <div style="font-size: 13px; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px">Budget: nessun requisito. Gira su qualsiasi cosa apra un browser.</div>
+      </div>
+    </div>
+    <div style="background: rgba(61,220,151,0.08); border: 1px solid rgba(61,220,151,0.35); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 8px">
+      <div style="font-family: var(--font-display); font-size: 18px; font-weight: 600; color: #3DDC97">Degrado automatico</div>
+      <div style="font-size: 15px; line-height: 1.6; color: #C7E8D8">Un contatore su <code>requestAnimationFrame</code> misura i frame durante le animazioni. Se la media scende sotto 45 fps per 3 secondi consecutivi, il monitor scala da sola al livello inferiore e lo scrive nel log diagnostico. Non torna su da sé: lo rialza il tecnico, che a quel punto sa che quella cassa non ce la fa. Così il ristoratore non vede mai un'interfaccia a scatti, e noi sappiamo quali installazioni hanno bisogno di hardware.</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":2600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

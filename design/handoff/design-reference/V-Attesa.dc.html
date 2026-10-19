@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Attesa — verticale, Cocktail bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@600;800&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap">
+<style>
+body { margin: 0; background: #0A0616; }
+a { color: #A99BC8; }
+a:hover { color: #F0EAFF; }
+@keyframes bt-kb { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.08) translate3d(0, -22px, 0); } }
+@keyframes bt-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes bt-mesh { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(0, 40px, 0) scale(1.12); } }
+.bt-kb { animation: bt-kb 9s linear infinite alternate; }
+.bt-ticker { animation: bt-ticker 20s linear infinite; }
+.bt-mesh { animation: bt-mesh 22s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) { .bt-kb, .bt-ticker, .bt-mesh { animation: none; } }
+</style>
+</helmet>
+
+<div style="--c-primary: #C06CFF; --c-accent: #35F5C8; --c-bg: #0A0616; --c-text: #F0EAFF; --c-muted: #A99BC8; --radius: 20px; width: 1080px; height: 1920px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0616; color: #F0EAFF; font-family: 'Space Grotesk', 'Segoe UI', sans-serif">
+
+  <!-- slide verticale a tutto schermo (segnaposto) -->
+  <div class="bt-kb" style="position: absolute; inset: -40px; transform-origin: 50% 40%">
+    <div class="bt-mesh" style="position: absolute; inset: -10%; background: radial-gradient(ellipse 60% 40% at 30% 24%, rgba(192,108,255,0.6) 0%, rgba(192,108,255,0) 62%), radial-gradient(ellipse 55% 35% at 76% 58%, rgba(255,77,157,0.45) 0%, rgba(255,77,157,0) 60%), radial-gradient(ellipse 50% 34% at 24% 80%, rgba(53,245,200,0.3) 0%, rgba(53,245,200,0) 60%), linear-gradient(185deg, #140A2E 0%, #0A0616 58%, #05030C 100%)"></div>
+  </div>
+
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5,3,12,0.82) 0%, rgba(5,3,12,0) 24%, rgba(5,3,12,0) 52%, rgba(5,3,12,0.92) 100%)"></div>
+
+  <div style="position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); border: 1px dashed rgba(240,234,255,0.34); border-radius: 20px; padding: 32px 44px; text-align: center; display: flex; flex-direction: column; gap: 10px">
+    <div style="font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: 0.14em">SLIDE DEL LOCALE</div>
+    <div style="font-size: 20px; color: rgba(240,234,255,0.72)">1080×1920 verticale · immagine o video · segnaposto</div>
+  </div>
+
+  <!-- logo del locale -->
+  <div style="position: absolute; left: 48px; right: 48px; top: 64px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+    <svg width="72" height="72" viewBox="0 0 58 58" role="img" aria-label="Logo del locale (segnaposto)">
+      <circle cx="29" cy="29" r="27.5" fill="none" stroke="rgba(240,234,255,0.45)" stroke-width="1.4"></circle>
+      <path d="M18 20 L40 20 L29 38 Z" fill="none" stroke="#F0EAFF" stroke-width="2.2" stroke-linejoin="round"></path>
+      <line x1="29" y1="38" x2="29" y2="44" stroke="#35F5C8" stroke-width="2.2"></line>
+    </svg>
+    <div style="font-family: 'Syne', sans-serif; font-size: 58px; font-weight: 800; letter-spacing: 0.04em; line-height: 1">NEON</div>
+    <div style="font-size: 22px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(240,234,255,0.76)">cocktail bar</div>
+  </div>
+
+  <!-- indicatore playlist -->
+  <div style="position: absolute; left: 50%; transform: translateX(-50%); bottom: 320px; display: flex; align-items: center; gap: 12px">
+    <div style="width: 52px; height: 5px; border-radius: 3px; background: #35F5C8"></div>
+    <div style="width: 22px; height: 5px; border-radius: 3px; background: rgba(240,234,255,0.3)"></div>
+    <div style="width: 22px; height: 5px; border-radius: 3px; background: rgba(240,234,255,0.3)"></div>
+    <div style="width: 22px; height: 5px; border-radius: 3px; background: rgba(240,234,255,0.3)"></div>
+  </div>
+
+  <!-- testo scorrevole -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 170px; overflow: hidden; padding: 24px 0; border-top: 1px solid rgba(240,234,255,0.14); border-bottom: 1px solid rgba(240,234,255,0.14); background: rgba(5,3,12,0.4)">
+    <div class="bt-ticker" style="display: flex; gap: 90px; white-space: nowrap; width: max-content; padding-left: 48px; font-size: 34px; font-weight: 500">
+      <span>Happy hour 18–20 &nbsp;·&nbsp; Signature list rinnovata &nbsp;·&nbsp; Live DJ il venerdì</span>
+      <span>Happy hour 18–20 &nbsp;·&nbsp; Signature list rinnovata &nbsp;·&nbsp; Live DJ il venerdì</span>
+    </div>
+  </div>
+
+  <!-- footer Bluetech: su verticale va centrato, stessa altezza e stesso peso -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 56px; height: 56px; display: flex; align-items: center; justify-content: center; gap: 14px">
+    <div style="font-size: 18px; color: #A99BC8">powered by</div>
+    <svg width="28" height="28" viewBox="0 0 34 34" role="img" aria-label="Marchio Bluetech (segnaposto)">
+      <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#C06CFF" stroke-width="2.6"></rect>
+      <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#F0EAFF" stroke-width="3" stroke-linecap="round"></path>
+    </svg>
+    <div style="font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 600; letter-spacing: 0.18em; color: #F0EAFF">BLUETECH</div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1080,"height":1920}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

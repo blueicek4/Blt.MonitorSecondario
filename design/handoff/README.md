@@ -23,20 +23,31 @@ TypeScript.
 | `src/tokens/themes.ts` | Le otto palette (4 temi × giorno/notte) con i rapporti di contrasto calcolati |
 | `src/tokens/tokens.css` | Curve, durate, scala tipografica per formato, keyframes, livelli di animazione |
 | `src/components/README.md` | Albero dei componenti con le firme delle props e gli hook |
+| `design-reference/` | I sorgenti dei 23 artboard + il loro `README.md`. Ogni misura, colore e durata scritti letteralmente. Da leggere, non da eseguire |
 
 ## Riferimento visivo
 
-Canvas di design, 23 artboard a dimensione reale:
-https://claude.ai/artifact/1Vqr5fioAwP73svEAoiMrD
+Sta tutto in `design-reference/`, offline, insieme alle istruzioni per leggerlo. Non serve
+accesso a internet né al canvas.
 
 Contiene: pagina del sistema di design, specifica motion, note di sviluppo, prototipo
-interattivo con i comandi per simulare la cassa, i sei stati a 1920×1080 in notte e
+interattivo con la macchina a stati completa in JS, i sei stati a 1920×1080 in notte e
 giorno, le due modalità del QR, i sei stati a 1024×768, le verifiche a 1366×768 e
 1280×800, due schermate verticali 1080×1920.
 
-Quando un numero nel codice e un numero sull'artboard non coincidono, **vince questo
-pacchetto**: `src/tokens/*` e `SPEC.md` sono la fonte autoritativa, gli artboard sono
-riferimento visivo.
+Lo stesso canvas navigabile, se serve guardarlo invece di leggerlo:
+https://claude.ai/artifact/1Vqr5fioAwP73svEAoiMrD
+
+Quando un numero nei sorgenti e un numero in questo pacchetto non coincidono, **vince il
+pacchetto**: `src/tokens/*` e `SPEC.md` sono la fonte autoritativa.
+
+## Cosa NON c'è dentro, di proposito
+
+- **Nessun componente implementato.** Firme delle props sì, file stub no.
+- **Nessun file di font.** Otto famiglie open source da scaricare in M0, elencate in
+  `CLAUDE.md`.
+- **Nessuna immagine.** Le slide pubblicitarie e le foto articolo le carica il locale.
+- **Nessun `node_modules`.** Il progetto si crea con `npm create vite`.
 
 ## Le tre cose da non dimenticare
 

@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Prototipo interattivo del monitor cliente</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Newsreader:ital,wght@0,400;0,600;1,400&amp;family=Alegreya+Sans:wght@400;500;700&amp;family=Cormorant+Garamond:wght@400;600&amp;family=Jost:wght@300;400;500&amp;family=Syne:wght@600;800&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+@keyframes bt-row-in { 0% { opacity: 0; transform: translateY(18px) scale(0.985); } 45% { opacity: 1; transform: translateY(-3px) scale(1.004); } 100% { opacity: 1; transform: none; } }
+@keyframes bt-msg-in { 0% { opacity: 0; transform: translateY(-16px); } 100% { opacity: 1; transform: none; } }
+@keyframes bt-halo { 0% { transform: scale(0.94); opacity: 0.5; } 100% { transform: scale(1.14); opacity: 0; } }
+@keyframes bt-ring { 0% { transform: scale(0.6); opacity: 0.8; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes bt-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes bt-kb { from { transform: scale(1); } to { transform: scale(1.08) translateX(-14px); } }
+@keyframes bt-breathe { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+@keyframes bt-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.bt-row-in { animation: bt-row-in 420ms cubic-bezier(0.22, 1.2, 0.36, 1) both; }
+.bt-msg-in { animation: bt-msg-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.bt-halo { animation: bt-halo 3.2s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
+.bt-halo2 { animation: bt-halo 3.2s cubic-bezier(0.16, 1, 0.3, 1) 1.6s infinite; }
+.bt-ring { animation: bt-ring 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
+.bt-ring2 { animation: bt-ring 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.14s infinite; }
+.bt-ticker { animation: bt-ticker 24s linear infinite; }
+.bt-kb { animation: bt-kb 8s linear infinite alternate; }
+.bt-breathe { animation: bt-breathe 2s ease-in-out infinite; }
+.bt-screen-in { animation: bt-fade-in 480ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.bt-eco .bt-row-in, .bt-eco .bt-msg-in, .bt-eco .bt-screen-in { animation-duration: 160ms; animation-timing-function: linear; }
+.bt-eco .bt-halo, .bt-eco .bt-halo2, .bt-eco .bt-ring, .bt-eco .bt-ring2, .bt-eco .bt-kb, .bt-eco .bt-ticker { animation: none; }
+.bt-leggera .bt-row-in, .bt-leggera .bt-msg-in, .bt-leggera .bt-screen-in { animation-duration: 300ms; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+.bt-leggera .bt-kb { animation: none; }
+.bt-btn { cursor: pointer; font: inherit; text-align: left; border-radius: 10px; border: 1px solid #353C47; background: #222932; color: #E6EAF2; padding: 11px 14px; font-size: 14px; min-height: 44px; box-sizing: border-box; }
+.bt-btn:hover { background: #2C343F; border-color: #4A525E; }
+.bt-chip { cursor: pointer; font: inherit; border-radius: 999px; border: 1px solid #353C47; background: #1C222A; color: #AEB8C6; padding: 8px 12px; font-size: 13px; min-height: 36px; box-sizing: border-box; }
+.bt-chip:hover { background: #262E38; color: #E6EAF2; }
+.bt-chip-on { background: #1F6FEB; border-color: #1F6FEB; color: #FFFFFF; }
+.bt-chip-on:hover { background: #2E7DF6; color: #FFFFFF; }
+@media (prefers-reduced-motion: reduce) {
+  .bt-row-in, .bt-msg-in, .bt-halo, .bt-halo2, .bt-ring, .bt-ring2, .bt-ticker, .bt-kb, .bt-breathe, .bt-screen-in { animation: none; }
+}
+</style>
+</helmet>
+
+<div style="width: 2240px; height: 1080px; box-sizing: border-box; display: flex; background: #15191F; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif">
+
+  <!-- ===================== LO SCHERMO ===================== -->
+  <div class="{{motionClass}}" style="{{screenStyle}}">
+
+    <div style="{{bgStyle}}"></div>
+
+    <div style="position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 48px 56px; display: flex; flex-direction: column; gap: 22px">
+
+      <!-- testata comune -->
+      <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 24px">
+        <div style="display: flex; align-items: center; gap: 14px">
+          <div style="{{markStyle}}"></div>
+          <div style="{{venueStyle}}">LA VELA</div>
+        </div>
+        <div style="{{mutedStyle}}">Cassa 1 · Tavolo 7</div>
+      </div>
+
+      <!-- area messaggi: spinge, non copre -->
+      <sc-if value="{{hasMsg}}" hint-placeholder-val="{{ true }}">
+        <div class="bt-msg-in" style="{{msgStyle}}">
+          <div style="font-size: 17px; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.85">Messaggio dalla cassa</div>
+          <div style="{{msgTextStyle}}">{{msgText}}</div>
+        </div>
+      </sc-if>
+
+      <!-- ====== ATTESA ====== -->
+      <sc-if value="{{isAttesa}}" hint-placeholder-val="{{ true }}">
+        <div class="bt-screen-in" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px">
+          <div style="{{adStyle}}">
+            <div class="bt-kb" style="{{adInnerStyle}}"></div>
+            <div style="{{adLabelStyle}}">SLIDE DEL LOCALE · 1920×1080 · segnaposto</div>
+          </div>
+          <div style="{{tickerBoxStyle}}">
+            <div class="bt-ticker" style="display: flex; gap: 70px; white-space: nowrap; width: max-content; font-size: 24px; font-weight: 500">
+              <span>Fritto misto del giorno · Aperitivo con ostriche dalle 18 alle 20 · Chiuso il lunedì</span>
+              <span>Fritto misto del giorno · Aperitivo con ostriche dalle 18 alle 20 · Chiuso il lunedì</span>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ====== CONTO ====== -->
+      <sc-if value="{{isConto}}" hint-placeholder-val="{{ true }}">
+        <div class="bt-screen-in" style="flex-grow: 1; min-height: 0; display: flex; gap: 32px">
+          <div style="{{cardWideStyle}}">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-shrink: 0">
+              <div style="{{cardLabelStyle}}">Il tuo conto</div>
+              <div style="{{mutedSmallStyle}}">{{countText}}</div>
+            </div>
+            <div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+                <div class="{{r.anim}}" style="{{r.rowStyle}}">
+                  <div style="{{r.descStyle}}">{{r.desc}}</div>
+                  <sc-if value="{{r.hasQty}}" hint-placeholder-val="{{ true }}">
+                    <div style="{{r.qtyStyle}}">{{r.qtyText}}</div>
+                  </sc-if>
+                  <sc-if value="{{r.isVoid}}" hint-placeholder-val="{{ true }}">
+                    <div style="{{r.badgeStyle}}">STORNO</div>
+                  </sc-if>
+                  <sc-if value="{{r.hasAmount}}" hint-placeholder-val="{{ true }}">
+                    <div style="{{r.amountStyle}}">{{r.amountText}}</div>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{isEmpty}}" hint-placeholder-val="{{ true }}">
+                <div style="{{emptyStyle}}">In attesa della prima battuta dalla cassa</div>
+              </sc-if>
+            </div>
+            <div style="{{totalBoxStyle}}">
+              <div style="{{totalLabelStyle}}">Totale</div>
+              <div style="{{totalValueStyle}}">{{totalText}}</div>
+            </div>
+          </div>
+          <div style="{{promoStyle}}">
+            <div style="display: flex; flex-direction: column; gap: 12px">
+              <div style="{{promoKickerStyle}}">Promozione</div>
+              <div style="{{promoTitleStyle}}">Il secondo caffè lo offriamo noi</div>
+              <div style="{{mutedStyle}}">Valida tutti i giorni dopo il dolce.</div>
+            </div>
+            <div style="{{promoFootStyle}}">Spazio promozioni del locale</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ====== SATISPAY · accanto al conto ====== -->
+      <sc-if value="{{isPaySide}}" hint-placeholder-val="{{ true }}">
+        <div class="bt-screen-in" style="flex-grow: 1; min-height: 0; display: flex; gap: 32px">
+          <div style="{{cardNarrowStyle}}">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-shrink: 0">
+              <div style="{{cardLabelStyle}}">Il tuo conto</div>
+              <div style="{{mutedSmallStyle}}">{{countText}}</div>
+            </div>
+            <div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
+              <sc-for list="{{rowsCompact}}" as="r" hint-placeholder-count="4">
+                <div style="{{r.rowStyle}}">
+                  <div style="{{r.descStyle}}">{{r.desc}}</div>
+                  <sc-if value="{{r.hasQty}}" hint-placeholder-val="{{ true }}">
+                    <div style="{{r.qtyStyle}}">{{r.qtyText}}</div>
+                  </sc-if>
+                  <sc-if value="{{r.hasAmount}}" hint-placeholder-val="{{ true }}">
+                    <div style="{{r.amountStyle}}">{{r.amountText}}</div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div style="{{totalBoxStyle}}">
+              <div style="{{totalLabelStyle}}">Da pagare</div>
+              <div style="{{totalValueSmallStyle}}">{{totalText}}</div>
+            </div>
+          </div>
+
+          <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 14px">
+            <div style="text-align: center">
+              <div style="{{payTitleStyle}}">Inquadra il QR con l'app Satispay</div>
+            </div>
+            <div style="position: relative; width: 600px; height: 600px; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+              <div class="bt-halo" style="{{haloStyle}}"></div>
+              <div class="bt-halo2" style="{{halo2Style}}"></div>
+              <div style="{{qrCardStyle}}">
+                <div role="img" aria-label="Codice QR per il pagamento Satispay" style="display: grid; grid-template-rows: repeat(25, 1fr); width: 436px; height: 436px; color: #000000">
+                  <sc-for list="{{qr}}" as="row" hint-placeholder-count="25">
+                    <div style="display: grid; grid-template-columns: repeat(25, 1fr)">
+                      <sc-for list="{{row.cells}}" as="c" hint-placeholder-count="25">
+                        <div style="background: {{c.fill}}"></div>
+                      </sc-for>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <div style="{{satiStyle}}">LOGO SATISPAY · asset ufficiale</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ====== SATISPAY · a tutto schermo ====== -->
+      <sc-if value="{{isPayFull}}" hint-placeholder-val="{{ true }}">
+        <div class="bt-screen-in" style="flex-grow: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 80px">
+          <div style="width: 480px; flex-shrink: 0; display: flex; flex-direction: column; gap: 28px">
+            <div>
+              <div style="{{cardLabelStyle}}">Da pagare</div>
+              <div style="{{payAmountStyle}}">{{totalText}}</div>
+            </div>
+            <div style="{{payTitleStyle}}">Inquadra il QR con l'app Satispay</div>
+            <div style="{{mutedStyle}}">Apri l'app, tocca il tasto di pagamento e punta la fotocamera sul codice.</div>
+            <div style="{{satiStyle}}">LOGO SATISPAY · asset ufficiale</div>
+          </div>
+          <div style="position: relative; width: 620px; height: 620px; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+            <div class="bt-halo" style="{{haloStyle}}"></div>
+            <div class="bt-halo2" style="{{halo2Style}}"></div>
+            <div style="{{qrCardStyle}}">
+              <div role="img" aria-label="Codice QR per il pagamento Satispay" style="display: grid; grid-template-rows: repeat(25, 1fr); width: 436px; height: 436px; color: #000000">
+                <sc-for list="{{qr}}" as="row" hint-placeholder-count="25">
+                  <div style="display: grid; grid-template-columns: repeat(25, 1fr)">
+                    <sc-for list="{{row.cells}}" as="c" hint-placeholder-count="25">
+                      <div style="background: {{c.fill}}"></div>
+                    </sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ====== GRAZIE ====== -->
+      <sc-if value="{{isGrazie}}" hint-placeholder-val="{{ true }}">
+        <div class="bt-screen-in" style="flex-grow: 1; min-height: 0; display: flex; align-items: center; justify-content: center; position: relative">
+          <div class="bt-ring" style="{{ringStyle}}"></div>
+          <div class="bt-ring2" style="{{ring2Style}}"></div>
+          <div style="position: relative; text-align: center; display: flex; flex-direction: column; gap: 18px; align-items: center">
+            <div style="{{thanksStyle}}">Grazie e arrivederci</div>
+            <div style="display: flex; align-items: baseline; gap: 16px">
+              <div style="{{cardLabelStyle}}">Pagato</div>
+              <div style="{{thanksAmountStyle}}">{{totalText}}</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- riga di base comune: indicatore + footer Bluetech -->
+      <div style="height: 50px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 20px">
+        <sc-if value="{{offline}}" hint-placeholder-val="{{ true }}">
+          <div style="{{pillStyle}}">
+            <div class="bt-breathe" style="{{dotStyle}}"></div>
+            <div>Riconnessione in corso</div>
+          </div>
+        </sc-if>
+        <div style="flex-grow: 1"></div>
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div style="{{poweredStyle}}">powered by</div>
+          <div style="{{footMarkStyle}}"></div>
+          <div style="{{footWordStyle}}">BLUETECH</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== LA PULSANTIERA ===================== -->
+  <div style="width: 320px; flex-shrink: 0; box-sizing: border-box; padding: 24px 20px; background: #15191F; border-left: 1px solid #262D36; color: #E6EAF2; display: flex; flex-direction: column; gap: 18px; overflow: hidden">
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #7C8798">Simula la cassa</div>
+      <div style="font-size: 13px; color: #AEB8C6">Stato attuale: {{statoLabel}}</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <button type="button" class="bt-btn" onClick="{{addLine}}">Aggiungi riga</button>
+      <button type="button" class="bt-btn" onClick="{{addDiscount}}">Applica sconto 10%</button>
+      <button type="button" class="bt-btn" onClick="{{voidLast}}">Storna ultima riga</button>
+      <button type="button" class="bt-btn" onClick="{{addNote}}">Riga di testo libero</button>
+      <button type="button" class="bt-btn" onClick="{{sendMsg}}">Messaggio dalla cassa</button>
+      <button type="button" class="bt-btn" onClick="{{showQr}}">Mostra QR Satispay</button>
+      <button type="button" class="bt-btn" onClick="{{endSale}}">Fine vendita</button>
+      <button type="button" class="bt-btn" onClick="{{toggleOffline}}">{{offlineLabel}}</button>
+      <button type="button" class="bt-btn" onClick="{{reset}}">Torna in attesa</button>
+    </div>
+
+    <div style="height: 1px; background: #262D36; flex-shrink: 0"></div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #7C8798">Tema del locale</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px">
+        <sc-for list="{{themeChips}}" as="t" hint-placeholder-count="4">
+          <button type="button" class="{{t.cls}}" onClick="{{t.pick}}">{{t.label}}</button>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 6px; margin-top: 2px">
+        <sc-for list="{{modeChips}}" as="m" hint-placeholder-count="2">
+          <button type="button" class="{{m.cls}}" onClick="{{m.pick}}">{{m.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #7C8798">QR quando arriva</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px">
+        <sc-for list="{{qrChips}}" as="q" hint-placeholder-count="2">
+          <button type="button" class="{{q.cls}}" onClick="{{q.pick}}">{{q.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #7C8798">Intensità animazioni</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px">
+        <sc-for list="{{motionChips}}" as="a" hint-placeholder-count="3">
+          <button type="button" class="{{a.cls}}" onClick="{{a.pick}}">{{a.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2240,"height":1080}}'>
+var PALETTES = {
+  'bluetech-notte': { bg: '#0B1017', panel: 'rgba(255,255,255,0.055)', panelSolid: '#141B26', line: 'rgba(255,255,255,0.09)', text: '#E6EAF2', muted: '#9AA6BA', faint: '#6F7E95', primary: '#1F6FEB', onPrimary: '#FFFFFF', accent: '#3DDC97', fd: "'Archivo', sans-serif", ft: "'IBM Plex Sans', sans-serif", radius: 24, glow: 'rgba(31,111,235,0.3)', glow2: 'rgba(61,220,151,0.14)', totalFill: 'linear-gradient(180deg, rgba(31,111,235,0.2), rgba(31,111,235,0.05))', totalBorder: 'rgba(31,111,235,0.42)', totalText: '#E6EAF2' },
+  'bluetech-giorno': { bg: '#F4F6FA', panel: '#FFFFFF', panelSolid: '#FFFFFF', line: 'rgba(16,21,29,0.1)', text: '#10151D', muted: '#5A6679', faint: '#7C8798', primary: '#1757C2', onPrimary: '#FFFFFF', accent: '#0E7A52', fd: "'Archivo', sans-serif", ft: "'IBM Plex Sans', sans-serif", radius: 24, glow: 'rgba(23,87,194,0.14)', glow2: 'rgba(14,122,82,0.1)', totalFill: '#1757C2', totalBorder: '#1757C2', totalText: '#FFFFFF' },
+  'trattoria-notte': { bg: '#1C1512', panel: 'rgba(242,231,217,0.06)', panelSolid: '#261D18', line: 'rgba(242,231,217,0.13)', text: '#F2E7D9', muted: '#B8A694', faint: '#8E7D6A', primary: '#D4714A', onPrimary: '#1C1512', accent: '#7FC4A3', fd: "'Newsreader', Georgia, serif", ft: "'Alegreya Sans', sans-serif", radius: 14, glow: 'rgba(212,113,74,0.22)', glow2: 'rgba(127,196,163,0.1)', totalFill: '#D4714A', totalBorder: '#D4714A', totalText: '#1C1512' },
+  'trattoria-giorno': { bg: '#F6EEE2', panel: '#FFFBF4', panelSolid: '#FFFBF4', line: 'rgba(43,33,26,0.12)', text: '#2B211A', muted: '#6B5B49', faint: '#8D7F6E', primary: '#9C3A1F', onPrimary: '#FFFFFF', accent: '#1E6B4F', fd: "'Newsreader', Georgia, serif", ft: "'Alegreya Sans', sans-serif", radius: 14, glow: 'rgba(201,138,94,0.3)', glow2: 'rgba(30,107,79,0.08)', totalFill: '#9C3A1F', totalBorder: '#9C3A1F', totalText: '#FFFFFF' },
+  'fine-notte': { bg: '#0C0B09', panel: 'rgba(237,230,215,0.05)', panelSolid: '#16140F', line: 'rgba(237,230,215,0.13)', text: '#EDE6D7', muted: '#A39781', faint: '#7A7061', primary: '#C9A227', onPrimary: '#141210', accent: '#8FB39B', fd: "'Cormorant Garamond', Georgia, serif", ft: "'Jost', sans-serif", radius: 4, glow: 'rgba(201,162,39,0.18)', glow2: 'rgba(143,179,155,0.08)', totalFill: 'transparent', totalBorder: '#C9A227', totalText: '#EDE6D7' },
+  'fine-giorno': { bg: '#F7F4EC', panel: '#FFFDF7', panelSolid: '#FFFDF7', line: 'rgba(26,23,18,0.12)', text: '#1A1712', muted: '#6E6454', faint: '#8A8070', primary: '#8A6D14', onPrimary: '#FFFFFF', accent: '#3F6B55', fd: "'Cormorant Garamond', Georgia, serif", ft: "'Jost', sans-serif", radius: 4, glow: 'rgba(138,109,20,0.14)', glow2: 'rgba(63,107,85,0.08)', totalFill: 'transparent', totalBorder: '#8A6D14', totalText: '#1A1712' },
+  'cocktail-notte': { bg: '#0A0616', panel: 'rgba(240,234,255,0.06)', panelSolid: '#16102B', line: 'rgba(240,234,255,0.14)', text: '#F0EAFF', muted: '#A99BC8', faint: '#7E6FA0', primary: '#C06CFF', onPrimary: '#0A0616', accent: '#35F5C8', fd: "'Syne', sans-serif", ft: "'Space Grotesk', sans-serif", radius: 20, glow: 'rgba(192,108,255,0.3)', glow2: 'rgba(53,245,200,0.14)', totalFill: 'linear-gradient(180deg, rgba(192,108,255,0.26), rgba(53,245,200,0.08))', totalBorder: 'rgba(192,108,255,0.55)', totalText: '#F0EAFF' },
+  'cocktail-giorno': { bg: '#F6F2FD', panel: '#FFFFFF', panelSolid: '#FFFFFF', line: 'rgba(23,15,35,0.1)', text: '#170F23', muted: '#5C5270', faint: '#7A6E92', primary: '#7A2BC4', onPrimary: '#FFFFFF', accent: '#0C7A6B', fd: "'Syne', sans-serif", ft: "'Space Grotesk', sans-serif", radius: 20, glow: 'rgba(122,43,196,0.14)', glow2: 'rgba(12,122,107,0.08)', totalFill: '#7A2BC4', totalBorder: '#7A2BC4', totalText: '#FFFFFF' }
+};
+
+var CATALOG = [
+  { desc: 'Coperto', qty: 2, amount: 400 },
+  { desc: 'Pizza Margherita', qty: 1, amount: 850 },
+  { desc: 'Acqua naturale 0,75 l', qty: 1, amount: 250 },
+  { desc: 'Tiramisù', qty: 1, amount: 600 },
+  { desc: 'Birra artigianale 0,4 l', qty: 2, amount: 1200 },
+  { desc: 'Caffè', qty: 2, amount: 240 }
+];
+
+var NOTES = ['Ben cotta, poco sale', 'Senza basilico', 'Da dividere in due'];
+var MESSAGES = ['Buongiorno', 'Resto € 1,50', 'Grazie, a presto'];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      fase: 'attesa',
+      rows: [],
+      seq: 0,
+      lastId: null,
+      msg: null,
+      offline: false,
+      tema: 'bluetech',
+      modo: 'notte',
+      qrMode: 'side',
+      motion: 'piena',
+      noteIdx: 0,
+      msgIdx: 0
+    };
+  }
+
+  euro(c) {
+    var neg = c < 0;
+    var v = Math.abs(c);
+    var s = (v / 100).toFixed(2).replace('.', ',');
+    return (neg ? '−' : '') + '€ ' + s;
+  }
+  amt(c, sign) {
+    var v = Math.abs(c);
+    var s = (v / 100).toFixed(2).replace('.', ',');
+    if (sign && c < 0) { return '−' + s; }
+    if (sign && c > 0) { return '+' + s; }
+    return s;
+  }
+  total() {
+    return this.state.rows.reduce(function (sum, r) {
+      if (r.kind === 'void' || r.kind === 'note') { return sum; }
+      return sum + r.amount;
+    }, 0);
+  }
+
+  push(row) {
+    var id = this.state.seq + 1;
+    row.id = id;
+    var rows = this.state.rows.concat([row]);
+    this.setState({ rows: rows, seq: id, lastId: id, fase: this.state.fase === 'attesa' ? 'conto' : this.state.fase });
+  }
+
+  qrRows(n, seed) {
+    var m = [], i, j, y, x;
+    for (i = 0; i < n; i++) { m.push(new Array(n).fill(0)); }
+    for (var f = 0; f < 3; f++) {
+      var r0 = f === 2 ? n - 7 : 0;
+      var c0 = f === 1 ? n - 7 : 0;
+      for (y = 0; y < 7; y++) {
+        for (x = 0; x < 7; x++) {
+          var on = (y === 0 || y === 6 || x === 0 || x === 6) || (y >= 2 && y <= 4 && x >= 2 && x <= 4);
+          m[r0 + y][c0 + x] = on ? 1 : 0;
+        }
+      }
+    }
+    for (i = 8; i < n - 8; i++) { m[6][i] = i % 2 === 0 ? 1 : 0; m[i][6] = i % 2 === 0 ? 1 : 0; }
+    for (y = 0; y < 5; y++) {
+      for (x = 0; x < 5; x++) {
+        var on2 = (y === 0 || y === 4 || x === 0 || x === 4) || (y === 2 && x === 2);
+        m[n - 9 + y][n - 9 + x] = on2 ? 1 : 0;
+      }
+    }
+    var s = seed;
+    function rnd() { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; }
+    function blocked(r, c) {
+      if (r < 9 && c < 9) { return true; }
+      if (r < 9 && c >= n - 8) { return true; }
+      if (r >= n - 8 && c < 9) { return true; }
+      if (r === 6 || c === 6) { return true; }
+      if (r >= n - 10 && r <= n - 4 && c >= n - 10 && c <= n - 4) { return true; }
+      return false;
+    }
+    for (i = 0; i < n; i++) {
+      for (j = 0; j < n; j++) { if (!blocked(i, j)) { m[i][j] = rnd() > 0.52 ? 1 : 0; } }
+    }
+    return m.map(function (row) {
+      return { cells: row.map(function (v) { return { fill: v ? 'currentColor' : 'transparent' }; }) };
+    });
+  }
+
+  buildRows(p, compact) {
+    var self = this;
+    var fs = compact ? 22 : 28;
+    var fa = compact ? 24 : 32;
+    var w = compact ? 104 : 150;
+    var pad = compact ? '9px 0' : '13px 0';
+    return this.state.rows.map(function (r) {
+      var isVoid = r.kind === 'void';
+      var isNote = r.kind === 'note';
+      var isAdj = r.kind === 'discount' || r.kind === 'surcharge';
+      var color = isVoid ? p.faint : (isAdj ? p.accent : p.text);
+      var row = {
+        desc: isNote ? r.desc : r.desc,
+        hasQty: !isNote && !isVoid && r.qty > 1,
+        qtyText: '×' + r.qty,
+        hasAmount: !isNote,
+        amountText: self.amt(r.amount, isAdj),
+        isVoid: isVoid,
+        anim: r.id === self.state.lastId ? 'bt-row-in' : '',
+        rowStyle: { display: 'flex', alignItems: 'baseline', gap: compact ? '14px' : '20px', padding: isNote ? (compact ? '7px 0 7px 22px' : '10px 0 10px 28px') : pad, borderBottom: '1px solid ' + p.line, color: color },
+        descStyle: { flexGrow: 1, minWidth: 0, fontSize: (isNote ? fs - 4 : fs) + 'px', fontWeight: isNote ? 400 : 500, fontStyle: isNote ? 'italic' : 'normal', color: isNote ? p.muted : color, textDecoration: isVoid ? 'line-through' : 'none', textDecorationThickness: '2px' },
+        qtyStyle: { fontSize: (fs - 5) + 'px', color: p.muted, fontVariantNumeric: 'tabular-nums' },
+        badgeStyle: { border: '1px solid ' + p.faint, borderRadius: '999px', padding: '3px 12px', fontSize: '14px', letterSpacing: '0.14em' },
+        amountStyle: { width: w + 'px', textAlign: 'right', fontSize: fa + 'px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', textDecoration: isVoid ? 'line-through' : 'none', textDecorationThickness: '2px' }
+      };
+      return row;
+    });
+  }
+
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var p = PALETTES[st.tema + '-' + st.modo];
+    var r = p.radius + 'px';
+    var tot = this.total();
+    var isPay = st.fase === 'satispay';
+
+    var themes = [
+      { key: 'bluetech', label: 'Bluetech' },
+      { key: 'trattoria', label: 'Trattoria' },
+      { key: 'fine', label: 'Fine dining' },
+      { key: 'cocktail', label: 'Cocktail bar' }
+    ];
+    var modes = [{ key: 'notte', label: 'Notte' }, { key: 'giorno', label: 'Giorno' }];
+    var qrModes = [{ key: 'full', label: 'A tutto schermo' }, { key: 'side', label: 'Accanto al conto' }];
+    var motions = [{ key: 'piena', label: 'Piena' }, { key: 'leggera', label: 'Leggera' }, { key: 'eco', label: 'Eco' }];
+
+    var faseLabels = { attesa: 'Attesa', conto: 'Conto in corso', satispay: 'Pagamento Satispay', grazie: 'Grazie' };
+
+    return {
+      // ---- stato derivato ----
+      isAttesa: st.fase === 'attesa',
+      isConto: st.fase === 'conto',
+      isPaySide: isPay && st.qrMode === 'side',
+      isPayFull: isPay && st.qrMode === 'full',
+      isGrazie: st.fase === 'grazie',
+      isEmpty: st.rows.length === 0,
+      offline: st.offline,
+      hasMsg: !!st.msg,
+      msgText: st.msg || '',
+      rows: this.buildRows(p, false),
+      rowsCompact: this.buildRows(p, true),
+      qr: this.qrRows(25, 18901019),
+      totalText: this.euro(tot),
+      countText: st.rows.length + (st.rows.length === 1 ? ' riga' : ' righe'),
+      statoLabel: faseLabels[st.fase] + (st.offline ? ' · offline' : ''),
+      offlineLabel: st.offline ? 'Ripristina connessione' : 'Connessione persa',
+      motionClass: st.motion === 'eco' ? 'bt-eco' : (st.motion === 'leggera' ? 'bt-leggera' : ''),
+
+      // ---- stili dal tema ----
+      screenStyle: { width: '1920px', height: '1080px', flexShrink: 0, position: 'relative', overflow: 'hidden', background: p.bg, color: p.text, fontFamily: p.ft },
+      bgStyle: { position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 50% 45% at 18% 20%, ' + p.glow + ' 0%, transparent 62%), radial-gradient(ellipse 45% 40% at 86% 80%, ' + p.glow2 + ' 0%, transparent 60%)' },
+      markStyle: { width: '34px', height: '34px', borderRadius: '50%', border: '2px solid ' + p.primary },
+      venueStyle: { fontFamily: p.fd, fontSize: '26px', fontWeight: 700, letterSpacing: '0.06em' },
+      mutedStyle: { fontSize: '19px', color: p.muted, lineHeight: 1.5 },
+      mutedSmallStyle: { fontSize: '17px', color: p.muted, fontVariantNumeric: 'tabular-nums' },
+
+      msgStyle: { height: '120px', flexShrink: 0, borderRadius: r, padding: '0 36px', background: p.primary, color: p.onPrimary, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '28px' },
+      msgTextStyle: { fontFamily: p.fd, fontSize: '64px', fontWeight: 700, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' },
+
+      adStyle: { flexGrow: 1, minHeight: 0, borderRadius: r, overflow: 'hidden', position: 'relative', border: '1px solid ' + p.line },
+      adInnerStyle: { position: 'absolute', inset: '-20px', background: 'radial-gradient(ellipse 60% 55% at 70% 32%, ' + p.primary + ' 0%, transparent 62%), radial-gradient(ellipse 50% 45% at 20% 76%, ' + p.accent + ' 0%, transparent 60%), ' + p.panelSolid, opacity: 0.55, transformOrigin: '60% 40%' },
+      adLabelStyle: { position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', border: '1px dashed ' + p.muted, borderRadius: '14px', padding: '18px 28px', fontSize: '18px', letterSpacing: '0.12em', color: p.text },
+      tickerBoxStyle: { flexShrink: 0, overflow: 'hidden', padding: '14px 0', borderTop: '1px solid ' + p.line, borderBottom: '1px solid ' + p.line, color: p.text },
+
+      cardWideStyle: { width: '1120px', flexShrink: 0, boxSizing: 'border-box', borderRadius: r, padding: '32px', background: p.panel, border: '1px solid ' + p.line, display: 'flex', flexDirection: 'column', gap: '16px', minHeight: 0 },
+      cardNarrowStyle: { width: '700px', flexShrink: 0, boxSizing: 'border-box', borderRadius: r, padding: '28px', background: p.panel, border: '1px solid ' + p.line, display: 'flex', flexDirection: 'column', gap: '14px', minHeight: 0 },
+      cardLabelStyle: { fontFamily: p.fd, fontSize: '16px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: p.muted },
+      emptyStyle: { padding: '18px 0', fontSize: '22px', color: p.faint, fontStyle: 'italic' },
+
+      totalBoxStyle: { flexShrink: 0, borderRadius: (p.radius > 8 ? (p.radius - 6) : p.radius) + 'px', padding: '22px 28px', background: p.totalFill, border: '1px solid ' + p.totalBorder, color: p.totalText, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '20px' },
+      totalLabelStyle: { fontFamily: p.fd, fontSize: '18px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', opacity: 0.86, paddingBottom: '14px' },
+      totalValueStyle: { fontFamily: p.fd, fontSize: '138px', fontWeight: 700, lineHeight: 0.9, letterSpacing: '-0.035em', fontVariantNumeric: 'tabular-nums' },
+      totalValueSmallStyle: { fontFamily: p.fd, fontSize: '88px', fontWeight: 700, lineHeight: 0.9, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' },
+
+      promoStyle: { flexGrow: 1, minWidth: 0, borderRadius: r, padding: '28px', background: p.panel, border: '1px solid ' + p.line, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '16px' },
+      promoKickerStyle: { fontFamily: p.fd, fontSize: '14px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: p.accent },
+      promoTitleStyle: { fontFamily: p.fd, fontSize: '38px', fontWeight: 700, lineHeight: 1.1 },
+      promoFootStyle: { borderTop: '1px solid ' + p.line, paddingTop: '16px', fontSize: '15px', color: p.muted },
+
+      payTitleStyle: { fontSize: '36px', fontWeight: 600, lineHeight: 1.2 },
+      payAmountStyle: { fontFamily: p.fd, fontSize: '132px', fontWeight: 700, lineHeight: 0.9, letterSpacing: '-0.035em', fontVariantNumeric: 'tabular-nums', marginTop: '8px' },
+      haloStyle: { position: 'absolute', width: '560px', height: '560px', borderRadius: '30px', border: '2px solid ' + p.primary },
+      halo2Style: { position: 'absolute', width: '560px', height: '560px', borderRadius: '30px', border: '2px solid ' + p.accent },
+      qrCardStyle: { position: 'relative', width: '540px', height: '540px', boxSizing: 'border-box', borderRadius: '24px', background: '#FFFFFF', padding: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+      satiStyle: { border: '1px dashed ' + p.muted, borderRadius: '12px', padding: '12px 20px', fontSize: '15px', letterSpacing: '0.14em', color: p.text },
+
+      ringStyle: { position: 'absolute', width: '420px', height: '420px', borderRadius: '50%', border: '2px solid ' + p.primary },
+      ring2Style: { position: 'absolute', width: '420px', height: '420px', borderRadius: '50%', border: '2px solid ' + p.accent },
+      thanksStyle: { fontFamily: p.fd, fontSize: '112px', fontWeight: 700, lineHeight: 1.0, letterSpacing: '-0.03em' },
+      thanksAmountStyle: { fontFamily: p.fd, fontSize: '54px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' },
+
+      pillStyle: { display: 'flex', alignItems: 'center', gap: '10px', borderRadius: '999px', padding: '10px 18px', background: p.panel, border: '1px solid ' + p.line, fontSize: '17px', color: p.muted },
+      dotStyle: { width: '9px', height: '9px', borderRadius: '50%', background: p.muted },
+      poweredStyle: { fontSize: '14px', color: p.muted },
+      footMarkStyle: { width: '22px', height: '22px', borderRadius: '6px', border: '2px solid #1F6FEB' },
+      footWordStyle: { fontFamily: p.fd, fontSize: '16px', fontWeight: 600, letterSpacing: '0.16em', color: p.text },
+
+      // ---- comandi ----
+      addLine: function () {
+        var c = CATALOG[st.rows.filter(function (x) { return x.kind === 'item'; }).length % CATALOG.length];
+        self.push({ kind: 'item', desc: c.desc, qty: c.qty, amount: c.amount });
+      },
+      addDiscount: function () {
+        var base = self.total();
+        if (base <= 0) { return; }
+        self.push({ kind: 'discount', desc: 'Sconto 10%', qty: 1, amount: -Math.round(base * 0.1) });
+      },
+      voidLast: function () {
+        var rows = st.rows.slice();
+        for (var i = rows.length - 1; i >= 0; i--) {
+          if (rows[i].kind === 'item') {
+            rows[i] = { id: rows[i].id, kind: 'void', desc: rows[i].desc, qty: rows[i].qty, amount: rows[i].amount };
+            self.setState({ rows: rows, lastId: rows[i].id });
+            return;
+          }
+        }
+      },
+      addNote: function () {
+        self.push({ kind: 'note', desc: NOTES[st.noteIdx % NOTES.length], qty: 1, amount: 0 });
+        self.setState({ noteIdx: st.noteIdx + 1 });
+      },
+      sendMsg: function () {
+        var i = st.msgIdx % (MESSAGES.length + 1);
+        var text = i === 0 ? ('Totale ' + self.euro(self.total())) : MESSAGES[i - 1];
+        self.setState({ msg: text, msgIdx: st.msgIdx + 1 });
+      },
+      showQr: function () { self.setState({ fase: 'satispay', msg: null }); },
+      endSale: function () { self.setState({ fase: 'grazie', msg: null }); },
+      toggleOffline: function () { self.setState({ offline: !st.offline }); },
+      reset: function () { self.setState({ fase: 'attesa', rows: [], lastId: null, msg: null, offline: false }); },
+
+      themeChips: themes.map(function (t) {
+        return { label: t.label, cls: 'bt-chip' + (st.tema === t.key ? ' bt-chip-on' : ''), pick: function () { self.setState({ tema: t.key }); } };
+      }),
+      modeChips: modes.map(function (m) {
+        return { label: m.label, cls: 'bt-chip' + (st.modo === m.key ? ' bt-chip-on' : ''), pick: function () { self.setState({ modo: m.key }); } };
+      }),
+      qrChips: qrModes.map(function (q) {
+        return { label: q.label, cls: 'bt-chip' + (st.qrMode === q.key ? ' bt-chip-on' : ''), pick: function () { self.setState({ qrMode: q.key }); } };
+      }),
+      motionChips: motions.map(function (a) {
+        return { label: a.label, cls: 'bt-chip' + (st.motion === a.key ? ' bt-chip-on' : ''), pick: function () { self.setState({ motion: a.key }); } };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

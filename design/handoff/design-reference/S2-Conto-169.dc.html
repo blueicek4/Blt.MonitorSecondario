@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Conto in corso — 16:9</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+@keyframes bt-row-in { 0% { opacity: 0; transform: translateY(18px) scale(0.985); } 45% { opacity: 1; transform: translateY(-3px) scale(1.004); } 100% { opacity: 1; transform: none; } }
+@keyframes bt-photo-in { 0% { opacity: 0; transform: scale(1.04); } 100% { opacity: 1; transform: none; } }
+@keyframes bt-mesh { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(40px, -30px, 0) scale(1.1); } }
+.bt-row-in { animation: bt-row-in 420ms cubic-bezier(0.22, 1.2, 0.36, 1) both; }
+.bt-photo-in { animation: bt-photo-in 400ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.bt-mesh { animation: bt-mesh 24s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) { .bt-row-in, .bt-photo-in, .bt-mesh { animation: none; } }
+</style>
+</helmet>
+
+<div style="--c-primary: #1F6FEB; --c-accent: #3DDC97; --c-bg: #0B1017; --c-surface: #141B26; --c-text: #E6EAF2; --c-muted: #9AA6BA; --radius: 24px; width: 1920px; height: 1080px; box-sizing: border-box; position: relative; overflow: hidden; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif">
+
+  <!-- fondo: gradiente mesh (livello Piena) -->
+  <div class="bt-mesh" style="position: absolute; inset: -10%; background: radial-gradient(ellipse 50% 45% at 18% 22%, rgba(31,111,235,0.3) 0%, rgba(31,111,235,0) 62%), radial-gradient(ellipse 45% 40% at 86% 78%, rgba(61,220,151,0.14) 0%, rgba(61,220,151,0) 60%), radial-gradient(ellipse 60% 50% at 70% 10%, rgba(80,60,180,0.16) 0%, rgba(80,60,180,0) 60%)"></div>
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11,16,23,0.55) 0%, rgba(11,16,23,0.8) 100%)"></div>
+
+  <div style="position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 56px 64px; display: flex; flex-direction: column; gap: 28px">
+
+    <!-- testata -->
+    <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-shrink: 0">
+      <div style="display: flex; align-items: center; gap: 16px">
+        <svg width="42" height="42" viewBox="0 0 58 58" role="img" aria-label="Logo del locale (segnaposto)">
+          <circle cx="29" cy="29" r="27.5" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.6"></circle>
+          <path d="M17 38 L29 16 L41 38 Z" fill="none" stroke="#E6EAF2" stroke-width="2.6" stroke-linejoin="round"></path>
+          <line x1="17" y1="38" x2="41" y2="38" stroke="#3DDC97" stroke-width="2.6"></line>
+        </svg>
+        <div style="font-family: 'Archivo', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0.06em">LA VELA</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px; color: #9AA6BA">
+        <div style="font-size: 20px; letter-spacing: 0.04em">Cassa 1 · Tavolo 7</div>
+        <div style="width: 9px; height: 9px; border-radius: 50%; background: #3DDC97"></div>
+      </div>
+    </div>
+
+    <!-- corpo -->
+    <div style="flex-grow: 1; display: flex; gap: 40px; min-height: 0">
+
+      <!-- card scontrino -->
+      <div style="width: 1180px; flex-shrink: 0; box-sizing: border-box; border-radius: 24px; padding: 40px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(18px); display: flex; flex-direction: column; gap: 18px; min-height: 0">
+
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-shrink: 0">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 17px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #9AA6BA">Il tuo conto</div>
+          <div style="font-size: 19px; color: #9AA6BA; font-variant-numeric: tabular-nums">5 articoli · 2 coperti</div>
+        </div>
+
+        <!-- lista righe -->
+        <div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
+
+          <div style="display: flex; align-items: baseline; gap: 20px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.07)">
+            <div style="flex-grow: 1; font-size: 28px; font-weight: 500">Coperto</div>
+            <div style="font-size: 23px; color: #9AA6BA; font-variant-numeric: tabular-nums">×2</div>
+            <div style="width: 150px; text-align: right; font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums">4,00</div>
+          </div>
+
+          <div style="display: flex; align-items: baseline; gap: 20px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.07)">
+            <div style="flex-grow: 1; font-size: 28px; font-weight: 500">Pizza Margherita</div>
+            <div style="width: 150px; text-align: right; font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums">8,50</div>
+          </div>
+
+          <div style="display: flex; align-items: baseline; gap: 20px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.07); color: #6F7E95">
+            <div style="flex-grow: 1; font-size: 28px; font-weight: 500; text-decoration: line-through; text-decoration-thickness: 2px">Pizza Diavola</div>
+            <div style="border: 1px solid #6F7E95; border-radius: 999px; padding: 3px 12px; font-size: 14px; letter-spacing: 0.14em">STORNO</div>
+            <div style="width: 150px; text-align: right; font-size: 32px; font-weight: 600; text-decoration: line-through; text-decoration-thickness: 2px; font-variant-numeric: tabular-nums">9,00</div>
+          </div>
+
+          <div style="display: flex; align-items: baseline; gap: 20px; padding: 10px 0 10px 28px; border-bottom: 1px solid rgba(255,255,255,0.07)">
+            <div style="flex-grow: 1; font-size: 24px; font-style: italic; color: #9AA6BA">Ben cotta, poco sale</div>
+          </div>
+
+          <div style="display: flex; align-items: baseline; gap: 20px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.07)">
+            <div style="flex-grow: 1; font-size: 28px; font-weight: 500">Acqua naturale 0,75 l</div>
+            <div style="width: 150px; text-align: right; font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums">2,50</div>
+          </div>
+
+          <div style="display: flex; align-items: baseline; gap: 20px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.07); color: #3DDC97">
+            <div style="flex-grow: 1; font-size: 28px; font-weight: 500">Sconto 10%</div>
+            <div style="width: 150px; text-align: right; font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums">−2,10</div>
+          </div>
+
+          <div class="bt-row-in" style="display: flex; align-items: baseline; gap: 20px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.07)">
+            <div style="flex-grow: 1; font-size: 28px; font-weight: 500">Tiramisù</div>
+            <div style="width: 150px; text-align: right; font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums">6,00</div>
+          </div>
+        </div>
+
+        <!-- totale -->
+        <div style="flex-shrink: 0; border-radius: 18px; padding: 26px 32px; background: linear-gradient(180deg, rgba(31,111,235,0.2), rgba(31,111,235,0.05)); border: 1px solid rgba(31,111,235,0.42); display: flex; align-items: flex-end; justify-content: space-between; gap: 24px">
+          <div style="display: flex; flex-direction: column; gap: 6px; padding-bottom: 18px">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #9AA6BA">Totale</div>
+            <div style="font-size: 18px; color: #9AA6BA">IVA inclusa</div>
+          </div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 150px; font-weight: 700; line-height: 0.9; letter-spacing: -0.035em; font-variant-numeric: tabular-nums">€ 18,90</div>
+        </div>
+      </div>
+
+      <!-- colonna laterale -->
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+
+        <!-- foto dell'articolo appena battuto -->
+        <div class="bt-photo-in" style="height: 420px; flex-shrink: 0; border-radius: 24px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.1)">
+          <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 80% 70% at 30% 25%, #3A2A20 0%, rgba(58,42,32,0) 65%), linear-gradient(145deg, #241A14 0%, #14100C 100%)"></div>
+          <div style="position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%); border: 1px dashed rgba(255,255,255,0.26); border-radius: 14px; padding: 18px 26px; text-align: center">
+            <div style="font-size: 16px; letter-spacing: 0.16em; color: rgba(255,255,255,0.8)">FOTO ARTICOLO · 1:1</div>
+            <div style="font-size: 14px; color: rgba(255,255,255,0.55); margin-top: 4px">segnaposto</div>
+          </div>
+          <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 28px; background: linear-gradient(180deg, rgba(10,8,6,0) 0%, rgba(10,8,6,0.9) 70%)">
+            <div style="font-size: 30px; font-weight: 600">Tiramisù</div>
+            <div style="font-size: 18px; color: #9AA6BA; margin-top: 4px">appena aggiunto al conto</div>
+          </div>
+        </div>
+
+        <!-- promozione del locale -->
+        <div style="flex-grow: 1; min-height: 0; border-radius: 24px; padding: 32px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); display: flex; flex-direction: column; justify-content: space-between; gap: 18px">
+          <div style="display: flex; flex-direction: column; gap: 14px">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #3DDC97">Promozione</div>
+            <div style="font-family: 'Archivo', sans-serif; font-size: 42px; font-weight: 700; line-height: 1.08; letter-spacing: -0.01em">Il secondo caffè lo offriamo noi</div>
+            <div style="font-size: 20px; line-height: 1.5; color: #9AA6BA">Valida tutti i giorni dopo il dolce. Chiedila alla cassa.</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; border-top: 1px solid rgba(255,255,255,0.09); padding-top: 18px">
+            <div style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-size: 13px; color: #9AA6BA">16:9</div>
+            <div style="font-size: 16px; color: #9AA6BA">Spazio promozioni del locale — testo e immagine dal pannello</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- footer Bluetech -->
+    <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; gap: 12px">
+      <div style="font-size: 15px; color: #8FA3C0">powered by</div>
+      <svg width="24" height="24" viewBox="0 0 34 34" role="img" aria-label="Marchio Bluetech (segnaposto)">
+        <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1F6FEB" stroke-width="2.6"></rect>
+        <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#E6EAF2" stroke-width="3" stroke-linecap="round"></path>
+      </svg>
+      <div style="font-family: 'Archivo', sans-serif; font-size: 17px; font-weight: 600; letter-spacing: 0.16em; color: #E6EAF2">BLUETECH</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -12,11 +12,16 @@ l'ordine di implementazione.
 
 1. Leggi `SPEC.md` per intero. È la specifica funzionale: stati, layout, regole.
 2. Leggi `MOTION.md` prima di toccare qualunque animazione.
-3. Apri il canvas di design come riferimento visivo:
-   https://claude.ai/artifact/1Vqr5fioAwP73svEAoiMrD
-   Ogni stato ha il suo artboard a dimensione reale. Quando un numero nel codice e un
-   numero sull'artboard non coincidono, **vince questo pacchetto**: i file
-   `src/tokens/*` e `SPEC.md` sono la fonte autoritativa, gli artboard sono riferimento.
+3. Il riferimento visivo è in `design-reference/`: i sorgenti dei 23 artboard, con ogni
+   misura, colore e durata scritti letteralmente nel markup. Leggi
+   `design-reference/README.md` per sapere come usarli e come tradurre il formato.
+   Non vanno copiati nel progetto e non si aprono nel browser così come sono.
+   Il più utile è `design-reference/Prototipo.dc.html`: contiene la macchina a stati
+   completa in JS, le otto palette, la costruzione delle righe per variante.
+   Lo stesso canvas, navigabile, sta su https://claude.ai/artifact/1Vqr5fioAwP73svEAoiMrD
+   (serve un browser con l'account Bluetech: se non ce l'hai, usa i sorgenti).
+   Quando un numero nei sorgenti e un numero in questo pacchetto non coincidono,
+   **vince il pacchetto**: `src/tokens/*` e `SPEC.md` sono la fonte autoritativa.
 4. I file in `src/` sono già scritti e pronti: palette, token, tipi del protocollo.
    Copiali nel repo come sono. Non rigenerarli a mano.
 
@@ -81,6 +86,12 @@ chiedi gli asset.
    guida. **Non ridisegnarlo.**
 3. **Immagini pubblicitarie e foto articolo** — segnaposto disegnati con le proporzioni
    reali. Le carica il locale dal pannello.
+4. **File dei font** — il pacchetto non li contiene. Otto famiglie open source, tutte con
+   licenza che consente l'incorporazione: Archivo, IBM Plex Sans, Newsreader, Alegreya
+   Sans, Cormorant Garamond, Jost, Syne, Space Grotesk. Vanno scaricati come woff2 e
+   serviti da `public/fonts/` (task M0). Se la rete della macchina di sviluppo non li
+   raggiunge, chiedili a Gianluca invece di sostituire le famiglie: i fallback di sistema
+   nei token hanno metriche vicine ma la resa non è la stessa.
 
 ## Domande aperte — risolvere con Gianluca prima della milestone M5
 

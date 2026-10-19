@@ -5,7 +5,8 @@ e `src/tokens/*` restano la fonte autoritativa per l'interfaccia. Questo documen
 sappiamo davvero della cassa (reverse engineering in [docs/01](../docs/01-analisi-monitorcliente.md), file reali in
 [samples/](../samples/)) e dice cosa cambia nel [piano](../docs/02-piano-azione.md).
 
-Canvas di riferimento visivo: <https://claude.ai/artifact/1Vqr5fioAwP73svEAoiMrD>
+Riferimento visivo offline: i sorgenti dei 23 artboard in [`handoff/design-reference/`](handoff/design-reference/README.md)
+(da leggere, non da aprire nel browser). Lo stesso canvas navigabile: <https://claude.ai/artifact/1Vqr5fioAwP73svEAoiMrD>
 
 ## 1. Le quattro domande aperte del `CLAUDE.md`
 

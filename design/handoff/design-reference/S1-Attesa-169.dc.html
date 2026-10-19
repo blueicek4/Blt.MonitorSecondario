@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Attesa — 16:9</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+@keyframes bt-kb { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.08) translate3d(-14px, -10px, 0); } }
+@keyframes bt-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes bt-float { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+.bt-kb { animation: bt-kb 8s linear infinite alternate; }
+.bt-ticker { animation: bt-ticker 24s linear infinite; }
+.bt-float { animation: bt-float 8s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) { .bt-kb, .bt-ticker, .bt-float { animation: none; } }
+</style>
+</helmet>
+
+<div style="--c-primary: #1F6FEB; --c-accent: #3DDC97; --c-bg: #0B1017; --c-text: #E6EAF2; --c-muted: #9AA6BA; --radius: 24px; width: 1920px; height: 1080px; box-sizing: border-box; position: relative; overflow: hidden; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif">
+
+  <!-- slide pubblicitaria a tutto schermo (segnaposto) -->
+  <div class="bt-kb" style="position: absolute; inset: -40px; transform-origin: 62% 44%">
+    <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 70% 60% at 72% 34%, #2A5EA8 0%, rgba(42,94,168,0) 62%), radial-gradient(ellipse 55% 50% at 22% 72%, #123A6B 0%, rgba(18,58,107,0) 60%), linear-gradient(160deg, #0E1726 0%, #0B1017 58%, #050709 100%)"></div>
+    <div style="position: absolute; left: 54%; top: 18%; width: 620px; height: 620px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.09)"></div>
+    <div style="position: absolute; left: 60%; top: 26%; width: 430px; height: 430px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.07)"></div>
+    <div style="position: absolute; left: 10%; top: 58%; width: 360px; height: 360px; border-radius: 50%; background: radial-gradient(circle, rgba(61,220,151,0.14) 0%, rgba(61,220,151,0) 70%)"></div>
+  </div>
+
+  <!-- scrim per la leggibilità di logo, ticker e footer -->
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5,7,9,0.72) 0%, rgba(5,7,9,0) 26%, rgba(5,7,9,0) 58%, rgba(5,7,9,0.88) 100%)"></div>
+
+  <!-- etichetta del segnaposto -->
+  <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border: 1px dashed rgba(255,255,255,0.28); border-radius: 18px; padding: 26px 38px; text-align: center; display: flex; flex-direction: column; gap: 8px">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: 0.18em; color: rgba(255,255,255,0.86)">SLIDE DEL LOCALE</div>
+    <div style="font-size: 17px; color: rgba(255,255,255,0.6)">immagine 1920×1080 o video H.264 · segnaposto</div>
+  </div>
+
+  <!-- logo del locale, con parallasse -->
+  <div class="bt-float" style="position: absolute; left: 64px; top: 56px; display: flex; align-items: center; gap: 20px">
+    <svg width="58" height="58" viewBox="0 0 58 58" role="img" aria-label="Logo del locale (segnaposto)">
+      <circle cx="29" cy="29" r="27.5" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.6"></circle>
+      <path d="M17 38 L29 16 L41 38 Z" fill="none" stroke="#E6EAF2" stroke-width="2.4" stroke-linejoin="round"></path>
+      <line x1="17" y1="38" x2="41" y2="38" stroke="#3DDC97" stroke-width="2.4"></line>
+    </svg>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 36px; font-weight: 700; letter-spacing: 0.06em; line-height: 1">LA VELA</div>
+      <div style="font-size: 17px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.72)">cucina di mare</div>
+    </div>
+  </div>
+
+  <!-- indicatore playlist -->
+  <div style="position: absolute; right: 64px; top: 66px; display: flex; align-items: center; gap: 10px">
+    <div style="width: 44px; height: 4px; border-radius: 2px; background: #E6EAF2"></div>
+    <div style="width: 20px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.3)"></div>
+    <div style="width: 20px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.3)"></div>
+    <div style="width: 20px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.3)"></div>
+  </div>
+
+  <!-- testo scorrevole -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 136px; overflow: hidden; padding: 18px 0; border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(5,7,9,0.32)">
+    <div class="bt-ticker" style="display: flex; gap: 80px; white-space: nowrap; width: max-content; padding-left: 64px; font-size: 28px; font-weight: 500; color: #E6EAF2">
+      <span>Fritto misto del giorno &nbsp;·&nbsp; Aperitivo con ostriche dalle 18 alle 20 &nbsp;·&nbsp; Chiuso il lunedì &nbsp;·&nbsp; Seguici per le serate a tema</span>
+      <span>Fritto misto del giorno &nbsp;·&nbsp; Aperitivo con ostriche dalle 18 alle 20 &nbsp;·&nbsp; Chiuso il lunedì &nbsp;·&nbsp; Seguici per le serate a tema</span>
+    </div>
+  </div>
+
+  <!-- footer Bluetech, sempre presente -->
+  <div style="position: absolute; right: 64px; bottom: 44px; display: flex; align-items: center; gap: 12px; height: 56px">
+    <div style="font-size: 15px; color: #8FA3C0">powered by</div>
+    <svg width="24" height="24" viewBox="0 0 34 34" role="img" aria-label="Marchio Bluetech (segnaposto)">
+      <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1F6FEB" stroke-width="2.6"></rect>
+      <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#E6EAF2" stroke-width="3" stroke-linecap="round"></path>
+    </svg>
+    <div style="font-family: 'Archivo', sans-serif; font-size: 17px; font-weight: 600; letter-spacing: 0.16em; color: #E6EAF2">BLUETECH</div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
