@@ -1,9 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Su Windows i test girano anche sulla build .NET Framework 4.6.2, quella usata in cassa. -->
+  <!--
+    Su Windows i test girano anche su .NET Framework: il progetto di test è net472 (minimo del runner xunit),
+    ma usa la build net462 del registratore, cioè lo stesso exe che va in cassa.
+  -->
   <PropertyGroup>
     <TargetFrameworks>net10.0</TargetFrameworks>
-    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net10.0;net462</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net10.0;net472</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
@@ -16,7 +19,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" PrivateAssets="all" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />

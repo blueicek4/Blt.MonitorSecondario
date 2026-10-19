@@ -19,7 +19,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Test registratore (.NET 10 e .NET Framework 4.6.2)
+      - name: Test registratore (.NET 10 e .NET Framework)
         run: dotnet test tools/Bluetech.Display.Recorder.Tests/Bluetech.Display.Recorder.Tests.csproj -c Release
 
       - name: Build registratore
