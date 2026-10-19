@@ -74,3 +74,15 @@ confrontando ogni versione del file con quella precedente.
 2. **Dopo il giro completo col registratore**: protocollo reale nell'Agent (diff → `CashIn`) e M5 (trasporto
    WebSocket, resilienza).
 3. Decisioni di prodotto ancora aperte nel pacchetto: `compactRows` per i monitor da 10″ e `showLastItemPhoto`.
+
+## 7. Decisioni prese in M0 e M1 (da confermare)
+
+| Punto del pacchetto | Problema | Decisione |
+|---|---|---|
+| Il `ThemeProvider` riceve `ThemeTokens` | I token non dicono da quale tema partono e hanno una sola serie di colori: con `mode: 'auto'` non si sa cosa mostrare di giorno | Il locale sceglie un **tema di partenza** (uno degli otto set) più i `ThemeTokens`. In `auto` si alternano le due varianti del tema e i colori dei token sono ignorati; con giorno o notte fissi i colori del locale vincono (`display/src/theme/theme.ts`) |
+| Ore di `mode: 'auto'` | "Orari di apertura del locale", che il protocollo non porta | Giorno dalle 7 alle 19, configurabile (`DayHours`). Gli orari veri arriveranno dal pannello |
+| Formato degli importi | SPEC §4 chiede `€ 18,90` ma indica `Intl.NumberFormat('it-IT', {style: 'currency'})`, che dà `18,90 €` | Vale l'esempio: Intl formatta il numero, `€` davanti con spazio fine (`display/src/money/money.ts`) |
+| `qrLayout` di default | Non indicato nella SPEC | `beside`, come il prototipo |
+| Rapporti d'aspetto 1–1,2 | La SPEC copre ≥1,5 / 1,2–1,5 / <1 | `narrow`, la variante più vicina |
+| Font in `public/fonts/` | — | Come da TASKS M0, quindi il display va servito dalla radice del sito (`/`): l'Agent lo servirà così |
+

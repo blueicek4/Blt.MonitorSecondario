@@ -1,0 +1,36 @@
+name: Display
+
+on:
+  push:
+    paths:
+      - "display/**"
+      - ".github/workflows/display.yml"
+  workflow_dispatch:
+
+jobs:
+  display:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: display
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: display/.nvmrc
+          cache: npm
+          cache-dependency-path: display/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run check:bundle
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bluetech-display
+          path: display/dist/

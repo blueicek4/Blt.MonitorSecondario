@@ -1,0 +1,240 @@
+/* Banco di prova: legge solo i token, così cambiando tema cambiano i colori e mai il layout. */
+
+.bench {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: var(--pad-y) var(--pad-x);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background:
+    radial-gradient(ellipse 50% 45% at 18% 20%, var(--glow) 0%, transparent 62%),
+    radial-gradient(ellipse 45% 40% at 86% 80%, var(--glow-2) 0%, transparent 60%), var(--c-bg);
+  color: var(--c-text);
+  cursor: default;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.bench h1,
+.bench h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.bench h1 {
+  font-size: 28px;
+}
+
+.bench h2 {
+  font-size: var(--t-label);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+
+.bench-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px 32px;
+}
+
+.bench-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.bench-facts dt {
+  color: var(--c-muted);
+}
+
+.bench-facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.bench-warn {
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  background: var(--c-primary);
+  color: var(--c-on-primary);
+}
+
+.bench-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+}
+
+.bench-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bench-label {
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  margin-right: 4px;
+}
+
+.bench button {
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--c-line);
+  background: var(--c-surface-solid);
+  color: var(--c-text);
+}
+
+.bench button[aria-pressed='true'] {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: var(--c-on-primary);
+}
+
+.bench-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.bench-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 24px;
+  min-height: 0;
+}
+
+.bench-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 32px;
+  border-radius: var(--radius);
+  border: 1px solid var(--c-line);
+  background: var(--c-surface);
+}
+
+.bench-kicker {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+
+.bench-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+
+.bench-row {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--c-line);
+  font-size: var(--t-row);
+}
+
+.bench-desc {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.bench-qty {
+  font-size: var(--t-qty);
+  color: var(--c-muted);
+}
+
+.bench-amount {
+  width: var(--amount-col);
+  text-align: right;
+  font-size: var(--t-amount);
+  font-weight: 600;
+}
+
+.bench-row-discount,
+.bench-row-surcharge {
+  color: var(--c-accent);
+}
+
+.bench-row-void {
+  color: var(--c-faint);
+  text-decoration: line-through;
+}
+
+.bench-row-note .bench-desc {
+  padding-left: 28px;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--c-muted);
+}
+
+.bench-total {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 22px 28px;
+  border-radius: var(--radius);
+  border: 1px solid var(--total-border);
+  background: var(--total-fill);
+  color: var(--total-text);
+}
+
+.bench-total .bench-kicker {
+  color: inherit;
+}
+
+.bench-total-value {
+  font-family: var(--font-display);
+  font-size: var(--t-total);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+}
+
+.bench-band {
+  padding: 18px 28px;
+  border-radius: var(--radius);
+  background: var(--c-primary);
+  color: var(--c-on-primary);
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.bench-log {
+  padding: 24px;
+  border-radius: var(--radius);
+  border: 1px solid var(--c-line);
+  background: var(--c-surface-solid);
+  overflow: auto;
+}
+
+.bench-log ol {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--c-muted);
+}
