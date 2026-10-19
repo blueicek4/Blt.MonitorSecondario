@@ -13,11 +13,13 @@ Riferimento visivo offline: i sorgenti dei 23 artboard in [`handoff/design-refer
 | # | Domanda | Risposta | Prova |
 |---|---|---|---|
 | 1 | Come la cassa espone i dati al monitor | **File su disco**: Passepartout scrive `Scontrino.txt` con il driver "stampa su file" e il modello XML `Monitor`. Nessun socket, nessun HTTP. Il trasporto verso il browser lo fa l'**Agent** (servizio Windows locale) | Reverse engineering del vecchio `MonitorCliente.exe`; modello XML in `docs/reference/` |
-| 2 | Delta o ristampa completa | **Ristampa completa a ogni battuta.** Serve il diff lato monitor: è già scritto e testato (`ReceiptDiff` in `tools/`) e mette gli articoli ripetuti in fondo, così l'ingresso scatta sulla riga giusta | Tuo riscontro in cassa + `samples/` |
-| 3 | Foto articolo e chiave | **Nel file non c'è un codice articolo**, solo la descrizione, per di più **troncata a 30 colonne** (`Hamburger Vecchia Malg`). Anche i comandi del modello XML (`StampaRigaArticolo`: descrizione, quantità, prezzo, reparto, IVA) non portano un codice. Una foto si può agganciare solo alla descrizione, quindi è fragile: il default del design `showLastItemPhoto: false` è giusto | `samples/scontrino-ristorante-3-righe.txt`, modello XML |
-| 4 | Evento affidabile di fine vendita | **Non ancora noto.** Il vecchio monitor usa solo il tempo: 20 s senza aggiornamenti → "ARRIVEDERCI E GRAZIE". Da verificare col registratore (giro completo: pagamenti, Satispay, due conti di fila, minuto di pausa finale) | `docs/01` §3.4 |
+| 2 | Delta o ristampa completa | **Ristampa completa a ogni battuta.** Serve il diff lato monitor: è già scritto e testato (`ReceiptDiff` in `tools/`) e mette gli articoli ripetuti in fondo, così l'ingresso scatta sulla riga giusta. Passepartout **elimina e ricrea** il file ogni volta, a volte con lo stesso identico contenuto (7 volte su 42) | Tuo riscontro in cassa, `samples/`, [registrazione del 20/10](../samples/registrazioni/2026-10-20_002138/README.md) |
+| 3 | Foto articolo e chiave | **Nel file non c'è un codice articolo**, solo la descrizione, per di più **troncata**: a 22 caratteri col modello a 30 colonne (`Hamburger Vecchia Malg`), a 40 con quello a 48. Anche i comandi del modello XML (`StampaRigaArticolo`: descrizione, quantità, prezzo, reparto, IVA) non portano un codice. Una foto si può agganciare solo alla descrizione, quindi è fragile: il default del design `showLastItemPhoto: false` è giusto | `samples/scontrino-ristorante-3-righe.txt`, modello XML |
+| 4 | Evento affidabile di fine vendita | **In parte.** Lo scontrino finale porta `PAGATO CONTANTI:` o `PAGATO C.CREDITO:` e `Resto:` dopo il totale: 4 dei 5 conti pagati durante la registrazione (il sesto è rimasto aperto). Il terzo invece non ha scritto nessuna riga di pagamento (da capire come è stato pagato). Il vecchio monitor usa solo il tempo: 20 s senza aggiornamenti → "ARRIVEDERCI E GRAZIE" | [registrazione del 20/10](../samples/registrazioni/2026-10-20_002138/README.md), `docs/01` §3.4 |
 
-Fino alla risposta 4 lo stato **Grazie** si apre per inattività (come oggi) e non per un evento della cassa.
+Lo stato **Grazie** si apre alla riga `PAGATO …`; se non arriva, per inattività come oggi. La versione dopo un `PAGATO` è
+un conto nuovo. Senza `PAGATO` non basta "nessuna riga in comune": il 20/10 un conto nuovo è partito con un articolo
+uguale a uno del conto precedente.
 
 ## 2. Dal file al protocollo del design
 
@@ -28,11 +30,16 @@ confrontando ogni versione del file con quella precedente.
 |---|---|---|
 | Prima versione `SNF` di un conto | `sale.open` + una `sale.line` per riga | |
 | Riga nuova (dal diff) | `sale.line` `item` con **id nuovo** | Gli id li assegna l'Agent e restano stabili tra versioni grazie al diff (stessa riga = stesso id) |
-| Riga sparita (dal diff) | `sale.line` `void` con `voidsId` | Il design la tiene barrata 6 s. **Da verificare**: lo storno in Passepartout toglie la riga o ne aggiunge una negativa? (giro completo, punto 3) |
-| Riga con importo negativo | `discount` | Formato reale di sconti e maggiorazioni ancora da registrare (punto 4) |
+| Riga sparita (dal diff) | `sale.line` `void` con `voidsId` | Il design la tiene barrata 6 s. Lo storno, il 20/10, **toglie la riga** (nessuna riga negativa; da confermare con chi era in cassa) |
+| Righe uguali che diventano una (in "dettagli conto") | **Non è uno storno**: aggiornamento della quantità della riga che resta | `Cestino 3,00` due volte → `2 X 3,00 Euro` + `Cestino 6,00`. Il diff vede due righe tolte e due aggiunte: l'Agent deve riconoscere l'unione (stessa descrizione, somma degli importi), altrimenti il cliente vedrebbe due righe barrate |
+| `SCONTO  -5,00` tra `SUBTOT.` e `TOT. DA PAGARE` | `discount` sul conto | Sullo scontrino finale lo stesso sconto arriva ripartito sotto ogni riga (`SCONTO -1,25` allineato a destra) e il subtotale è già netto: da decidere se mostrare il ripartito o tenere lo sconto unico, mai tutti e due |
+| Intestazione (righe centrate, `-----`, `EURO`) | nessuno | Compare solo in "dettagli conto" e sullo scontrino. La ragione sociale era `Da inserire`, cioè non compilata |
+| `PAGATO …:` e `Resto:` | fine vendita → stato **Grazie** | Metodo e resto non hanno un messaggio nel protocollo: proposta `sale.paid { method, amount, change }` |
+| Stesso contenuto rimandato | nessuno | Si scarta per hash |
+| File vuoto appena creato | nessuno | Passepartout lo crea vuoto e lo riempie subito dopo: si aspetta il contenuto |
 | `TOT. DA PAGARE  35,50` | `sale.total` `3550` | **Centesimi**, parsing della stringa senza `parseFloat` (gestire anche `1.234,50`). Il totale viene dalla cassa, come vuole il design |
 | `SUBTOT.` | ignorato | Come il vecchio monitor |
-| Riga con ` x ` (dettaglio quantità) | `qty` della riga a cui si riferisce | Nei file visti finora gli articoli ripetuti sono righe separate: formato da confermare (punto 2) |
+| `   2 X 3,00 Euro` o `   2 pz X 12,00 Euro` | `qty` e prezzo unitario della riga **successiva**, che porta l'importo totale | Il primo in "dettagli conto", il secondo cambiando la quantità mentre si batte. Non filtrare per ` x `: ci sono prodotti con ` x ` nel nome (`Tagliere Emilia x 2`), che il vecchio monitor non mostra per questo |
 | Messaggio del visore (file senza `SNF`) | `display.msg` | Il design estrae etichetta e importo con una regex: i testi reali sono `{riga1} {riga2}` del visore (16 colonne) |
 | `SNF` + `QRCODE` + riga Base64 | `pay.qr` `png: data:image/png;base64,…`, `amount` = ultimo totale | Formato dell'immagine da confermare (punto 9) |
 | Qualunque file dopo un QR | `pay.clear` | È il comportamento del vecchio monitor |
@@ -51,16 +58,22 @@ confrontando ogni versione del file con quella precedente.
 
 ## 4. Cose che il design non poteva sapere
 
-- **Descrizioni troncate dalla cassa a 30 colonne** (`Gelato alla crema con`). La regola "a capo su due righe, poi
-  ellissi" non entra mai in gioco finché la cassa taglia. Proposta da provare col registratore: alzare
-  `NumeroColonne` nel modello XML del monitor (per esempio 48). È il modello del monitor, non di una stampante: ma
-  attenzione al vecchio monitor, che con righe più lunghe cambierebbe aspetto.
+- **Descrizioni troncate dalla cassa**: a 22 caratteri col modello a 30 colonne (`Gelato alla crema con`), a 40 con
+  quello a 48 provato il 20/10 (`Tortellini in crema di Sua Maesta' il Ne`). La regola "a capo su due righe, poi
+  ellissi" serve poco finché la cassa taglia. 48 colonne vanno bene per il nuovo monitor; il vecchio, con righe più
+  lunghe, cambia aspetto.
+- **Accenti resi con l'apostrofo** (`Maesta'`): il file è ASCII. Rimettere l'accento su una vocale finale seguita da
+  apostrofo funziona quasi sempre, ma sbaglia `po'`: da decidere se farlo, con un elenco di eccezioni.
+- **Ritmo**: il 20/10 Passepartout non ha mai scritto prima di 3 s dalla scrittura precedente, e battendo articoli di
+  fila li ha accodati (uno ogni 3,3 s). Se, come sembra, aspetta che il file venga tolto, l'Agent lo toglierà dopo
+  averlo letto: le battute arriveranno subito, e anche a raffica. Il motore dello scontrino (M3) deve reggere più
+  righe nuove nello stesso secondo, scaglionando gli ingressi.
 - **Maiuscole e minuscole** arrivano come sono scritte in anagrafica (`Tagliata Al Rosmarino`): coerente con "mai
   maiuscolo forzato".
 - **Coperti**: `sale.total.cover` non ha ancora una fonte. Se il conto ha una riga "Coperto", l'Agent li ricava da lì.
-- **Passepartout potrebbe non sovrascrivere il file** (`SovrascriviSeEsistente=false`): in quel caso l'Agent deve
-  "consumarlo" dopo averlo letto, e non può convivere col vecchio monitor sullo stesso file. Primo giro in cassa:
-  una sola versione registrata; in verifica con `/consuma`.
+- **Il file va tolto dopo la lettura?** Il 19/10 una sola versione e nessuna attività nella cartella; il 20/10
+  42 versioni con il file eliminato e ricreato da Passepartout dopo almeno 3 s. Si verifica con la prova A/B/A del
+  registratore (`/consuma`). Se serve toglierlo, l'Agent non può convivere col vecchio monitor sullo stesso file.
 
 ## 5. Asset da recuperare (dal pacchetto)
 
@@ -71,8 +84,9 @@ confrontando ogni versione del file con quella precedente.
 
 1. **Subito, contro il mock**: M0 e M1 del [TASKS.md](handoff/TASKS.md) in `display/` (scaffolding, font locali,
    token, tema, formato, trasporto finto). Poi M2–M4 (i sei stati, motore dello scontrino, QR).
-2. **Dopo il giro completo col registratore**: protocollo reale nell'Agent (diff → `CashIn`) e M5 (trasporto
-   WebSocket, resilienza).
+2. **Dopo la prova A/B/A e il resto del giro completo** (Satispay, messaggi del visore, annullo, reso, fattura):
+   protocollo reale nell'Agent (diff → `CashIn`, con unione delle righe e `PAGATO`) e M5 (trasporto WebSocket,
+   resilienza). La registrazione del 20/10 è già un banco di prova per il parser: 42 versioni, 6 conti.
 3. Decisioni di prodotto ancora aperte nel pacchetto: `compactRows` per i monitor da 10″ e `showLastItemPhoto`.
 
 ## 7. Decisioni prese in M0 e M1 (da confermare)
