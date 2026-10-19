@@ -1,0 +1,82 @@
+# Bluetech Recorder — registratore di `Scontrino.txt`
+
+Registra **ogni versione** del file che Passepartout Menu scrive per il monitor cliente, byte per byte,
+con l'ora al millisecondo. Serve per la Fase 0: capire con dati veri come si comporta la cassa
+(scontrino, storni, sconti, QR Satispay, messaggi del visore) prima di scrivere l'Agent.
+
+Non disturba niente: apre il file solo in lettura, con condivisione completa, e funziona anche con il vecchio
+`MonitorCliente.exe` acceso.
+
+## Avvio
+
+1. Copia `BluetechRecorder.exe` sul PC cassa (un solo file; serve Windows 10/11, nient'altro).
+2. Doppio clic: registra `C:\MonitorSecondario\Scontrino.txt`.
+   - Altro percorso: trascina il file `Scontrino.txt` (o la sua cartella) sull'exe, oppure
+     `BluetechRecorder.exe D:\percorso\Scontrino.txt`.
+   - Altra cartella di destinazione: `--out D:\Registrazioni`.
+3. Lavora in cassa. Prima di ogni prova **scrivi una nota** nella finestra e premi Invio
+   (es. `storno seconda riga`): finisce nell'indice con l'ora, così ogni file si collega a cosa stavi facendo.
+4. Per finire scrivi `/fine` (oppure Ctrl+C, oppure chiudi la finestra).
+5. Invia lo zip indicato a fine registrazione:
+   `C:\MonitorSecondario\Registrazioni\AAAA-MM-GG_hhmmss.zip`.
+
+Se la cartella non è scrivibile, le registrazioni vanno sul Desktop in `Registrazioni Monitor`.
+
+## Cosa vedi a video
+
+```
+18:53:48.974  #0002  SCONTRINO  2 righe · totale 4,00 → 5,80
+   +   2  CAPPUCCINO               1,80
+18:53:50.778  #0004  SCONTRINO  2 righe · totale 7,60 → 5,80   (uguale a #0002)
+   −   3  CAPPUCCINO               1,80
+18:53:51.377  #0005  MESSAGGIO  "TOTALE 5,80"
+18:53:51.978  #0006  QR CODE    immagine PNG 290×290 → 0006_qrcode.png
+```
+
+Passepartout rimanda sempre il conto intero: il registratore lo confronta con la versione precedente e mostra
+solo le righe aggiunte (+) e tolte (−), con la loro posizione. È lo stesso confronto che userà il nuovo monitor
+per animare le differenze.
+
+## Cosa contiene lo zip
+
+| File | Contenuto |
+|---|---|
+| `0001_hh-mm-ss.fff.txt`… | Ogni versione diversa del file, identica byte per byte all'originale |
+| `0006_qrcode.png` | L'immagine del QR, se Passepartout la manda in Base64 |
+| `eventi.jsonl` | Una riga per evento: versioni (con codifica, righe aggiunte/tolte, totale), riscritture identiche, file eliminato/creato, note |
+| `sessione.txt` | Versione di Windows, schermi e risoluzioni, WebView2 installato o no |
+| `riepilogo.txt` | Conteggi finali |
+| `contesto\` | Copia di `XMLMonitorCliente.xml` e `MonitorCliente.exe.config` se sono nella stessa cartella |
+
+Attenzione: le registrazioni contengono gli scontrini. Per le prove usa articoli di test e, per le fatture,
+un cliente fittizio.
+
+## Il giro completo
+
+Una nota prima di ogni punto. Se una funzione non la usate, saltala.
+
+1. Conto semplice: 1 articolo, poi altri 3, di cui 2 uguali.
+2. Articolo con quantità (moltiplicatore, es. 3 × caffè).
+3. Storno di una riga in mezzo e dell'ultima riga.
+4. Sconto % su una riga, sconto % sul subtotale, sconto a valore, maggiorazione.
+5. Annullo dell'intero scontrino.
+6. Preconto, se lo usate.
+7. Pagamento in contanti con resto.
+8. Pagamento con carta/bancomat.
+9. **Satispay**: QR a video → pagamento riuscito; poi un secondo QR → pagamento annullato o scaduto.
+10. Scontrino con codice fiscale o P.IVA e una fattura.
+11. Articoli con descrizione lunga, accenti (Caffè, Tiramisù), simbolo €, apostrofo (Pizza dell'orto).
+12. Omaggio o prezzo zero, reso.
+13. Conto al tavolo e conto diviso, se li usate.
+14. Due conti di fila, per vedere come inizia un conto nuovo.
+15. Dopo l'ultimo pagamento lascia tutto fermo 1 minuto, poi chiudi con `/fine`.
+
+## Compilazione e test
+
+```bash
+dotnet build tools/Bluetech.Display.Recorder -c Release      # exe in bin/Release/net48/
+dotnet test tools/Bluetech.Display.Recorder.Tests
+```
+
+Su Windows i test girano anche sulla build .NET Framework 4.8. La GitHub Action **Build** compila e testa su Windows
+e pubblica `BluetechRecorder` e `BluetechDisplayPlayer` come artifact.

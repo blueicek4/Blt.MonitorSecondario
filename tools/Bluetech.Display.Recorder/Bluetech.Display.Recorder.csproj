@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    net48: l'eseguibile da usare sui PC cassa (già incluso in Windows 10/11, un solo file).
+    net10.0: stessa logica, usata dai test automatici anche su Linux.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net48;net10.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Bluetech.Display.Recorder</RootNamespace>
+    <AssemblyName>BluetechRecorder</AssemblyName>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <Version>1.0.0</Version>
+    <Company>Bluetech</Company>
+    <Product>Bluetech Display Recorder</Product>
+    <Description>Registra ogni versione del file Scontrino.txt scritto da Passepartout Menu.</Description>
+    <Copyright>Bluetech</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Windows.Forms" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

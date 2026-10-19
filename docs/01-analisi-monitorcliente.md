@@ -98,6 +98,33 @@ Ogni 3 s: se la barra in alto contiene un testo **e** sono passati più di 20 s 
 (scontrino o messaggio), la barra mostra `ARRIVEDERCI E GRAZIE`.
 Lo scontrino invece **non viene mai cancellato**: resta a video fino alla vendita successiva.
 
+### 3.5 Formato reale osservato (primo file dalla cassa)
+
+File d'esempio: [samples/scontrino-bar-9-righe.txt](../samples/scontrino-bar-9-righe.txt).
+
+```
+SNF
+␠
+␠SPREMUTA ARANCIA         4,00
+␠CAPPUCCINO               1,80
+…
+SUBTOT.                  19,60
+␠
+TOT. DA PAGARE           19,60
+␠
+␠
+```
+
+- ASCII puro, fine riga CRLF, nessun BOM. Codifica di accenti ed euro ancora da verificare (registratore).
+- Righe di **30 colonne esatte** (`NumeroColonne` del modello XML): articoli con uno spazio iniziale, descrizione
+  allineata a sinistra, importo allineato a destra; `SUBTOT.` e `TOT. DA PAGARE` partono da colonna 0.
+- Le righe "vuote" contengono uno spazio.
+- Lo stesso articolo battuto più volte compare su **righe separate** (non come quantità).
+- **A ogni modifica Passepartout riscrive il conto intero.** Il nuovo monitor deve quindi confrontare il conto in
+  memoria con quello appena letto e animare solo le differenze (righe aggiunte, tolte, cambiate). Il registratore
+  ([tools/](../tools/README.md)) usa già questo confronto, basato sulla sottosequenza comune più lunga: un articolo
+  ripetuto viene riconosciuto come aggiunto in fondo, uno storno come riga tolta nella sua posizione.
+
 ## 4. Layout
 
 Progettato su 1264×681, scalato in proporzione su un riferimento 1920×1020.

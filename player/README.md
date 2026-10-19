@@ -66,7 +66,7 @@ dotnet build player/Bluetech.Display.Player -c Release
 
 Funziona anche su Linux e macOS (pacchetto `Microsoft.NETFramework.ReferenceAssemblies`).
 Output in `player/Bluetech.Display.Player/bin/Release/net48/`.
-A ogni push su `player/` la GitHub Action **Player** compila su Windows e pubblica la cartella pronta come artifact.
+A ogni push la GitHub Action **Build** compila su Windows e pubblica la cartella pronta come artifact.
 
 ## Da fare prima della distribuzione
 

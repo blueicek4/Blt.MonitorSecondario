@@ -79,7 +79,8 @@ riceve subito lo stato corrente.
 ## 3. Fasi
 
 ### Fase 0 — Raccolta dati reali (2–3 giorni) — *bloccante per il parser*
-- Strumento "registratore": copia ogni versione di `Scontrino.txt` con data e ora (sarà la modalità *record* dell'Agent; si può partire con uno script).
+- **Registratore pronto**: [tools/](../tools/README.md) — `BluetechRecorder.exe` salva ogni versione di `Scontrino.txt`
+  byte per byte, con note dell'operatore, differenze riga per riga e uno zip finale da inviare.
 - Casi da registrare su una cassa vera: vendita semplice, quantità > 1, sconto riga e subtotale, maggiorazione, storno,
   annullo, reso, preconto, conto separato, fattura, pagamento contanti / carta / **Satispay**, messaggi del visore.
 - Verificare: codifica (UTF-8? ANSI? il simbolo €), se il file viene riscritto o ricreato, ordine degli eventi
@@ -94,6 +95,9 @@ riceve subito lo stato corrente.
 - Watcher robusto: FileSystemWatcher + polling di riserva, debounce, lettura con condivisione e ritentativi **fuori** dal thread di visualizzazione.
 - Parser v1 identico al vecchio (regole in §3 dell'analisi) + miglioramenti: righe di testo conservate, quantità
   agganciate all'articolo invece di scartate, sconti riconosciuti dal segno.
+- **Confronto tra versioni**: Passepartout riscrive sempre il conto intero, quindi l'Agent confronta il conto in memoria
+  con quello letto e pubblica le differenze (riga aggiunta, tolta, cambiata) che il display anima. Algoritmo già scritto
+  e testato nel registratore (`ReceiptDiff`). Da chiarire con le registrazioni: come riconoscere l'inizio di un conto nuovo.
 - Test "golden" su tutti i file della Fase 0 (ogni file reale → JSON atteso).
 - Macchina a stati, SignalR, API REST, servizio Windows, log.
 - Importazione del vecchio `MonitorCliente.exe.config` (colori `R;G;B` e nomi italiani, cartella immagini, testo scorrevole) → tema iniziale: migrazione indolore dei clienti esistenti.

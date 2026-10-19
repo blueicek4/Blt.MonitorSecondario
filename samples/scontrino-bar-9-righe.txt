@@ -1,0 +1,16 @@
+SNF
+ 
+ SPREMUTA ARANCIA         4,00
+ CAPPUCCINO               1,80
+ CAFFE ORZO PICCOLO       1,50
+ LATTE MACCHIATO          1,60
+ SPREMUTA ARANCIA         4,00
+ CAPPUCCINO               1,80
+ CAFFE ORZO PICCOLO       1,50
+ LATTE MACCHIATO          1,60
+ CAPPUCCINO               1,80
+SUBTOT.                  19,60
+ 
+TOT. DA PAGARE           19,60
+ 
+ 
