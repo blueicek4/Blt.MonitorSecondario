@@ -33,12 +33,14 @@ La selezione del testo col mouse nella finestra è disattivata: in Windows blocc
 Cosa sappiamo dalle due prove sul campo (stesso PC):
 
 - **19/10**: il file c'era già (scritto un minuto e mezzo prima, modello a 30 colonne) e per 2 minuti e mezzo di
-  prove in cartella non è successo niente, nemmeno un tentativo di eliminarlo. Una sola versione.
+  prove in cartella non è successo niente: nessuna eliminazione né creazione. Un tentativo fallito non lascia
+  traccia: per questo il registratore ora segnala all'avvio se il file è in sola lettura. Una sola versione.
 - **20/10**: modello a 48 colonne, file assente all'avvio: [42 versioni](../samples/registrazioni/2026-10-20_002138/README.md).
   Passepartout **elimina il file e lo ricrea** a ogni aggiornamento, e mai prima di 3 s dalla scrittura precedente.
 
 Il perché della prima prova non è ancora noto. Un'ipotesi da verificare: con `SovrascriviSeEsistente=false`
-Passepartout aspetta fino a `NumeroTentativi` × `SecondiAttesa` (3 × 1 s) che il file venga tolto. Poi, a seconda di
+Passepartout aspetta fino a `NumeroTentativi` × `SecondiAttesa` (3 × 1 s nel modello che conosciamo, quello a
+30 colonne) che il file venga tolto. Poi, a seconda di
 come è configurato, lo sostituisce da sé (20/10) o rinuncia (19/10?). Se è così, oggi ogni aggiornamento arriva al
 display con circa 3 s di ritardo.
 
@@ -63,7 +65,9 @@ errore?
 
 `/consuma` non si attiva se è aperto il vecchio `MonitorCliente.exe` e legge lo stesso file: gli toglierebbe il conto
 da mostrare. Chiudilo, oppure scrivi `/consuma forza`. Il vecchio monitor legge sempre `Scontrino.txt` nella cartella
-del proprio exe. Se è aperto in un'altra cartella, il registratore te lo dice all'avvio: è lì che scrive Passepartout.
+del proprio exe. Se è aperto in un'altra cartella, il registratore te lo dice all'avvio: se il display del cliente si
+aggiorna, è lì che scrive Passepartout. Se Windows non dice la cartella (vecchio monitor avviato da un altro utente),
+avvia il registratore come amministratore.
 
 Gli altri file modificati nella stessa cartella compaiono comunque a video (`cartella: modificato …`).
 

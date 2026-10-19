@@ -93,6 +93,11 @@ static class Program
         {
             var age = DateTime.Now - existing.LastWriteTime;
             log.Line($"Il file c'è già: creato {Stamp(existing.CreationTime)}, modificato {Stamp(existing.LastWriteTime)} ({Timestamps.Age(age)} fa).");
+            if (existing.IsReadOnly)
+            {
+                log.Line("Attenzione: il file è in sola lettura, Passepartout non può sostituirlo né eliminarlo.", ConsoleColor.Magenta);
+                log.Line("Togli \"Sola lettura\" dalle proprietà del file e riavvia la registrazione.", ConsoleColor.Magenta);
+            }
         }
         else
         {
@@ -185,7 +190,8 @@ static class Program
             var folder = OldMonitor.WatchedFolder(exe);
             if (folder == null)
             {
-                log.Line($"Vecchio monitor aperto ({exe}), cartella sconosciuta: /consuma resta bloccata finché è aperto.", ConsoleColor.DarkYellow);
+                log.Line($"Vecchio monitor aperto ({exe}), ma Windows non dice da che cartella (gira con un altro utente?).", ConsoleColor.DarkYellow);
+                log.Line("Per saperlo avvia il registratore come amministratore. Finché è aperto, /consuma resta bloccata.", ConsoleColor.DarkYellow);
             }
             else if (RecordingSession.SameFolder(folder, session.Folder))
             {

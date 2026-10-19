@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Bluetech.Display.Recorder;
 
@@ -31,15 +33,7 @@ public static class OldMonitor
         {
             using (process)
             {
-                string path;
-                try
-                {
-                    path = process.MainModule?.FileName;
-                }
-                catch (Exception)
-                {
-                    path = null;   // processo di un altro utente, o già chiuso
-                }
+                var path = ImagePath(process);
                 found.Add(string.IsNullOrEmpty(path) ? ExeName : path);
             }
         }
@@ -49,4 +43,57 @@ public static class OldMonitor
     /// <summary>La cartella in cui il vecchio monitor legge Scontrino.txt, o null se il percorso dell'exe non è noto.</summary>
     public static string WatchedFolder(string exe) =>
         Path.IsPathRooted(exe) ? Path.GetDirectoryName(exe) : null;
+
+    /// <summary>
+    /// Percorso dell'exe. Prima con il permesso minimo (PROCESS_QUERY_LIMITED_INFORMATION), che Windows concede anche
+    /// per un processo avviato come amministratore: Process.MainModule in quel caso fallisce. Resta ignoto per un
+    /// processo di un altro utente, se il registratore non è avviato come amministratore.
+    /// </summary>
+    static string ImagePath(Process process)
+    {
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+        {
+            try
+            {
+                var handle = OpenProcess(ProcessQueryLimitedInformation, false, process.Id);
+                if (handle != IntPtr.Zero)
+                {
+                    try
+                    {
+                        var size = 1024;
+                        var name = new StringBuilder(size);
+                        if (QueryFullProcessImageName(handle, 0, name, ref size))
+                            return name.ToString(0, size);
+                    }
+                    finally
+                    {
+                        CloseHandle(handle);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // si prova con MainModule
+            }
+        }
+        try
+        {
+            return process.MainModule?.FileName;
+        }
+        catch (Exception)
+        {
+            return null;   // processo di un altro utente, o già chiuso
+        }
+    }
+
+    const uint ProcessQueryLimitedInformation = 0x1000;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern IntPtr OpenProcess(uint access, bool inheritHandle, int processId);
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    static extern bool QueryFullProcessImageName(IntPtr process, int flags, StringBuilder name, ref int size);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool CloseHandle(IntPtr handle);
 }

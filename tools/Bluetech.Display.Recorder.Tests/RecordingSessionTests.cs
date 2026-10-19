@@ -277,6 +277,7 @@ public sealed class RecordingSessionTests : IDisposable
         session.Start();
         WaitUntil(() => session.Versions == 1, "versione");
         session.Stop();
+        Assert.Contains("\"attributiFile\":\"", IndexLines(session).Single(l => l.Contains("\"tipo\":\"inizio\"")));
         var entry = IndexLines(session).Single(l => l.Contains("\"seq\":1,"));
         Assert.Contains($"\"byteMetadati\":{Receipt(" CAFFE 1,00").Length},", entry);
         Assert.Contains("\"ultimaModificaFile\":\"", entry);
@@ -309,6 +310,85 @@ public sealed class RecordingSessionTests : IDisposable
         }
         File.Delete(temp);
         return false;
+    }
+
+    /// <summary>
+    /// Come Passepartout il 20/10: crea il file vuoto e lo riempie qualche millisecondo dopo. Se il file c'è già
+    /// rinuncia, come un Passepartout che non sovrascrive. Restituisce true se ha scritto.
+    /// </summary>
+    bool CreateEmptyThenFill(byte[] bytes, int pauseMilliseconds = 5)
+    {
+        try
+        {
+            using var stream = new FileStream(_target, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            Thread.Sleep(pauseMilliseconds);
+            stream.Write(bytes, 0, bytes.Length);
+            return true;
+        }
+        catch (IOException) when (File.Exists(_target))
+        {
+            return false;
+        }
+    }
+
+    static void WaitForVersion(RecordingSession session, byte[] bytes, string what) =>
+        WaitUntil(() => VersionFiles(session).Any(f => File.ReadAllBytes(f).SequenceEqual(bytes)), what);
+
+    [Fact]
+    public void Ab_test_with_a_writer_that_never_overwrites_keeps_pointing_at_the_cause()
+    {
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        WaitUntil(() => IndexLines(session).Any(l => l.Contains("\"tipo\":\"assente\"")), "file assente all'avvio");
+
+        // A: il primo conto entra (il file non c'era), il secondo no (il file c'è e lo scrittore rinuncia).
+        var first = Receipt(" A1                       1,00");
+        Assert.True(CreateEmptyThenFill(first));
+        WaitForVersion(session, first, "fase A");
+        session.AddNote("A");
+        Assert.False(CreateEmptyThenFill(Receipt(" A2                       1,00")));
+        session.AddNote("A, secondo articolo");
+
+        // B: con /consuma ogni scrittura entra; il file nuovo si può prendere ancora vuoto.
+        Assert.True(session.SetConsumeMode(true));
+        WaitUntil(() => !File.Exists(_target), "file tolto all'attivazione");
+        for (var i = 0; i < 4; i++)
+        {
+            var bytes = Receipt($" B{i}                       1,00");
+            Assert.True(CreateEmptyThenFill(bytes), "scrittura B" + i);
+            WaitForVersion(session, bytes, "fase B " + i);
+            WaitUntil(() => !File.Exists(_target), "versione B" + i + " tolta");
+        }
+
+        // A2: /consuma spento; il primo entra (il file non c'è), il secondo no.
+        Assert.True(session.SetConsumeMode(false));
+        var again = Receipt(" C1                       1,00");
+        Assert.True(CreateEmptyThenFill(again));
+        WaitForVersion(session, again, "fase A2");
+        session.AddNote("A2");
+        Assert.False(CreateEmptyThenFill(Receipt(" C2                       1,00")));
+        session.AddNote("A2, secondo articolo");
+        session.Stop();
+
+        var warnings = IndexLines(session).Where(l => l.Contains("\"tipo\":\"avviso\"")).ToList();
+        Assert.Equal(2, warnings.Count);
+        Assert.All(warnings, w => Assert.Contains("\"caso\":\"mai-riscritto\"", w));
+        Assert.Contains("ha sostituito da sé il file che c'era: no", File.ReadAllText(Path.Combine(session.SessionFolder, "riepilogo.txt")));
+    }
+
+    [Fact]
+    public void Startup_read_of_an_old_file_is_not_timed_as_a_write()
+    {
+        Write(Receipt(" CONTO VECCHIO            1,00"));
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        WaitUntil(() => session.Versions == 1, "file già presente");
+        File.Delete(_target);
+        var next = Receipt(" CAFFE                    1,10");
+        Write(next);
+        WaitForVersion(session, next, "file ricreato");
+        session.Stop();
+        Assert.Contains("Tempo minimo tra due scritture: - (con /consuma: -)", File.ReadAllText(Path.Combine(session.SessionFolder, "riepilogo.txt")));
     }
 
     [Fact]
@@ -487,6 +567,10 @@ public sealed class RecordingSessionTests : IDisposable
         Thread.Sleep(100);
         Write(Receipt(" CAFFE                    1,10", " ACQUA                    1,00"));
         WaitUntil(() => session.Versions == 2, "file ricreato");
+        File.Delete(_target);
+        Thread.Sleep(100);
+        Write(Receipt(" CAFFE                    1,10", " ACQUA                    1,00", " ACQUA                    1,00"));
+        WaitUntil(() => session.Versions == 3, "file ricreato di nuovo");
 
         session.AddNote("preconto");
         session.AddNote("ancora preconto");
