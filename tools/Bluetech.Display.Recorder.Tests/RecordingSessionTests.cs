@@ -211,10 +211,11 @@ public sealed class RecordingSessionTests : IDisposable
             var cut = full.Length / 2;
             partials.Add(full.Take(cut).ToArray());
             // Scrittore lento: metà conto, una pausa, il resto (lascia leggere gli altri, come fa .NET di default).
+            // Flush senza fsync: la pausa deve essere di 5 ms, non quanto ci mette il disco.
             using (var stream = new FileStream(_target, FileMode.Create, FileAccess.Write, FileShare.Read))
             {
                 stream.Write(full, 0, cut);
-                stream.Flush(true);
+                stream.Flush();
                 Thread.Sleep(5);
                 stream.Write(full, cut, full.Length - cut);
             }
@@ -279,21 +280,26 @@ public sealed class RecordingSessionTests : IDisposable
         var entry = IndexLines(session).Single(l => l.Contains("\"seq\":1,"));
         Assert.Contains($"\"byteMetadati\":{Receipt(" CAFFE 1,00").Length},", entry);
         Assert.Contains("\"ultimaModificaFile\":\"", entry);
+        Assert.Contains("\"creazioneFile\":\"", entry);
         Assert.Contains("\"righe\":1,", entry);
     }
 
     /// <summary>
-    /// Come Passepartout con SovrascriviSeEsistente=false: scrive solo se il file non c'è,
-    /// altrimenti ritenta (3 volte) e poi rinuncia. Restituisce true se ha scritto.
+    /// Uno scrittore che non sovrascrive: scrive solo se il file non c'è, altrimenti ritenta (3 volte) e poi rinuncia.
+    /// Restituisce true se ha scritto.
+    /// Il contenuto compare tutto insieme (file temporaneo spostato al suo posto): su Linux .NET prende il lock
+    /// dopo aver creato il file, e un lettore che arriva in quell'istante farebbe fallire lo scrittore.
+    /// Su Windows il caso del file vuoto appena creato è coperto dal controllo sullo scrittore ancora aperto.
     /// </summary>
     bool WriteIfAbsent(byte[] bytes, int attempts = 3, int waitMilliseconds = 300)
     {
+        var temp = Path.Combine(_root, Guid.NewGuid().ToString("N") + ".tmp");
+        File.WriteAllBytes(temp, bytes);
         for (var attempt = 0; attempt < attempts; attempt++)
         {
             try
             {
-                using var stream = new FileStream(_target, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-                stream.Write(bytes, 0, bytes.Length);
+                File.Move(temp, _target);
                 return true;
             }
             catch (IOException) when (File.Exists(_target))
@@ -301,6 +307,7 @@ public sealed class RecordingSessionTests : IDisposable
                 Thread.Sleep(waitMilliseconds);
             }
         }
+        File.Delete(temp);
         return false;
     }
 
@@ -319,7 +326,8 @@ public sealed class RecordingSessionTests : IDisposable
 
         Assert.Equal(1, session.Versions);
         Assert.True(_log.Contains("Attenzione: dalla nota precedente"));
-        Assert.Contains(IndexLines(session), l => l.Contains("\"tipo\":\"avviso\""));
+        Assert.True(_log.Contains("da verificare"));   // è un'ipotesi, non una diagnosi
+        Assert.Contains(IndexLines(session), l => l.Contains("\"tipo\":\"avviso\"") && l.Contains("\"caso\":\"mai-riscritto\""));
     }
 
     [Fact]
@@ -357,6 +365,215 @@ public sealed class RecordingSessionTests : IDisposable
     }
 
     [Fact]
+    public void Consume_mode_never_removes_a_version_it_has_not_recorded()
+    {
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        WaitUntil(() => IndexLines(session).Any(l => l.Contains("\"tipo\":\"assente\"")), "file assente all'avvio");
+        Assert.True(session.SetConsumeMode(true));
+
+        // Passepartout che sovrascrive proprio tra la lettura di #0001 e il momento di toglierlo.
+        var first = Receipt(" PIATTO 1                 1,00");
+        var second = Receipt(" PIATTO 1                 1,00", " PIATTO 2                 1,00");
+        var overwritten = 0;
+        _log.OnLine = text =>
+        {
+            if (text.Contains("#0001") && Interlocked.Exchange(ref overwritten, 1) == 0)
+                Write(second);
+        };
+        Write(first);
+
+        WaitUntil(() => session.Versions == 2 && !File.Exists(_target), "seconda versione registrata e poi tolta");
+        session.Stop();
+        Assert.Equal(second, File.ReadAllBytes(Directory.GetFiles(session.SessionFolder, "0002_*.txt").Single()));
+        Assert.Contains(IndexLines(session), l => l.Contains("\"tipo\":\"consumoRinviato\""));
+    }
+
+    [Fact]
+    public void Consume_mode_is_refused_while_the_old_monitor_reads_the_same_file()
+    {
+        using var session = new RecordingSession(_target, _output, _log)
+        {
+            FindOldMonitors = () => new[] { Path.Combine(Path.GetDirectoryName(_target), "MonitorCliente.exe") },
+        };
+        session.Start();
+
+        Assert.False(session.SetConsumeMode(true));
+        Assert.False(session.ConsumeMode);
+        Assert.True(_log.Contains("NON attivata"));
+
+        Assert.True(session.SetConsumeMode(true, force: true));
+        Assert.True(session.ConsumeMode);
+        session.Stop();
+        var lines = IndexLines(session);
+        Assert.Contains(lines, l => l.Contains("\"rifiutato\":\"vecchio monitor aperto\""));
+        Assert.Contains(lines, l => l.Contains("\"forzato\":true"));
+    }
+
+    [Fact]
+    public void Consume_mode_is_refused_when_the_old_monitor_folder_is_unknown()
+    {
+        using var session = new RecordingSession(_target, _output, _log) { FindOldMonitors = () => new[] { "MonitorCliente.exe" } };
+        session.Start();
+        Assert.False(session.SetConsumeMode(true));
+        session.Stop();
+    }
+
+    [Fact]
+    public void Old_monitor_reading_another_folder_is_reported_and_does_not_block_consume_mode()
+    {
+        var otherFolder = Path.Combine(_root, "Passepartout", "Monitor");
+        Directory.CreateDirectory(otherFolder);
+        File.WriteAllText(Path.Combine(otherFolder, "MonitorCliente.exe.config"), "<configuration />");
+        Write(Receipt(" CONTO VECCHIO            1,00"));
+        using var session = new RecordingSession(_target, _output, _log)
+        {
+            FindOldMonitors = () => new[] { Path.Combine(otherFolder, "MonitorCliente.exe") },
+        };
+        session.Start();
+        WaitUntil(() => session.Versions == 1, "file già presente");
+
+        session.AddNote("primo articolo");
+        session.AddNote("secondo articolo");
+        Assert.True(_log.Contains("Il vecchio monitor aperto legge " + Path.Combine(otherFolder, "Scontrino.txt")));
+        Assert.True(session.SetConsumeMode(true));
+        session.Stop();
+
+        Assert.Contains(IndexLines(session), l => l.Contains("\"tipo\":\"inizio\"") && l.Contains("\"vecchioMonitor\":[\""));
+        Assert.True(File.Exists(Path.Combine(session.SessionFolder, "contesto", "vecchio-monitor_MonitorCliente.exe.config")));
+    }
+
+    [Fact]
+    public void Warning_without_the_file_points_to_the_path()
+    {
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        WaitUntil(() => IndexLines(session).Any(l => l.Contains("\"tipo\":\"assente\"")), "file assente all'avvio");
+        session.AddNote("primo articolo");
+        session.AddNote("secondo articolo");
+        session.Stop();
+        Assert.True(_log.Contains("il percorso deve essere " + _target));
+        Assert.Contains(IndexLines(session), l => l.Contains("\"caso\":\"file-assente\""));
+    }
+
+    [Fact]
+    public void No_alarm_once_Passepartout_has_overwritten_the_file()
+    {
+        Write(Receipt(" CAFFE                    1,10"));
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        WaitUntil(() => session.Versions == 1, "file già presente");
+        Write(Receipt(" CAFFE                    1,10", " CAFFE                    1,10"));
+        WaitUntil(() => session.Versions == 2, "file sovrascritto");
+
+        session.AddNote("preconto");
+        session.AddNote("ancora preconto");
+        session.Stop();
+        Assert.False(_log.Contains("Attenzione"));
+        Assert.True(_log.Contains("ha già riscritto il file"));
+        Assert.Contains(IndexLines(session), l => l.Contains("\"caso\":\"sovrascrittura-gia-vista\""));
+        Assert.Contains("ha sostituito da sé il file che c'era: sì", File.ReadAllText(Path.Combine(session.SessionFolder, "riepilogo.txt")));
+    }
+
+    [Fact]
+    public void Deleting_and_recreating_the_file_counts_as_replacing_it()
+    {
+        // Come Passepartout nella registrazione del 20/10: elimina il file e lo ricrea a ogni scrittura.
+        Write(Receipt(" CAFFE                    1,10"));
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        WaitUntil(() => session.Versions == 1, "file già presente");
+        File.Delete(_target);
+        Thread.Sleep(100);
+        Write(Receipt(" CAFFE                    1,10", " ACQUA                    1,00"));
+        WaitUntil(() => session.Versions == 2, "file ricreato");
+
+        session.AddNote("preconto");
+        session.AddNote("ancora preconto");
+        session.Stop();
+        Assert.False(_log.Contains("Attenzione"));
+        var summary = File.ReadAllText(Path.Combine(session.SessionFolder, "riepilogo.txt"));
+        Assert.Contains("ha sostituito da sé il file che c'era: sì", summary);
+        Assert.DoesNotContain("Tempo minimo tra due scritture: -", summary);
+        Assert.Contains("(con /consuma: -)", summary);
+    }
+
+    [Fact]
+    public void Consume_mode_with_nothing_written_since_it_was_turned_on_points_to_the_path()
+    {
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        WaitUntil(() => IndexLines(session).Any(l => l.Contains("\"tipo\":\"assente\"")), "file assente all'avvio");
+        session.SetConsumeMode(true);
+        session.AddNote("primo articolo");
+        session.AddNote("secondo articolo");
+        session.Stop();
+        Assert.True(_log.Contains("Da quando hai scritto /consuma non è arrivato niente"));
+        Assert.Contains(IndexLines(session), l => l.Contains("\"caso\":\"consumo-niente\""));
+    }
+
+    [Fact]
+    public void Consume_mode_after_some_writes_calls_a_pause_normal()
+    {
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        WaitUntil(() => IndexLines(session).Any(l => l.Contains("\"tipo\":\"assente\"")), "file assente all'avvio");
+        session.SetConsumeMode(true);
+        Assert.True(WriteIfAbsent(Receipt(" CAFFE                    1,10")));
+        WaitUntil(() => session.Versions == 1 && !File.Exists(_target), "versione registrata e tolta");
+
+        session.AddNote("preconto");
+        session.AddNote("ancora preconto");
+        session.Stop();
+        Assert.False(_log.Contains("Attenzione"));
+        Assert.Contains(IndexLines(session), l => l.Contains("\"caso\":\"consumo-normale\""));
+    }
+
+    [Theory]
+    [InlineData(40, "40 s")]
+    [InlineData(12 * 60, "12 min")]
+    [InlineData(100 * 60, "1 ora")]
+    [InlineData(5 * 3600, "5 ore")]
+    [InlineData(3 * 86400, "3 giorni")]
+    public void Ages_are_said_in_plain_italian(int seconds, string expected)
+    {
+        Assert.Equal(expected, Timestamps.Age(TimeSpan.FromSeconds(seconds)));
+    }
+
+    [Fact]
+    public void Replaying_the_recording_of_20_october_gives_back_every_version()
+    {
+        // I primi due conti (#01–#16: due versioni rimandate identiche, dettagli, pagamenti), scritti come faceva
+        // Passepartout: elimina il file e lo ricrea 250 ms dopo. Le pause tra una battuta e l'altra sono accorciate;
+        // il contenuto compare tutto insieme (vedi WriteIfAbsent).
+        var source = Path.Combine(AppContext.BaseDirectory, "samples", "registrazioni", "2026-10-20_002138");
+        var versions = Directory.GetFiles(source, "00*.txt").OrderBy(f => f, StringComparer.Ordinal).Take(16).Select(File.ReadAllBytes).ToList();
+
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        for (var i = 0; i < versions.Count; i++)
+        {
+            if (File.Exists(_target))
+            {
+                File.Delete(_target);
+                Thread.Sleep(250);
+            }
+            Assert.True(WriteIfAbsent(versions[i]));
+            var expected = i + 1;
+            WaitUntil(() => session.Versions == expected, "versione " + expected);
+        }
+        session.Stop();
+
+        var recorded = VersionFiles(session).OrderBy(f => f, StringComparer.Ordinal).Select(File.ReadAllBytes).ToList();
+        Assert.Equal(versions.Count, recorded.Count);
+        for (var i = 0; i < versions.Count; i++)
+            Assert.True(versions[i].SequenceEqual(recorded[i]), $"versione {i + 1} diversa");
+        var lines = IndexLines(session);
+        Assert.Contains(lines, l => l.Contains("\"seq\":8,") && l.Contains("\"uguale\":7,"));
+        Assert.Contains("ha sostituito da sé il file che c'era: sì", File.ReadAllText(Path.Combine(session.SessionFolder, "riepilogo.txt")));
+    }
+
+    [Fact]
     public void No_warning_when_the_file_changed_between_notes()
     {
         using var session = new RecordingSession(_target, _output, _log);
@@ -373,10 +590,14 @@ public sealed class RecordingSessionTests : IDisposable
     {
         readonly List<string> _lines = new();
 
+        /// <summary>Chiamato a ogni riga, sul thread che la scrive: serve a far succedere qualcosa in un punto preciso.</summary>
+        public Action<string> OnLine { get; set; }
+
         public void Line(string text, ConsoleColor? color = null)
         {
             lock (_lines)
                 _lines.Add(text);
+            OnLine?.Invoke(text);
         }
 
         public bool Contains(string fragment)

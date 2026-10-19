@@ -27,7 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Bluetech.Display.Recorder\Bluetech.Display.Recorder.csproj" />
-    <None Include="..\..\samples\*.txt" Link="samples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\samples\**\*.txt" Link="samples\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

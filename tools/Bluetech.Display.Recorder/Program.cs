@@ -12,6 +12,7 @@ static class Program
     const string DefaultTarget = @"C:\MonitorSecondario\Scontrino.txt";
     const string StopCommand = "/fine";
     const string ConsumeCommand = "/consuma";
+    const string ForceWord = "forza";
 
     static RecordingSession _session;
     static int _finished;
@@ -91,21 +92,18 @@ static class Program
         if (existing.Exists)
         {
             var age = DateTime.Now - existing.LastWriteTime;
-            log.Line($"Il file c'è già: ultima modifica {existing.LastWriteTime.ToString("HH:mm:ss", CultureInfo.InvariantCulture)} ({Describe(age)} fa).");
-            if (!consume)
-            {
-                log.Line("Se Passepartout ha SovrascriviSeEsistente=false non lo riscriverà finché non viene tolto:", ConsoleColor.DarkYellow);
-                log.Line($"in quel caso scrivi {ConsumeCommand} (il registratore lo toglierà dopo ogni lettura).", ConsoleColor.DarkYellow);
-            }
+            log.Line($"Il file c'è già: creato {Stamp(existing.CreationTime)}, modificato {Stamp(existing.LastWriteTime)} ({Timestamps.Age(age)} fa).");
         }
         else
         {
             log.Line("Il file non c'è ancora: aspetto che Passepartout lo scriva.");
         }
+        DescribeOldMonitors(log, _session);
         log.Line("");
         log.Line("Scrivi una nota e premi Invio per segnare cosa stai facendo in cassa", ConsoleColor.Yellow);
         log.Line("(es. \"storno seconda riga\", \"pago con Satispay\"). Per terminare scrivi /fine oppure Ctrl+C.", ConsoleColor.Yellow);
-        log.Line($"{ConsumeCommand} attiva o disattiva la modalità consumo.", ConsoleColor.Yellow);
+        log.Line($"{ConsumeCommand} attiva o disattiva la modalità consumo (toglie il file dopo ogni lettura).", ConsoleColor.Yellow);
+        log.Line("Se le operazioni in cassa non portano versioni nuove, alla seconda nota ti dico cosa provare.", ConsoleColor.Yellow);
         log.Line("");
         if (consume)
             _session.SetConsumeMode(true);
@@ -130,6 +128,11 @@ static class Program
             if (string.Equals(line, ConsumeCommand, StringComparison.OrdinalIgnoreCase))
             {
                 _session.SetConsumeMode(!_session.ConsumeMode);
+                continue;
+            }
+            if (IsForcedConsume(line))
+            {
+                _session.SetConsumeMode(true, force: true);
                 continue;
             }
             _session.AddNote(line);
@@ -162,6 +165,43 @@ static class Program
         log.Flush();
     }
 
+    /// <summary>"/consuma forza", con uno o più spazi.</summary>
+    static bool IsForcedConsume(string line)
+    {
+        var words = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+        return words.Length == 2
+            && string.Equals(words[0], ConsumeCommand, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(words[1], ForceWord, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Il vecchio monitor legge Scontrino.txt nella cartella del suo exe: se è aperto, dice dove Passepartout scrive
+    /// davvero (quando il display del cliente si aggiorna).
+    /// </summary>
+    static void DescribeOldMonitors(ConsoleLog log, RecordingSession session)
+    {
+        foreach (var exe in session.OldMonitors)
+        {
+            var folder = OldMonitor.WatchedFolder(exe);
+            if (folder == null)
+            {
+                log.Line($"Vecchio monitor aperto ({exe}), cartella sconosciuta: /consuma resta bloccata finché è aperto.", ConsoleColor.DarkYellow);
+            }
+            else if (RecordingSession.SameFolder(folder, session.Folder))
+            {
+                log.Line($"Vecchio monitor aperto sullo stesso file ({exe}): per la prova con /consuma va chiuso.", ConsoleColor.DarkYellow);
+            }
+            else
+            {
+                log.Line($"Attenzione: il vecchio monitor aperto ({exe}) legge {Path.Combine(folder, session.FileName)},", ConsoleColor.Magenta);
+                log.Line("non il file che sto registrando. Se il display del cliente si aggiorna, Passepartout scrive lì:", ConsoleColor.Magenta);
+                log.Line($"  BluetechRecorder.exe \"{Path.Combine(folder, session.FileName)}\"", ConsoleColor.Magenta);
+            }
+        }
+    }
+
+    static string Stamp(DateTime local) => local.ToString("dd/MM HH:mm:ss", CultureInfo.InvariantCulture);
+
     /// <summary>"C:\cartella\" tra virgolette arriva come C:\cartella" (la barra finale protegge la virgoletta).</summary>
     static string CleanPath(string arg) => arg.Trim().Trim('"').Trim();
 
@@ -181,17 +221,6 @@ static class Program
         {
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Registrazioni Monitor");
         }
-    }
-
-    static string Describe(TimeSpan age)
-    {
-        if (age.TotalSeconds < 90)
-            return $"{Math.Max(0, (int)age.TotalSeconds)} s";
-        if (age.TotalMinutes < 90)
-            return $"{(int)age.TotalMinutes} min";
-        if (age.TotalHours < 48)
-            return $"{(int)age.TotalHours} ore";
-        return $"{(int)age.TotalDays} giorni";
     }
 
     static void WaitForEnter()

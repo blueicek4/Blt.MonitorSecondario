@@ -1,0 +1,12 @@
+SNF
+ 
+ Tortellini in crema di Sua Maesta' il Ne  12,00
+ Strozzapreti con verdurine                 9,50
+ Tortellone Verde Burro E Salvia           12,00
+ Tortellini in brodo                       12,00
+SUBTOT.                                    45,50
+ 
+SCONTO                                     -5,00
+TOT. DA PAGARE                             40,50
+ 
+ 

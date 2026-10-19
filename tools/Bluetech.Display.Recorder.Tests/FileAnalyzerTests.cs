@@ -39,6 +39,33 @@ public class FileAnalyzerTests
         Assert.Equal("35,50", a.Total);
     }
 
+    static byte[] Recorded(string prefix) =>
+        File.ReadAllBytes(Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "samples", "registrazioni", "2026-10-20_002138"), prefix + "_*.txt").Single());
+
+    [Fact]
+    public void Receipt_at_48_columns_with_header_quantity_and_payment()
+    {
+        var a = FileAnalyzer.Analyze(Recorded("0009"));
+        Assert.Equal(FileKind.Scontrino, a.Kind);
+        Assert.Equal("ASCII", a.Encoding);
+        Assert.Equal("87,00", a.Total);
+        Assert.Equal("87,00", a.Subtotal);
+        Assert.Contains("                  Da inserire", a.ReceiptLines);   // intestazione centrata (spazi finali tolti)
+        Assert.Contains("   2 X 3,00 Euro", a.ReceiptLines);
+        Assert.Contains(" Cestino di tigelle 4 pezzi                 6,00", a.ReceiptLines);
+        Assert.Contains("PAGATO CONTANTI:   87,00", a.ReceiptLines);
+        Assert.All(a.ReceiptLines.Where(l => l.Contains(",00") && !l.StartsWith("PAGATO") && !l.StartsWith("Resto") && !l.StartsWith("  ")), l => Assert.Equal(48, l.Length));
+    }
+
+    [Fact]
+    public void Discount_on_the_subtotal_lowers_the_total()
+    {
+        var a = FileAnalyzer.Analyze(Recorded("0031"));
+        Assert.Equal("43,00", a.Subtotal);
+        Assert.Equal("38,00", a.Total);
+        Assert.Contains("SCONTO                                     -5,00", a.ReceiptLines);
+    }
+
     [Fact]
     public void Utf8_with_bom_is_detected()
     {
