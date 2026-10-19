@@ -45,7 +45,7 @@ Dettagli in [01-analisi-monitorcliente.md](01-analisi-monitorcliente.md). I punt
 | **Agent** | .NET 10 LTS (supporto fino a nov. 2028), ASP.NET Core, SignalR, servizio Windows, eseguibile singolo | Vostro stack; nessun runtime da installare con publish self-contained; gira anche senza utente collegato |
 | **Display** | React + TypeScript + Vite; animazioni con Motion/GSAP; WebGL solo nel profilo "Piena" | Effetti di alto livello, componenti riutilizzabili, handoff diretto dal design |
 | **Pannello admin** | stessa app React, area protetta da password | Un solo stack front-end |
-| **Player** | .NET Framework 4.8 + WebView2 — **già fatto** (`player/`) | Già presente in Windows 10/11: exe minuscolo, zero dipendenze |
+| **Player** | .NET Framework 4.7.2 + WebView2 — **già fatto** (`player/`) | Già presente da Windows 10 1803 / LTSC 2019: exe minuscolo, zero dipendenze |
 
 ### Modello dati pubblicato dall'Agent
 

@@ -19,11 +19,11 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Test registratore (.NET 10 e .NET Framework 4.8)
+      - name: Test registratore (.NET 10 e .NET Framework 4.6.2)
         run: dotnet test tools/Bluetech.Display.Recorder.Tests/Bluetech.Display.Recorder.Tests.csproj -c Release
 
       - name: Build registratore
-        run: dotnet build tools/Bluetech.Display.Recorder/Bluetech.Display.Recorder.csproj -c Release -f net48
+        run: dotnet build tools/Bluetech.Display.Recorder/Bluetech.Display.Recorder.csproj -c Release -f net462
 
       - name: Build player
         run: dotnet build player/Bluetech.Display.Player/Bluetech.Display.Player.csproj -c Release
@@ -32,14 +32,14 @@ jobs:
         with:
           name: BluetechRecorder
           path: |
-            tools/Bluetech.Display.Recorder/bin/Release/net48/BluetechRecorder.exe
-            tools/Bluetech.Display.Recorder/bin/Release/net48/BluetechRecorder.exe.config
+            tools/Bluetech.Display.Recorder/bin/Release/net462/BluetechRecorder.exe
+            tools/Bluetech.Display.Recorder/bin/Release/net462/BluetechRecorder.exe.config
             tools/README.md
 
       - uses: actions/upload-artifact@v4
         with:
           name: BluetechDisplayPlayer
           path: |
-            player/Bluetech.Display.Player/bin/Release/net48/
-            !player/Bluetech.Display.Player/bin/Release/net48/*.pdb
-            !player/Bluetech.Display.Player/bin/Release/net48/Microsoft.Web.WebView2.Wpf.dll
+            player/Bluetech.Display.Player/bin/Release/net472/
+            !player/Bluetech.Display.Player/bin/Release/net472/*.pdb
+            !player/Bluetech.Display.Player/bin/Release/net472/Microsoft.Web.WebView2.Wpf.dll

@@ -68,8 +68,20 @@ public sealed class RecordingSessionTests : IDisposable
         }
     }
 
-    List<string> IndexLines(RecordingSession session) =>
-        File.ReadAllLines(Path.Combine(session.SessionFolder, "eventi.jsonl")).ToList();
+    /// <summary>L'indice è aperto in scrittura dal registratore: su Windows va letto condividendo la scrittura.</summary>
+    static List<string> IndexLines(RecordingSession session)
+    {
+        using var stream = new FileStream(Path.Combine(session.SessionFolder, "eventi.jsonl"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        var lines = new List<string>();
+        string line;
+        while ((line = reader.ReadLine()) != null)
+            lines.Add(line);
+        return lines;
+    }
+
+    static List<string> VersionFiles(RecordingSession session) =>
+        Directory.GetFiles(session.SessionFolder, "0*.txt").ToList();
 
     [Fact]
     public void Records_every_distinct_version_with_diffs_and_creates_the_zip()
@@ -154,7 +166,7 @@ public sealed class RecordingSessionTests : IDisposable
             Thread.Sleep(15);
         }
         var final = Receipt(items.ToArray());
-        WaitUntil(() => Directory.GetFiles(session.SessionFolder, "0*.txt").Any(f => File.ReadAllBytes(f).SequenceEqual(final)), "ultima versione");
+        WaitUntil(() => VersionFiles(session).Any(f => File.ReadAllBytes(f).SequenceEqual(final)), "ultima versione");
         session.Stop();
         Assert.InRange(session.Versions, 1, 40);
     }
@@ -183,7 +195,91 @@ public sealed class RecordingSessionTests : IDisposable
         session.Start();
         session.Stop();
         session.AddNote("troppo tardi");
-        Assert.DoesNotContain(File.ReadAllLines(Path.Combine(session.SessionFolder, "eventi.jsonl")), l => l.Contains("troppo tardi"));
+        Assert.DoesNotContain(IndexLines(session), l => l.Contains("troppo tardi"));
+    }
+
+    [Fact]
+    public void Content_read_while_the_writer_is_still_writing_never_becomes_a_version()
+    {
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        var partials = new List<byte[]>();
+        byte[] full = null;
+        for (var i = 0; i < 15; i++)
+        {
+            full = Receipt($" ARTICOLO {i,2}            1,00", " CAFFE                    1,10");
+            var cut = full.Length / 2;
+            partials.Add(full.Take(cut).ToArray());
+            // Scrittore lento: metà conto, una pausa, il resto (lascia leggere gli altri, come fa .NET di default).
+            using (var stream = new FileStream(_target, FileMode.Create, FileAccess.Write, FileShare.Read))
+            {
+                stream.Write(full, 0, cut);
+                stream.Flush(true);
+                Thread.Sleep(5);
+                stream.Write(full, cut, full.Length - cut);
+            }
+            Thread.Sleep(60);
+        }
+
+        WaitUntil(() => VersionFiles(session).Any(f => File.ReadAllBytes(f).SequenceEqual(full)), "ultimo conto completo");
+        session.Stop();
+        foreach (var file in VersionFiles(session))
+        {
+            var bytes = File.ReadAllBytes(file);
+            Assert.True(bytes.Length == 0 || !partials.Any(p => p.SequenceEqual(bytes)), "versione parziale registrata: " + Path.GetFileName(file));
+        }
+        Assert.DoesNotContain(VersionFiles(session), f => new FileInfo(f).Length == 0);
+    }
+
+    [Fact]
+    public void On_windows_a_writer_pausing_longer_than_the_stability_window_is_still_waited_for()
+    {
+        // Su Linux la condivisione dei file non è imposta: lì vale solo il controllo sui tempi (test precedente).
+        if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+            return;
+
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        var partials = new List<byte[]>();
+        byte[] full = null;
+        for (var i = 0; i < 5; i++)
+        {
+            full = Receipt($" ARTICOLO {i,2}            1,00");
+            var cut = full.Length / 2;
+            partials.Add(full.Take(cut).ToArray());
+            using (var stream = new FileStream(_target, FileMode.Create, FileAccess.Write, FileShare.Read))
+            {
+                Thread.Sleep(80);                       // file vuoto e aperto in scrittura
+                stream.Write(full, 0, cut);
+                stream.Flush(true);
+                Thread.Sleep(80);                       // metà conto, ancora aperto
+                stream.Write(full, cut, full.Length - cut);
+            }
+            Thread.Sleep(300);
+        }
+
+        WaitUntil(() => VersionFiles(session).Any(f => File.ReadAllBytes(f).SequenceEqual(full)), "ultimo conto completo");
+        session.Stop();
+        foreach (var file in VersionFiles(session))
+        {
+            var bytes = File.ReadAllBytes(file);
+            Assert.NotEmpty(bytes);
+            Assert.DoesNotContain(partials, p => p.SequenceEqual(bytes));
+        }
+    }
+
+    [Fact]
+    public void Version_entries_carry_file_size_and_time_written_after_the_read()
+    {
+        Write(Receipt(" CAFFE 1,00"));
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        WaitUntil(() => session.Versions == 1, "versione");
+        session.Stop();
+        var entry = IndexLines(session).Single(l => l.Contains("\"seq\":1,"));
+        Assert.Contains($"\"byteMetadati\":{Receipt(" CAFFE 1,00").Length},", entry);
+        Assert.Contains("\"ultimaModificaFile\":\"", entry);
+        Assert.Contains("\"righe\":1,", entry);
     }
 
     sealed class TestLog : IRecorderLog

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -21,6 +22,7 @@ static class Program
     static int Main(string[] args)
     {
         WindowsConsole.Prepare();
+        WindowsConsole.UseItalianInput();
         Console.OutputEncoding = new UTF8Encoding(false);
         Console.Title = "Bluetech Recorder";
 
@@ -28,22 +30,38 @@ static class Program
         for (var i = 0; i < args.Length; i++)
         {
             if (string.Equals(args[i], "--out", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-                output = args[++i];
+                output = CleanPath(args[++i]);
             else
-                target ??= args[i];
+                target ??= CleanPath(args[i]);
         }
         target ??= DefaultTarget;
-        if (Directory.Exists(target))
-            target = Path.Combine(target, "Scontrino.txt");
 
         var log = new ConsoleLog();
         log.Line("Bluetech Display Recorder " + typeof(Program).Assembly.GetName().Version, ConsoleColor.Cyan);
 
-        var folder = Path.GetDirectoryName(Path.GetFullPath(target));
+        string folder;
+        try
+        {
+            if (Directory.Exists(target))
+                target = Path.Combine(target, "Scontrino.txt");
+            target = Path.GetFullPath(target);
+            folder = Path.GetDirectoryName(target);
+            if (output != null)
+                output = Path.GetFullPath(output);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            log.Line($"Percorso non valido: {target} ({ex.Message})", ConsoleColor.Red);
+            log.Flush();
+            WaitForEnter();
+            return 1;
+        }
+
         if (!Directory.Exists(folder))
         {
             log.Line($"La cartella {folder} non esiste. Indica il percorso giusto, per esempio:", ConsoleColor.Red);
             log.Line(@"  BluetechRecorder.exe D:\Passepartout\Monitor\Scontrino.txt");
+            log.Flush();
             WaitForEnter();
             return 1;
         }
@@ -57,6 +75,7 @@ static class Program
         catch (Exception ex)
         {
             log.Line("Impossibile avviare la registrazione: " + ex.Message, ConsoleColor.Red);
+            log.Flush();
             WaitForEnter();
             return 1;
         }
@@ -112,7 +131,11 @@ static class Program
             log.Line("  " + _session.SessionFolder, ConsoleColor.Green);
         }
         log.Line("Premi Invio per chiudere.");
+        log.Flush();
     }
+
+    /// <summary>"C:\cartella\" tra virgolette arriva come C:\cartella" (la barra finale protegge la virgoletta).</summary>
+    static string CleanPath(string arg) => arg.Trim().Trim('"').Trim();
 
     /// <summary>Accanto al file registrato; se la cartella non è scrivibile, sul Desktop.</summary>
     static string ChooseOutputRoot(string folder)
@@ -139,19 +162,54 @@ static class Program
     }
 }
 
+/// <summary>
+/// Scrive a video su un thread dedicato: se la console si ferma (finestra in pausa, selezione, scorrimento),
+/// la registrazione continua comunque.
+/// </summary>
 sealed class ConsoleLog : IRecorderLog
 {
-    readonly object _sync = new();
+    readonly BlockingCollection<Entry> _queue = new();
 
-    public void Line(string text, ConsoleColor? color = null)
+    public ConsoleLog()
     {
-        lock (_sync)
+        new Thread(Run) { IsBackground = true, Name = "Console" }.Start();
+    }
+
+    public void Line(string text, ConsoleColor? color = null) => _queue.Add(new Entry { Text = text, Color = color });
+
+    /// <summary>Aspetta che tutto quanto accodato sia a video (al massimo 3 secondi).</summary>
+    public void Flush()
+    {
+        using var done = new ManualResetEventSlim(false);
+        _queue.Add(new Entry { Done = done });
+        done.Wait(TimeSpan.FromSeconds(3));
+    }
+
+    void Run()
+    {
+        foreach (var entry in _queue.GetConsumingEnumerable())
         {
-            if (color.HasValue)
-                Console.ForegroundColor = color.Value;
-            Console.WriteLine(text);
-            if (color.HasValue)
-                Console.ResetColor();
+            if (entry.Done != null)
+            {
+                entry.Done.Set();
+                continue;
+            }
+            try
+            {
+                if (entry.Color.HasValue)
+                    Console.ForegroundColor = entry.Color.Value;
+                Console.WriteLine(entry.Text);
+                if (entry.Color.HasValue)
+                    Console.ResetColor();
+            }
+            catch (IOException) { }
         }
+    }
+
+    sealed class Entry
+    {
+        public string Text;
+        public ConsoleColor? Color;
+        public ManualResetEventSlim Done;
     }
 }

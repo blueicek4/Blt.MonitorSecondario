@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    net48: l'eseguibile da usare sui PC cassa (già incluso in Windows 10/11, un solo file).
+    net462: l'eseguibile da usare sui PC cassa. .NET Framework 4.6.2 è già incluso da Windows 10 1607 in poi
+    (anche LTSB 2016 e LTSC 2019, comuni sui PC cassa): un solo file, niente da installare.
     net10.0: stessa logica, usata dai test automatici anche su Linux.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net48;net10.0</TargetFrameworks>
+    <TargetFrameworks>net462;net10.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
@@ -21,7 +22,7 @@
     <Copyright>Bluetech</Copyright>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Windows.Forms" />

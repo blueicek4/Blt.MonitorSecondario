@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -25,6 +26,10 @@ public sealed class RecordingSession : IDisposable
     const int PollMilliseconds = 250;
     const int ReadAttempts = 200;           // ~2 s di tentativi se il file è bloccato
     const int ReadRetryDelayMilliseconds = 10;
+    const int StabilityRounds = 5;
+    const int StabilityDelayMilliseconds = 30;
+    const int WriterWaitMilliseconds = 100;
+    const string UnstableFolder = "letture-instabili";
 
     static readonly string[] ContextFiles = { "XMLMonitorCliente.xml", "MonitorCliente.exe.config" };
 
@@ -40,19 +45,22 @@ public sealed class RecordingSession : IDisposable
     Timer _poll;
     Thread _worker;
     StreamWriter _index;
-    FileMeta _pollMeta;
+    // Ultimi metadati visti (da una lettura o dal controllo periodico): il controllo periodico rilegge solo se cambiano.
+    volatile FileMeta _observedMeta = FileMeta.Missing;
 
     int _seq;
     string _lastHash;
     DateTime _lastWriteUtc;
     long _lastVersionMs = -1;
     bool _lastMissing;
+    string _lastUnstableHash;
     List<string> _lastReceipt;
     string _lastTotal;
 
     int _rewrites;
     int _duplicateNotifications;
     int _readRetries;
+    int _unstableReads;
     int _notes;
     int _folderEvents;
     bool _started;
@@ -87,7 +95,7 @@ public sealed class RecordingSession : IDisposable
             _started = true;
         }
 
-        var stamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss");
+        var stamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss", CultureInfo.InvariantCulture);
         SessionFolder = Path.Combine(OutputRoot, stamp);
         for (var i = 2; Directory.Exists(SessionFolder); i++)
             SessionFolder = Path.Combine(OutputRoot, stamp + "_" + i);
@@ -124,7 +132,7 @@ public sealed class RecordingSession : IDisposable
 
         _triggers.Add("avvio");
         _watcher.EnableRaisingEvents = true;
-        _pollMeta = FileMeta.Read(TargetPath);
+        _observedMeta = FileMeta.Read(TargetPath);
         _poll = new Timer(_ => Poll(), null, PollMilliseconds, PollMilliseconds);
     }
 
@@ -208,10 +216,15 @@ public sealed class RecordingSession : IDisposable
 
         try
         {
+            // Prima con un nome temporaneo: uno zip interrotto (PC spento) non sembra mai completo.
             var zip = SessionFolder + ".zip";
+            var temp = zip + ".tmp";
+            if (File.Exists(temp))
+                File.Delete(temp);
+            ZipFile.CreateFromDirectory(SessionFolder, temp, CompressionLevel.Optimal, includeBaseDirectory: true);
             if (File.Exists(zip))
                 File.Delete(zip);
-            ZipFile.CreateFromDirectory(SessionFolder, zip, CompressionLevel.Optimal, includeBaseDirectory: true);
+            File.Move(temp, zip);
             ZipPath = zip;
         }
         catch (Exception ex)
@@ -274,9 +287,9 @@ public sealed class RecordingSession : IDisposable
         try
         {
             var meta = FileMeta.Read(TargetPath);
-            if (meta.Equals(_pollMeta))
+            if (meta.Equals(_observedMeta))
                 return;
-            _pollMeta = meta;
+            _observedMeta = meta;
             Trigger("controllo-periodico");
         }
         catch { }
@@ -320,9 +333,9 @@ public sealed class RecordingSession : IDisposable
 
     void Snapshot(string sources)
     {
-        var meta = FileMeta.Read(TargetPath);
-        var bytes = ReadShared(out var retries, out var missing);
-        if (missing)
+        var read = ReadStable();
+        _observedMeta = read.Meta;
+        if (read.Missing)
         {
             if (_lastMissing)
                 return;
@@ -336,7 +349,7 @@ public sealed class RecordingSession : IDisposable
             _log.Line($"{Clock()}  ----   {FileName} non presente", ConsoleColor.DarkGray);
             return;
         }
-        if (bytes == null)
+        if (read.Locked)
         {
             _log.Line($"{Clock()}  Avviso: {FileName} bloccato da un altro programma per oltre 2 secondi", ConsoleColor.DarkYellow);
             lock (_sync)
@@ -348,13 +361,20 @@ public sealed class RecordingSession : IDisposable
         }
 
         _lastMissing = false;
-        var hash = Sha256(bytes);
+        _readRetries += read.Retries;
+        var hash = Sha256(read.Bytes);
+        if (!read.Stable)
+        {
+            RecordUnstable(read, hash, sources);
+            return;
+        }
+
         if (hash == _lastHash)
         {
-            // Stesso contenuto: è una vera riscrittura solo se la data di modifica è cambiata.
-            if (meta.LastWriteUtc != _lastWriteUtc)
+            // Stesso contenuto: è una vera riscrittura solo se la data di modifica (letta dopo il contenuto) è cambiata.
+            if (read.Meta.LastWriteUtc != _lastWriteUtc)
             {
-                _lastWriteUtc = meta.LastWriteUtc;
+                _lastWriteUtc = read.Meta.LastWriteUtc;
                 _rewrites++;
                 lock (_sync)
                 {
@@ -365,6 +385,8 @@ public sealed class RecordingSession : IDisposable
                         { "ora", Now() },
                         { "ms", _clock.ElapsedMilliseconds },
                         { "uguale", _seq },
+                        { "msDallaVersione", _clock.ElapsedMilliseconds - _lastVersionMs },
+                        { "ultimaModificaFile", FileTime(read.Meta.LastWriteUtc) },
                         { "origine", sources },
                     });
                 }
@@ -377,15 +399,133 @@ public sealed class RecordingSession : IDisposable
             return;
         }
 
-        RecordVersion(bytes, hash, meta, retries, sources);
+        RecordVersion(read.Bytes, hash, read.Meta, read.Retries, read.WriterWaitMs, sources);
     }
 
-    void RecordVersion(byte[] bytes, string hash, FileMeta meta, int retries, string sources)
+    /// <summary>
+    /// Contenuto letto mentre il file cambiava (troncato, parziale o subito sostituito): non è uno stato che il monitor
+    /// avrebbe mostrato, quindi non diventa una versione. Si conserva a parte perché racconta come scrive Passepartout.
+    /// </summary>
+    void RecordUnstable(ReadResult read, string hash, string sources)
+    {
+        if (hash == _lastUnstableHash)
+            return;
+        _lastUnstableHash = hash;
+
+        var name = $"dopo{_seq:0000}_{DateTime.Now.ToString("HH-mm-ss.fff", CultureInfo.InvariantCulture)}.txt";
+        var folder = Path.Combine(SessionFolder, UnstableFolder);
+        Directory.CreateDirectory(folder);
+        File.WriteAllBytes(Path.Combine(folder, name), read.Bytes);
+
+        lock (_sync)
+        {
+            if (_stopped) return;
+            _unstableReads++;
+            WriteIndexLocked(new JsonObject
+            {
+                { "tipo", "letturaInstabile" },
+                { "ora", Now() },
+                { "ms", _clock.ElapsedMilliseconds },
+                { "dopoVersione", _seq },
+                { "file", UnstableFolder + "/" + name },
+                { "byte", read.Bytes.Length },
+                { "byteMetadati", read.Meta.Length },
+                { "ultimaModificaFile", FileTime(read.Meta.LastWriteUtc) },
+                { "attesaScritturaMs", read.WriterWaitMs },
+                { "origine", sources },
+            });
+        }
+        _log.Line($"{Clock()}  ·      lettura durante la scrittura ({read.Bytes.Length} byte), messa da parte", ConsoleColor.DarkGray);
+    }
+
+    sealed class ReadResult
+    {
+        public byte[] Bytes;
+        public FileMeta Meta = FileMeta.Missing;   // metadati letti dopo il contenuto
+        public bool Missing;
+        public bool Locked;
+        public bool Stable;
+        public int Retries;
+        public int WriterWaitMs;                   // attesa perché Passepartout aveva ancora il file aperto in scrittura
+    }
+
+    /// <summary>
+    /// Lettura che non impedisce a nessuno di scrivere. È "stabile" se:
+    /// - dimensione e data del file non cambiano durante la lettura né nei 30 ms successivi, e i byte letti coincidono
+    ///   con la dimensione;
+    /// - su Windows, nessuno ha più il file aperto in scrittura (è la condizione in cui il vecchio monitor riesce a leggerlo).
+    /// Così un file preso a metà scrittura (troncato o incompleto) non viene scambiato per un conto vero.
+    /// </summary>
+    ReadResult ReadStable()
+    {
+        var result = new ReadResult();
+        for (var round = 0; round < StabilityRounds; round++)
+        {
+            var before = FileMeta.Read(TargetPath);
+            var bytes = ReadShared(out var retries, out var missing);
+            result.Retries += retries;
+            if (missing)
+            {
+                result.Missing = true;
+                result.Meta = FileMeta.Read(TargetPath);
+                return result;
+            }
+            if (bytes == null)
+            {
+                result.Locked = true;
+                result.Meta = FileMeta.Read(TargetPath);
+                return result;
+            }
+
+            var after = FileMeta.Read(TargetPath);
+            result.Bytes = bytes;
+            result.Meta = after;
+            Thread.Sleep(StabilityDelayMilliseconds);
+            if (!before.Equals(after) || !after.Exists || bytes.LongLength != after.Length)
+                continue;   // il file è cambiato mentre lo leggevamo: si rilegge
+            if (!FileMeta.Read(TargetPath).Equals(after))
+                return result;   // contenuto già superato: la prossima notifica registrerà il nuovo
+            if (WriterActive())
+            {
+                result.WriterWaitMs += StabilityDelayMilliseconds + WriterWaitMilliseconds;
+                Thread.Sleep(WriterWaitMilliseconds);
+                continue;
+            }
+            result.Stable = true;
+            return result;
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Su Windows: qualcuno ha il file aperto in scrittura? Lo si scopre aprendolo per un istante negando la scrittura,
+    /// come fa il vecchio monitor a ogni lettura (lui però lo tiene aperto per tutta la lettura).
+    /// </summary>
+    bool WriterActive()
+    {
+        if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+            return false;
+        try
+        {
+            using (new FileStream(TargetPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 1))
+                return false;
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+        catch (IOException)
+        {
+            return true;   // violazione di condivisione: il file è ancora aperto in scrittura
+        }
+    }
+
+    void RecordVersion(byte[] bytes, string hash, FileMeta meta, int retries, int writerWaitMs, string sources)
     {
         var elapsed = _clock.ElapsedMilliseconds;
         var seq = _seq + 1;
         var time = DateTime.Now;
-        var fileName = $"{seq:0000}_{time:HH-mm-ss.fff}.txt";
+        var fileName = $"{seq:0000}_{time.ToString("HH-mm-ss.fff", CultureInfo.InvariantCulture)}.txt";
         File.WriteAllBytes(Path.Combine(SessionFolder, fileName), bytes);
 
         var analysis = FileAnalyzer.Analyze(bytes);
@@ -398,6 +538,8 @@ public sealed class RecordingSession : IDisposable
             { "msDalPrecedente", _lastVersionMs < 0 ? null : (object)(elapsed - _lastVersionMs) },
             { "file", fileName },
             { "byte", bytes.Length },
+            { "byteMetadati", meta.Length },
+            { "ultimaModificaFile", FileTime(meta.LastWriteUtc) },
             { "sha256", hash.Substring(0, 16) },
             { "uguale", _seqByHash.TryGetValue(hash, out var same) ? (object)same : null },
             { "codifica", analysis.Encoding },
@@ -406,9 +548,10 @@ public sealed class RecordingSession : IDisposable
             { "contenuto", KindName(analysis.Kind) },
             { "origine", sources },
             { "tentativiLettura", retries },
+            { "attesaScritturaMs", writerWaitMs },
         };
 
-        var console = new List<(string Text, ConsoleColor? Color)>();
+        var console = new List<OutputLine>();
         var header = $"{Clock(time)}  #{seq:0000}  ";
         switch (analysis.Kind)
         {
@@ -444,19 +587,18 @@ public sealed class RecordingSession : IDisposable
         _lastHash = hash;
         _lastWriteUtc = meta.LastWriteUtc;
         _lastVersionMs = elapsed;
-        _readRetries += retries;
         var newEncoding = _encodings.Add(analysis.Encoding);
         var kind = KindName(analysis.Kind);
         _versionsByKind[kind] = _versionsByKind.TryGetValue(kind, out var count) ? count + 1 : 1;
 
         _log.Line(header, analysis.Kind == FileKind.Vuoto ? ConsoleColor.DarkGray : ConsoleColor.White);
-        foreach (var (text, color) in console)
-            _log.Line(text, color);
+        foreach (var line in console)
+            _log.Line(line.Text, line.Color);
         if (newEncoding)
             _log.Line($"         codifica {analysis.Encoding}, fine riga {analysis.LineEndings}", ConsoleColor.DarkGray);
     }
 
-    void DescribeReceipt(FileAnalysis analysis, JsonObject entry, List<(string, ConsoleColor?)> console, ref string header)
+    void DescribeReceipt(FileAnalysis analysis, JsonObject entry, List<OutputLine> console, ref string header)
     {
         var lines = analysis.ReceiptLines;
         entry.Add("righe", lines.Count);
@@ -472,7 +614,7 @@ public sealed class RecordingSession : IDisposable
         if (_lastReceipt == null)
         {
             foreach (var line in lines)
-                console.Add(("         " + line, ConsoleColor.Gray));
+                console.Add(new OutputLine("         " + line, ConsoleColor.Gray));
         }
         else
         {
@@ -482,24 +624,25 @@ public sealed class RecordingSession : IDisposable
             entry.Add("aggiunte", added.Select(d => new JsonObject { { "riga", d.Index + 1 }, { "testo", d.Text.Trim() } }).ToList());
             entry.Add("rimosse", removed.Select(d => new JsonObject { { "riga", d.Index + 1 }, { "testo", d.Text.Trim() } }).ToList());
 
-            var newBill = _lastReceipt.Count > 0 && lines.Count > 0 && diff.All(d => d.Op != DiffOp.Same);
-            entry.Add("sembraContoNuovo", newBill);
-            if (newBill)
-                header += "  ← sembra un conto nuovo";
+            // Solo un dato: come si riconosce un conto nuovo lo diranno le registrazioni.
+            var common = diff.Count(d => d.Op == DiffOp.Same);
+            entry.Add("righeInComune", common);
+            if (common == 0 && _lastReceipt.Count > 0 && lines.Count > 0)
+                header += "  (nessuna riga in comune con il precedente)";
 
             foreach (var d in removed)
-                console.Add(($"   − {d.Index + 1,3} {d.Text}", ConsoleColor.Red));
+                console.Add(new OutputLine($"   − {d.Index + 1,3} {d.Text}", ConsoleColor.Red));
             foreach (var d in added)
-                console.Add(($"   + {d.Index + 1,3} {d.Text}", ConsoleColor.Green));
+                console.Add(new OutputLine($"   + {d.Index + 1,3} {d.Text}", ConsoleColor.Green));
             if (added.Count == 0 && removed.Count == 0)
-                console.Add(("     righe invariate", ConsoleColor.DarkGray));
+                console.Add(new OutputLine("     righe invariate", ConsoleColor.DarkGray));
         }
 
         _lastReceipt = lines;
         _lastTotal = analysis.Total;
     }
 
-    void DescribeQr(FileAnalysis analysis, JsonObject entry, int seq, List<(string, ConsoleColor?)> console, ref string header)
+    void DescribeQr(FileAnalysis analysis, JsonObject entry, int seq, List<OutputLine> console, ref string header)
     {
         var qr = analysis.Qr;
         var info = new JsonObject
@@ -533,7 +676,7 @@ public sealed class RecordingSession : IDisposable
         }
 
         if (qr.LinesAfter > 1)
-            console.Add(($"         {qr.LinesAfter - 1} righe dopo il codice (il vecchio monitor le ignora)", ConsoleColor.DarkGray));
+            console.Add(new OutputLine($"         {qr.LinesAfter - 1} righe dopo il codice (il vecchio monitor le ignora)", ConsoleColor.DarkGray));
         entry.Add("qr", info);
     }
 
@@ -635,7 +778,7 @@ public sealed class RecordingSession : IDisposable
     {
         var sb = new StringBuilder();
         sb.AppendLine("Bluetech Display Recorder " + typeof(RecordingSession).Assembly.GetName().Version);
-        sb.AppendLine("Inizio: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss zzz"));
+        sb.AppendLine("Inizio: " + Timestamps.Iso(DateTimeOffset.Now));
         sb.AppendLine("File registrato: " + TargetPath);
         if (!string.IsNullOrEmpty(machineInfo))
         {
@@ -655,6 +798,7 @@ public sealed class RecordingSession : IDisposable
             sb.AppendLine($"    {pair.Key}: {pair.Value}");
         sb.AppendLine($"  Riscritture identiche: {_rewrites}");
         sb.AppendLine($"  Notifiche doppie ignorate: {_duplicateNotifications}");
+        sb.AppendLine($"  Letture prese durante la scrittura (messe da parte): {_unstableReads}");
         sb.AppendLine($"  Letture ritentate (file bloccato): {_readRetries}");
         sb.AppendLine($"  Eventi della cartella: {_folderEvents}");
         sb.AppendLine($"  Note: {_notes}");
@@ -684,12 +828,28 @@ public sealed class RecordingSession : IDisposable
         return string.Concat(sha.ComputeHash(bytes).Select(b => b.ToString("x2")));
     }
 
-    static string Now() => DateTimeOffset.Now.ToString("yyyy-MM-dd'T'HH:mm:ss.fffzzz");
+    static string Now() => Timestamps.Iso(DateTimeOffset.Now);
 
-    static string Clock(DateTime? time = null) => (time ?? DateTime.Now).ToString("HH:mm:ss.fff");
+    static string FileTime(DateTime utc) => utc == default ? null : Timestamps.Iso(new DateTimeOffset(utc, TimeSpan.Zero).ToLocalTime());
 
-    readonly struct FileMeta : IEquatable<FileMeta>
+    static string Clock(DateTime? time = null) => (time ?? DateTime.Now).ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture);
+
+    sealed class OutputLine
     {
+        public OutputLine(string text, ConsoleColor? color)
+        {
+            Text = text;
+            Color = color;
+        }
+
+        public string Text { get; }
+        public ConsoleColor? Color { get; }
+    }
+
+    sealed class FileMeta : IEquatable<FileMeta>
+    {
+        public static readonly FileMeta Missing = new(false, 0, default);
+
         FileMeta(bool exists, long length, DateTime lastWriteUtc)
         {
             Exists = exists;
@@ -705,11 +865,20 @@ public sealed class RecordingSession : IDisposable
         public static FileMeta Read(string path)
         {
             var info = new FileInfo(path);
-            return info.Exists ? new FileMeta(true, info.Length, info.LastWriteTimeUtc) : new FileMeta(false, 0, default);
+            return info.Exists ? new FileMeta(true, info.Length, info.LastWriteTimeUtc) : Missing;
         }
 
-        public bool Equals(FileMeta other) => Exists == other.Exists && Length == other.Length && LastWriteUtc == other.LastWriteUtc;
-        public override bool Equals(object obj) => obj is FileMeta other && Equals(other);
+        public bool Equals(FileMeta other) =>
+            other != null && Exists == other.Exists && Length == other.Length && LastWriteUtc == other.LastWriteUtc;
+
+        public override bool Equals(object obj) => Equals(obj as FileMeta);
         public override int GetHashCode() => LastWriteUtc.GetHashCode() ^ Length.GetHashCode();
     }
+}
+
+/// <summary>Date ISO 8601 indipendenti dalle impostazioni internazionali del PC (":" è sempre ":").</summary>
+public static class Timestamps
+{
+    public static string Iso(DateTimeOffset time) =>
+        time.ToString("yyyy-MM-dd'T'HH':'mm':'ss'.'fffzzz", CultureInfo.InvariantCulture);
 }

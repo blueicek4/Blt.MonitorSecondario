@@ -4,23 +4,28 @@ Registra **ogni versione** del file che Passepartout Menu scrive per il monitor 
 con l'ora al millisecondo. Serve per la Fase 0: capire con dati veri come si comporta la cassa
 (scontrino, storni, sconti, QR Satispay, messaggi del visore) prima di scrivere l'Agent.
 
-Non disturba niente: apre il file solo in lettura, con condivisione completa, e funziona anche con il vecchio
-`MonitorCliente.exe` acceso.
+Non intralcia la cassa e funziona anche con il vecchio `MonitorCliente.exe` acceso. Legge il file senza negare
+a nessuno né la lettura né la scrittura. Per confermare che Passepartout abbia finito di scriverlo lo apre per un
+istante come fa il vecchio monitor a ogni lettura (che però lo tiene aperto per tutta la lettura): se in
+quell'istante Passepartout volesse scrivere, riproverebbe da sé, come già succede con il vecchio monitor.
 
 ## Avvio
 
-1. Copia `BluetechRecorder.exe` sul PC cassa (un solo file; serve Windows 10/11, nient'altro).
+1. Copia `BluetechRecorder.exe` sul PC cassa. Basta il solo exe (il `.config` accanto è facoltativo).
+   Serve Windows 10 dalla versione 1607 (anche LTSB 2016 e LTSC 2019) o Windows 11: .NET Framework 4.6.2 è già incluso.
 2. Doppio clic: registra `C:\MonitorSecondario\Scontrino.txt`.
    - Altro percorso: trascina il file `Scontrino.txt` (o la sua cartella) sull'exe, oppure
      `BluetechRecorder.exe D:\percorso\Scontrino.txt`.
    - Altra cartella di destinazione: `--out D:\Registrazioni`.
 3. Lavora in cassa. Prima di ogni prova **scrivi una nota** nella finestra e premi Invio
    (es. `storno seconda riga`): finisce nell'indice con l'ora, così ogni file si collega a cosa stavi facendo.
-4. Per finire scrivi `/fine` (oppure Ctrl+C, oppure chiudi la finestra).
+4. Per finire scrivi `/fine` (oppure Ctrl+C, oppure chiudi la finestra: lo zip viene creato lo stesso, di norma
+   anche se spegni il PC; in ogni caso tutti i file restano nella cartella della registrazione).
 5. Invia lo zip indicato a fine registrazione:
    `C:\MonitorSecondario\Registrazioni\AAAA-MM-GG_hhmmss.zip`.
 
 Se la cartella non è scrivibile, le registrazioni vanno sul Desktop in `Registrazioni Monitor`.
+La selezione del testo col mouse nella finestra è disattivata: in Windows bloccherebbe la console.
 
 ## Cosa vedi a video
 
@@ -37,13 +42,21 @@ Passepartout rimanda sempre il conto intero: il registratore lo confronta con la
 solo le righe aggiunte (+) e tolte (−), con la loro posizione. È lo stesso confronto che userà il nuovo monitor
 per animare le differenze.
 
+Una versione viene registrata solo se il file è **stabile**: dimensione e data non cambiano durante la lettura né
+nei 30 ms successivi, e nessuno lo ha più aperto in scrittura. Un file preso mentre Passepartout lo sta ancora
+scrivendo (vuoto, a metà) non è uno stato che il monitor avrebbe mostrato: il registratore aspetta che la scrittura
+finisca; se non riesce a confermarla, il contenuto finisce in `letture-instabili\` e a video compare come
+`lettura durante la scrittura`. Le "riscritture identiche" sono i casi in cui Passepartout riscrive lo stesso
+identico conto (stesso contenuto, data del file cambiata).
+
 ## Cosa contiene lo zip
 
 | File | Contenuto |
 |---|---|
 | `0001_hh-mm-ss.fff.txt`… | Ogni versione diversa del file, identica byte per byte all'originale |
 | `0006_qrcode.png` | L'immagine del QR, se Passepartout la manda in Base64 |
-| `eventi.jsonl` | Una riga per evento: versioni (con codifica, righe aggiunte/tolte, totale), riscritture identiche, file eliminato/creato, note |
+| `letture-instabili\` | Contenuti letti mentre il file veniva scritto (raccontano come scrive Passepartout) |
+| `eventi.jsonl` | Una riga per evento: versioni (codifica, righe aggiunte/tolte, righe in comune col conto precedente, totale, dimensione e data del file), riscritture identiche, letture instabili, file eliminato/creato, note |
 | `sessione.txt` | Versione di Windows, schermi e risoluzioni, WebView2 installato o no |
 | `riepilogo.txt` | Conteggi finali |
 | `contesto\` | Copia di `XMLMonitorCliente.xml` e `MonitorCliente.exe.config` se sono nella stessa cartella |
@@ -74,9 +87,9 @@ Una nota prima di ogni punto. Se una funzione non la usate, saltala.
 ## Compilazione e test
 
 ```bash
-dotnet build tools/Bluetech.Display.Recorder -c Release      # exe in bin/Release/net48/
+dotnet build tools/Bluetech.Display.Recorder -c Release      # exe in bin/Release/net462/
 dotnet test tools/Bluetech.Display.Recorder.Tests
 ```
 
-Su Windows i test girano anche sulla build .NET Framework 4.8. La GitHub Action **Build** compila e testa su Windows
+Su Windows i test girano anche sulla build .NET Framework 4.6.2. La GitHub Action **Build** compila e testa su Windows
 e pubblica `BluetechRecorder` e `BluetechDisplayPlayer` come artifact.

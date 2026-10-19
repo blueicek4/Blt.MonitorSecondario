@@ -5,7 +5,8 @@ dentro una WebView2 (il motore di Microsoft Edge), e parte da solo all'accension
 
 ## Requisiti
 
-- Windows 10 o 11 (.NET Framework 4.8 è già incluso).
+- Windows 10 dalla versione 1803 (anche LTSC 2019) o Windows 11: .NET Framework 4.7.2 è già incluso.
+  Su Windows 10 LTSB 2016 va installato .NET Framework 4.8.
 - Microsoft Edge WebView2 Runtime: presente in Windows 11 e nei Windows 10 aggiornati. Se manca, il player lo
   segnala a video; si installa da <https://go.microsoft.com/fwlink/p/?LinkId=2124703>.
 
@@ -65,7 +66,7 @@ dotnet build player/Bluetech.Display.Player -c Release
 ```
 
 Funziona anche su Linux e macOS (pacchetto `Microsoft.NETFramework.ReferenceAssemblies`).
-Output in `player/Bluetech.Display.Player/bin/Release/net48/`.
+Output in `player/Bluetech.Display.Player/bin/Release/net472/`.
 A ogni push la GitHub Action **Build** compila su Windows e pubblica la cartella pronta come artifact.
 
 ## Da fare prima della distribuzione
