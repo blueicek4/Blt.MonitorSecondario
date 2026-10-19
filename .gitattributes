@@ -1,0 +1,2 @@
+# Campioni scritti dalla cassa: identici byte per byte (CRLF compresi), git non deve convertirli.
+samples/** -text

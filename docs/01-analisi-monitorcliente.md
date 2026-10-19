@@ -201,12 +201,20 @@ Un nome non riconosciuto diventa bianco.
 - Se la cassa scrivesse nel file i comandi fiscali (`SF`, `VEND …`), il monitor li mostrerebbe come testo nella
   barra alta: quindi, presumibilmente, non lo fa.
 
-**Osservato sul campo (19/10/2026)**: con `SovrascriviSeEsistente=false` e nessuno che toglie il file, Passepartout
-ha scritto `Scontrino.txt` una sola volta e poi più nulla per tutta la sessione (2 minuti e mezzo di prove in cassa,
-nessuna modifica né file nuovo nella cartella). L'interpretazione coerente: Passepartout non sovrascrive un file
-esistente, aspetta che il lettore lo "consumi" (lo tolga) e dopo `NumeroTentativi` × `SecondiAttesa` rinuncia.
-Il vecchio monitor non toglie mai il file: va chiarito come funziona in produzione (parametro a `true`, o altro).
-Il registratore ha una modalità consumo (`/consuma`) per verificarlo.
+**Osservato sul campo** (registratore, stesso PC):
+
+- **19/10**, modello a 30 colonne: il file c'era già (scritto un minuto e mezzo prima) e per 2 minuti e mezzo di prove
+  in cassa nella cartella non è successo niente, nemmeno un'eliminazione. Una sola versione.
+- **20/10**, modello a 48 colonne, file assente all'avvio: 42 versioni in 14 minuti
+  ([registrazione](../samples/registrazioni/2026-10-20_002138/README.md)). A ogni aggiornamento Passepartout **elimina il
+  file e lo ricrea** 0,25 s dopo (vuoto, poi lo riempie). E **mai prima di 3,06 s** dalla scrittura precedente: 20
+  intervalli su 41 sono tra 3,06 e 3,14 s, quando si battono articoli di fila.
+
+Ipotesi coerente con entrambe, **da verificare** (prova A/B/A del [registratore](../tools/README.md)): con
+`SovrascriviSeEsistente=false` Passepartout aspetta fino a `NumeroTentativi` × `SecondiAttesa` = 3 s che il file venga
+tolto. Poi lo toglie da sé (20/10), oppure in certe condizioni rinuncia (19/10: cosa è cambiato tra le due prove?).
+Il vecchio monitor non toglie mai il file: se l'ipotesi regge, **oggi ogni battuta arriva al display circa 3 s dopo**,
+e quando si battono articoli di fila si accodano (5 articoli → l'ultimo dopo 16 s).
 
 **Opportunità**: essendo un template, possiamo definire noi l'output dei comandi (es. `StampaRigaArticolo` →
 `ART|{0}|{1}|{2}|{5}`) e ottenere dati **strutturati** (quantità, prezzo unitario, reparto, sconti, metodo di
@@ -230,6 +238,7 @@ davvero per un dispositivo di tipo monitor.
 | 11 | Percorsi relativi (`testo.txt`, `Logo.png`) risolti sulla cartella di lavoro | Se avviato da collegamento con "Da:" diverso, logo e testo spariscono senza errori |
 | 12 | Nessun log, nessuna diagnostica, nessuna gestione remota | Assistenza solo sul posto |
 | 13 | Branding fisso Passepartout/HP, testi solo in italiano, nessun video | |
+| 14 | Scarta ogni riga che contiene ` x ` (pensato per il dettaglio quantità `2 X 3,00 Euro`) | Spariscono anche gli articoli con ` x ` nel nome, come `Tagliere Emilia x 2` (registrazione del 20/10) |
 
 ## 9. Pseudo-codice ricostruito delle funzioni chiave
 

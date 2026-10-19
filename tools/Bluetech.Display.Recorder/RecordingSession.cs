@@ -29,6 +29,8 @@ public sealed class RecordingSession : IDisposable
     const int StabilityRounds = 5;
     const int StabilityDelayMilliseconds = 30;
     const int WriterWaitMilliseconds = 100;
+    const int ConsumeAttempts = 25;
+    const int ConsumeRetryDelayMilliseconds = 20;
     const string UnstableFolder = "letture-instabili";
 
     static readonly string[] ContextFiles = { "XMLMonitorCliente.xml", "MonitorCliente.exe.config" };
@@ -66,14 +68,24 @@ public sealed class RecordingSession : IDisposable
     int _consumed;
     readonly Dictionary<string, int> _otherFileChanges = new(StringComparer.OrdinalIgnoreCase);
 
-    // Modalità consumo: dopo ogni versione il file viene tolto, per i casi in cui Passepartout non sovrascrive un file
-    // esistente (SovrascriviSeEsistente=false) e aspetta che qualcuno lo tolga prima di scrivere il successivo.
+    // Modalità consumo: dopo ogni versione il file viene tolto. Serve a verificare un'ipotesi: che Passepartout non
+    // sovrascriva un file esistente (SovrascriviSeEsistente=false) e aspetti che qualcuno lo tolga.
     volatile bool _consume;
     volatile bool _removedByUs;
+    // Passepartout ha già sostituito da sé un file che c'era (sovrascrivendolo, o eliminandolo e ricreandolo),
+    // senza che lo togliessimo noi: quindi non resta bloccato da un file esistente.
+    volatile bool _replacedByWriter;
+    // Tempo tra due scritture di Passepartout (versioni e riscritture), il minimo con e senza /consuma: dice se
+    // Passepartout aspetta che il file venga tolto prima di scrivere il successivo.
+    long _lastWriteMs = -1;
+    long _minWriteGapMs = -1;
+    long _minWriteGapConsumeMs = -1;
     // Quante cose sono successe al file (versioni, riscritture, letture instabili, sparizioni): serve a capire
     // se tra due note dell'operatore Passepartout ha scritto qualcosa.
     int _activity;
     int _activityAtLastNote = -1;
+    int _activityAtConsumeChange;
+    IReadOnlyList<string> _oldMonitors = new string[0];
     bool _started;
     bool _stopping;     // Stop() chiamato: niente nuove notifiche e note, ma la coda viene smaltita
     bool _stopped;      // indice chiuso
@@ -98,23 +110,78 @@ public sealed class RecordingSession : IDisposable
     public bool IsStopped { get { lock (_sync) return _stopping; } }
     public bool ConsumeMode => _consume;
 
-    /// <summary>Attiva o disattiva la modalità consumo; se il file c'è già, viene registrato (se nuovo) e tolto subito.</summary>
-    public void SetConsumeMode(bool enabled)
+    /// <summary>Trova il vecchio monitor aperto (sostituibile nei test).</summary>
+    public Func<IReadOnlyList<string>> FindOldMonitors { get; set; } = OldMonitor.Running;
+
+    /// <summary>Vecchi monitor aperti all'avvio della sessione (percorsi degli exe).</summary>
+    public IReadOnlyList<string> OldMonitors => _oldMonitors;
+
+    /// <summary>
+    /// Attiva o disattiva la modalità consumo; se il file c'è già, viene registrato (se nuovo) e tolto subito.
+    /// Non si attiva se il vecchio monitor legge lo stesso file, a meno di <paramref name="force"/>: gli toglierebbe il
+    /// conto da mostrare. Restituisce false se la modalità non è cambiata.
+    /// </summary>
+    public bool SetConsumeMode(bool enabled, bool force = false)
     {
+        if (enabled && !force)
+        {
+            var conflict = OldMonitorsOnThisFile(SafeFindOldMonitors());
+            if (conflict.Count > 0)
+            {
+                lock (_sync)
+                {
+                    if (_stopping || !_started)
+                        return false;
+                    WriteIndexLocked(new JsonObject { { "tipo", "consumo" }, { "ora", Now() }, { "ms", _clock.ElapsedMilliseconds }, { "attivo", false }, { "rifiutato", "vecchio monitor aperto" }, { "vecchioMonitor", conflict } });
+                }
+                _log.Line($"{Clock()}  Modalità consumo NON attivata: è aperto il vecchio monitor ({string.Join(", ", conflict)}).", ConsoleColor.Magenta);
+                _log.Line($"       Legge lo stesso {FileName}: togliendolo dopo ogni lettura, il display del cliente perderebbe gli aggiornamenti", ConsoleColor.Magenta);
+                _log.Line("       e il vecchio monitor potrebbe tenerlo aperto proprio quando va tolto. Chiudilo e riscrivi /consuma,", ConsoleColor.Magenta);
+                _log.Line("       oppure scrivi /consuma forza.", ConsoleColor.Magenta);
+                return false;
+            }
+        }
+
         lock (_sync)
         {
             if (_stopping || !_started)
-                return;
+                return false;
             _consume = enabled;
             _activityAtLastNote = -1;   // dopo un cambio di modalità si riparte: niente avviso alla prima nota
-            WriteIndexLocked(new JsonObject { { "tipo", "consumo" }, { "ora", Now() }, { "ms", _clock.ElapsedMilliseconds }, { "attivo", enabled } });
+            _activityAtConsumeChange = Volatile.Read(ref _activity);
+            _lastWriteMs = -1;   // i tempi tra le scritture si misurano dentro ciascuna fase della prova A/B/A
+            WriteIndexLocked(new JsonObject { { "tipo", "consumo" }, { "ora", Now() }, { "ms", _clock.ElapsedMilliseconds }, { "attivo", enabled }, { "forzato", enabled && force } });
         }
         _log.Line(enabled
-            ? $"{Clock()}  Modalità consumo attiva: dopo ogni lettura {FileName} viene tolto, così Passepartout può scrivere il successivo."
+            ? $"{Clock()}  Modalità consumo attiva: dopo ogni lettura {FileName} viene tolto (solo se è ancora la versione registrata)."
             : $"{Clock()}  Modalità consumo disattivata: {FileName} non viene più tolto.", ConsoleColor.Cyan);
         if (enabled)
             Trigger("consumo-attivato");
+        return true;
     }
+
+    IReadOnlyList<string> SafeFindOldMonitors()
+    {
+        try
+        {
+            return FindOldMonitors?.Invoke() ?? new string[0];
+        }
+        catch (Exception)
+        {
+            return new string[0];
+        }
+    }
+
+    /// <summary>Vecchi monitor che leggono il file registrato, o di cui non si conosce la cartella (nel dubbio: sì).</summary>
+    List<string> OldMonitorsOnThisFile(IEnumerable<string> monitors) =>
+        monitors.Where(exe =>
+        {
+            var folder = OldMonitor.WatchedFolder(exe);
+            return folder == null || SameFolder(folder, Folder);
+        }).ToList();
+
+    internal static bool SameFolder(string a, string b) =>
+        string.Equals(Path.GetFullPath(a).TrimEnd(Path.DirectorySeparatorChar), Path.GetFullPath(b).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase);
 
     public void Start(string machineInfo = null)
     {
@@ -124,6 +191,7 @@ public sealed class RecordingSession : IDisposable
                 throw new InvalidOperationException("Sessione già avviata");
             _started = true;
         }
+        _oldMonitors = SafeFindOldMonitors();
 
         var stamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss", CultureInfo.InvariantCulture);
         SessionFolder = Path.Combine(OutputRoot, stamp);
@@ -138,11 +206,16 @@ public sealed class RecordingSession : IDisposable
         CopyContextFiles();
         _clock.Start();
 
+        var existing = FileMeta.Read(TargetPath);
         WriteIndex(new JsonObject
         {
             { "tipo", "inizio" },
             { "ora", Now() },
             { "file", TargetPath },
+            { "esisteGia", existing.Exists },
+            { "creazioneFile", existing.Exists ? FileTime(existing.CreationUtc) : null },
+            { "ultimaModificaFile", existing.Exists ? FileTime(existing.LastWriteUtc) : null },
+            { "vecchioMonitor", _oldMonitors },
         });
 
         _watcher = new FileSystemWatcher(Folder)
@@ -192,26 +265,81 @@ public sealed class RecordingSession : IDisposable
             WarnNoChanges();
     }
 
-    /// <summary>Avviso immediato all'operatore: tra due note il file non è cambiato.</summary>
+    /// <summary>
+    /// Tra due note il file non è cambiato: all'operatore si dice cosa può significare, senza dare per certa una causa.
+    /// Il caso finisce anche nell'indice ("caso"), per l'analisi della registrazione.
+    /// </summary>
     void WarnNoChanges()
     {
         var meta = FileMeta.Read(TargetPath);
         var since = meta.Exists ? "ultima modifica " + meta.LastWriteUtc.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture) : "il file non c'è";
-        lock (_sync)
+        var advice = new List<string>();
+        string kind;
+        var worrying = true;
+
+        if (_consume && meta.Exists)
         {
-            if (!_stopping)
-                WriteIndexLocked(new JsonObject { { "tipo", "avviso" }, { "ora", Now() }, { "testo", "Nessuna modifica del file dalla nota precedente" } });
+            kind = "consumo-file-rimasto";
+            advice.Add("Il file è ancora lì: non sono riuscito a toglierlo (vedi gli avvisi sopra). Riprovo adesso.");
         }
-        _log.Line($"       Attenzione: dalla nota precedente {FileName} non è cambiato ({since}).", ConsoleColor.Magenta);
-        if (_consume)
+        else if (_consume && Volatile.Read(ref _activity) != _activityAtConsumeChange)
         {
-            _log.Line("       Passepartout non sta scrivendo questo file: controlla il percorso impostato nel dispositivo monitor.", ConsoleColor.Magenta);
+            kind = "consumo-normale";
+            worrying = false;
+            advice.Add("Con /consuma attiva Passepartout ha già scritto: è normale se l'operazione non cambia il conto né il visore.");
+        }
+        else if (_consume)
+        {
+            kind = "consumo-niente";
+            advice.Add("Da quando hai scritto /consuma non è arrivato niente: o le operazioni fatte non mandano nulla al monitor,");
+            advice.Add($"o Passepartout scrive in un altro percorso. Controlla il dispositivo monitor in Passepartout: deve essere {TargetPath}.");
+        }
+        else if (!meta.Exists)
+        {
+            kind = "file-assente";
+            advice.Add($"Controlla il dispositivo monitor in Passepartout: il percorso deve essere {TargetPath}.");
+        }
+        else if (_replacedByWriter)
+        {
+            kind = "sovrascrittura-gia-vista";
+            worrying = false;
+            advice.Add("In questa sessione Passepartout ha già riscritto il file: è normale se l'operazione non cambia il conto né il visore.");
         }
         else
         {
-            _log.Line("       Se in cassa hai fatto operazioni, Passepartout forse non sovrascrive un file esistente", ConsoleColor.Magenta);
-            _log.Line("       (SovrascriviSeEsistente=false): scrivi /consuma e riprova, oppure controlla il percorso impostato.", ConsoleColor.Magenta);
+            kind = "mai-riscritto";
+            advice.Add("Da quando registro, Passepartout non ha mai riscritto il file. Una causa possibile, da verificare, è che non");
+            advice.Add("sovrascriva un file che esiste già. Prova: scrivi /consuma e rifai l'operazione, poi /consuma di nuovo (si spegne)");
+            advice.Add("e rifai ancora. Se arriva una versione nuova solo con /consuma attiva, la causa è questa.");
         }
+
+        // Il vecchio monitor è il testimone migliore: legge Scontrino.txt nella cartella del suo exe.
+        var monitors = SafeFindOldMonitors();
+        var elsewhere = monitors.Select(OldMonitor.WatchedFolder).FirstOrDefault(folder => folder != null && !SameFolder(folder, Folder));
+        if (worrying && elsewhere != null)
+        {
+            advice.Add($"Il vecchio monitor aperto legge {Path.Combine(elsewhere, FileName)}: se il display del cliente si aggiorna, Passepartout scrive lì.");
+        }
+        else if (worrying && monitors.Count > 0)
+        {
+            advice.Add("Guarda il display del cliente: se il vecchio monitor si aggiorna e qui non arriva niente, scrivilo in una nota.");
+            if (kind == "mai-riscritto")
+                advice.Add("Per la prova con /consuma chiudi prima il vecchio monitor: legge lo stesso file.");
+        }
+
+        lock (_sync)
+        {
+            if (!_stopping)
+                WriteIndexLocked(new JsonObject { { "tipo", "avviso" }, { "ora", Now() }, { "caso", kind }, { "testo", "Nessuna modifica del file dalla nota precedente" } });
+        }
+        var color = worrying ? ConsoleColor.Magenta : ConsoleColor.DarkGray;
+        _log.Line(worrying
+            ? $"       Attenzione: dalla nota precedente {FileName} non è cambiato ({since})."
+            : $"       Dalla nota precedente {FileName} non è cambiato ({since}).", color);
+        foreach (var line in advice)
+            _log.Line("       " + line, color);
+        if (kind == "consumo-file-rimasto")
+            Trigger("consumo-riprova");
     }
 
     /// <summary>
@@ -441,6 +569,9 @@ public sealed class RecordingSession : IDisposable
             return;
         }
 
+        // C'era già una versione e non l'abbiamo tolta noi: se ora il file è stato riscritto, Passepartout l'ha
+        // sostituito da sé (sovrascrivendolo, o eliminandolo e ricreandolo).
+        var replacedExisting = _seq > 0 && !_removedByUs;
         _lastMissing = false;
         _removedByUs = false;
         _readRetries += read.Retries;
@@ -457,6 +588,9 @@ public sealed class RecordingSession : IDisposable
             // Stesso contenuto: è una vera riscrittura solo se la data di modifica (letta dopo il contenuto) è cambiata.
             if (read.Meta.LastWriteUtc != _lastWriteUtc)
             {
+                if (replacedExisting)
+                    _replacedByWriter = true;
+                NoteWriteGap();
                 _lastWriteUtc = read.Meta.LastWriteUtc;
                 _rewrites++;
                 Interlocked.Increment(ref _activity);
@@ -471,6 +605,7 @@ public sealed class RecordingSession : IDisposable
                         { "uguale", _seq },
                         { "msDallaVersione", _clock.ElapsedMilliseconds - _lastVersionMs },
                         { "ultimaModificaFile", FileTime(read.Meta.LastWriteUtc) },
+                        { "creazioneFile", FileTime(read.Meta.CreationUtc) },
                         { "origine", sources },
                     });
                 }
@@ -480,28 +615,63 @@ public sealed class RecordingSession : IDisposable
             {
                 _duplicateNotifications++;
             }
-            ConsumeIfEnabled();
+            ConsumeIfEnabled(hash);
             return;
         }
 
-        RecordVersion(read.Bytes, hash, read.Meta, read.Retries, read.WriterWaitMs, sources);
-        ConsumeIfEnabled();
+        if (replacedExisting)
+            _replacedByWriter = true;
+        if (RecordVersion(read.Bytes, hash, read.Meta, read.Retries, read.WriterWaitMs, sources))
+        {
+            NoteWriteGap();
+            ConsumeIfEnabled(hash);
+        }
+    }
+
+    void NoteWriteGap()
+    {
+        var now = _clock.ElapsedMilliseconds;
+        if (_lastWriteMs >= 0)
+        {
+            var gap = now - _lastWriteMs;
+            if (_consume)
+                _minWriteGapConsumeMs = _minWriteGapConsumeMs < 0 ? gap : Math.Min(_minWriteGapConsumeMs, gap);
+            else
+                _minWriteGapMs = _minWriteGapMs < 0 ? gap : Math.Min(_minWriteGapMs, gap);
+        }
+        _lastWriteMs = now;
     }
 
     /// <summary>
     /// Modalità consumo: toglie il file appena registrato, come farebbe un lettore che "consuma" i file di scambio.
-    /// Si chiama solo dopo una lettura stabile, quindi Passepartout ha già finito di scriverlo.
+    /// Lo toglie solo se contiene ancora la versione registrata (<paramref name="recordedHash"/>): lo apre negando la
+    /// scrittura (se Passepartout vuole scrivere proprio ora, trova il file occupato e ritenta come fa di suo),
+    /// ricontrolla il contenuto e lo elimina prima di chiuderlo. Una versione arrivata nel frattempo non viene tolta:
+    /// si rilegge, si registra e solo dopo si toglie.
     /// </summary>
-    void ConsumeIfEnabled()
+    void ConsumeIfEnabled(string recordedHash)
     {
         if (!_consume)
             return;
-        for (var attempt = 0; attempt < 25; attempt++)
+        for (var attempt = 0; attempt < ConsumeAttempts; attempt++)
         {
             try
             {
-                _removedByUs = true;
-                File.Delete(TargetPath);
+                using (var stream = new FileStream(TargetPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 4096))
+                {
+                    if (Sha256(ReadToEnd(stream)) != recordedHash)
+                    {
+                        lock (_sync)
+                        {
+                            if (!_stopped)
+                                WriteIndexLocked(new JsonObject { { "tipo", "consumoRinviato" }, { "ora", Now() }, { "ms", _clock.ElapsedMilliseconds }, { "dopoVersione", _seq }, { "motivo", "contenuto cambiato dopo la lettura" } });
+                        }
+                        Trigger("consumo-verifica");
+                        return;
+                    }
+                    _removedByUs = true;
+                    File.Delete(TargetPath);
+                }
                 _consumed++;
                 lock (_sync)
                 {
@@ -511,10 +681,15 @@ public sealed class RecordingSession : IDisposable
                 _log.Line("         file tolto: Passepartout può scrivere il prossimo", ConsoleColor.DarkGray);
                 return;
             }
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+            {
+                return;   // tolto da qualcun altro: lo registrerà la prossima lettura
+            }
             catch (IOException)
             {
-                // Riaperto da qualcuno proprio ora (Passepartout o il vecchio monitor): si riprova tra un attimo.
-                Thread.Sleep(20);
+                // Aperto in scrittura proprio ora (Passepartout), o in lettura dal vecchio monitor: si riprova tra un attimo.
+                _removedByUs = false;
+                Thread.Sleep(ConsumeRetryDelayMilliseconds);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -523,8 +698,14 @@ public sealed class RecordingSession : IDisposable
                 return;
             }
         }
-        _removedByUs = false;
         _log.Line($"{Clock()}  Avviso: {FileName} è rimasto aperto da un altro programma, non è stato tolto", ConsoleColor.DarkYellow);
+    }
+
+    static byte[] ReadToEnd(Stream stream)
+    {
+        using var memory = new MemoryStream();
+        stream.CopyTo(memory);
+        return memory.ToArray();
     }
 
     /// <summary>
@@ -645,7 +826,8 @@ public sealed class RecordingSession : IDisposable
         }
     }
 
-    void RecordVersion(byte[] bytes, string hash, FileMeta meta, int retries, int writerWaitMs, string sources)
+    /// <summary>Registra una versione nuova; false se la sessione è già chiusa.</summary>
+    bool RecordVersion(byte[] bytes, string hash, FileMeta meta, int retries, int writerWaitMs, string sources)
     {
         var elapsed = _clock.ElapsedMilliseconds;
         var seq = _seq + 1;
@@ -665,6 +847,7 @@ public sealed class RecordingSession : IDisposable
             { "byte", bytes.Length },
             { "byteMetadati", meta.Length },
             { "ultimaModificaFile", FileTime(meta.LastWriteUtc) },
+            { "creazioneFile", FileTime(meta.CreationUtc) },
             { "sha256", hash.Substring(0, 16) },
             { "uguale", _seqByHash.TryGetValue(hash, out var same) ? (object)same : null },
             { "codifica", analysis.Encoding },
@@ -703,7 +886,7 @@ public sealed class RecordingSession : IDisposable
         lock (_sync)
         {
             if (_stopped)
-                return;
+                return false;
             _seq = seq;
             WriteIndexLocked(entry);
         }
@@ -722,6 +905,7 @@ public sealed class RecordingSession : IDisposable
             _log.Line(line.Text, line.Color);
         if (newEncoding)
             _log.Line($"         codifica {analysis.Encoding}, fine riga {analysis.LineEndings}", ConsoleColor.DarkGray);
+        return true;
     }
 
     void DescribeReceipt(FileAnalysis analysis, JsonObject entry, List<OutputLine> console, ref string header)
@@ -880,22 +1064,32 @@ public sealed class RecordingSession : IDisposable
             || full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Configurazione del vecchio monitor: dalla cartella registrata e da quella del vecchio monitor aperto.</summary>
     void CopyContextFiles()
     {
+        var folders = new List<string> { Folder };
+        foreach (var folder in _oldMonitors.Select(OldMonitor.WatchedFolder))
+            if (folder != null && !folders.Any(f => SameFolder(f, folder)))
+                folders.Add(folder);
+
         var copied = false;
-        foreach (var name in ContextFiles)
+        foreach (var folder in folders)
         {
-            var source = Path.Combine(Folder, name);
-            try
+            var prefix = folder == Folder ? "" : "vecchio-monitor_";
+            foreach (var name in ContextFiles)
             {
-                if (!File.Exists(source) || new FileInfo(source).Length > 1024 * 1024)
-                    continue;
-                var target = Path.Combine(SessionFolder, "contesto");
-                Directory.CreateDirectory(target);
-                File.Copy(source, Path.Combine(target, name));
-                copied = true;
+                var source = Path.Combine(folder, name);
+                try
+                {
+                    if (!File.Exists(source) || new FileInfo(source).Length > 1024 * 1024)
+                        continue;
+                    var target = Path.Combine(SessionFolder, "contesto");
+                    Directory.CreateDirectory(target);
+                    File.Copy(source, Path.Combine(target, prefix + name));
+                    copied = true;
+                }
+                catch { }
             }
-            catch { }
         }
         if (copied)
             _log.Line("Copiata la configurazione del vecchio monitor nella cartella \"contesto\".", ConsoleColor.DarkGray);
@@ -907,6 +1101,7 @@ public sealed class RecordingSession : IDisposable
         sb.AppendLine("Bluetech Display Recorder " + typeof(RecordingSession).Assembly.GetName().Version);
         sb.AppendLine("Inizio: " + Timestamps.Iso(DateTimeOffset.Now));
         sb.AppendLine("File registrato: " + TargetPath);
+        sb.AppendLine("Vecchio monitor aperto: " + (_oldMonitors.Count == 0 ? "no" : string.Join(", ", _oldMonitors)));
         if (!string.IsNullOrEmpty(machineInfo))
         {
             sb.AppendLine();
@@ -929,15 +1124,20 @@ public sealed class RecordingSession : IDisposable
         sb.AppendLine($"  Letture ritentate (file bloccato): {_readRetries}");
         sb.AppendLine($"  Eventi della cartella: {_folderEvents}");
         sb.AppendLine($"  File tolti in modalità consumo: {_consumed}");
+        sb.AppendLine($"  Passepartout ha sostituito da sé il file che c'era: {(_replacedByWriter ? "sì" : "no")}");
+        sb.AppendLine($"  Tempo minimo tra due scritture: {Seconds(_minWriteGapMs)} (con /consuma: {Seconds(_minWriteGapConsumeMs)})");
         lock (_sync)
         {
             foreach (var pair in _otherFileChanges.OrderBy(p => p.Key))
-                sb.AppendLine($"  Altro file modificato nella cartella: {pair.Key} ({pair.Value} volte)");
+                sb.AppendLine($"  Altro file modificato nella cartella: {pair.Key} ({pair.Value} {(pair.Value == 1 ? "notifica" : "notifiche")})");
         }
         sb.AppendLine($"  Note: {_notes}");
         sb.AppendLine($"  Codifiche viste: {(_encodings.Count == 0 ? "-" : string.Join(", ", _encodings))}");
         return sb.ToString();
     }
+
+    static string Seconds(long ms) =>
+        ms < 0 ? "-" : (ms / 1000.0).ToString("0.00", CultureInfo.InvariantCulture).Replace('.', ',') + " s";
 
     static string KindName(FileKind kind) => kind switch
     {
@@ -981,24 +1181,31 @@ public sealed class RecordingSession : IDisposable
 
     sealed class FileMeta : IEquatable<FileMeta>
     {
-        public static readonly FileMeta Missing = new(false, 0, default);
+        public static readonly FileMeta Missing = new(false, 0, default, default);
 
-        FileMeta(bool exists, long length, DateTime lastWriteUtc)
+        FileMeta(bool exists, long length, DateTime lastWriteUtc, DateTime creationUtc)
         {
             Exists = exists;
             Length = length;
             LastWriteUtc = lastWriteUtc;
+            CreationUtc = creationUtc;
         }
 
         public bool Exists { get; }
         public long Length { get; }
         public DateTime LastWriteUtc { get; }
 
+        /// <summary>
+        /// Solo un dato per l'analisi, escluso dal confronto. Attenzione: Windows (tunneling di NTFS) ridà a un file
+        /// ricreato con lo stesso nome entro 15 s la data di creazione di quello eliminato.
+        /// </summary>
+        public DateTime CreationUtc { get; }
+
         /// <summary>Solo metadati (nessun handle aperto sul file).</summary>
         public static FileMeta Read(string path)
         {
             var info = new FileInfo(path);
-            return info.Exists ? new FileMeta(true, info.Length, info.LastWriteTimeUtc) : Missing;
+            return info.Exists ? new FileMeta(true, info.Length, info.LastWriteTimeUtc, info.CreationTimeUtc) : Missing;
         }
 
         public bool Equals(FileMeta other) =>
@@ -1014,4 +1221,16 @@ public static class Timestamps
 {
     public static string Iso(DateTimeOffset time) =>
         time.ToString("yyyy-MM-dd'T'HH':'mm':'ss'.'fffzzz", CultureInfo.InvariantCulture);
+
+    /// <summary>Quanto tempo fa, a parole: "40 s", "12 min", "1 ora", "5 ore", "3 giorni".</summary>
+    public static string Age(TimeSpan age)
+    {
+        if (age.TotalSeconds < 90)
+            return $"{Math.Max(0, (int)age.TotalSeconds)} s";
+        if (age.TotalMinutes < 90)
+            return $"{(int)age.TotalMinutes} min";
+        if (age.TotalHours < 48)
+            return (int)age.TotalHours == 1 ? "1 ora" : $"{(int)age.TotalHours} ore";
+        return $"{(int)age.TotalDays} giorni";
+    }
 }

@@ -28,22 +28,44 @@ quell'istante Passepartout volesse scrivere, riproverebbe da sé, come già succ
 Se la cartella non è scrivibile, le registrazioni vanno sul Desktop in `Registrazioni Monitor`.
 La selezione del testo col mouse nella finestra è disattivata: in Windows bloccherebbe la console.
 
-## Se registra una sola versione
+## Se non arrivano versioni nuove
 
-Succede quando Passepartout **non sovrascrive un file che esiste già** (`SovrascriviSeEsistente=false` nel modello
-XML): scrive `Scontrino.txt` la prima volta, poi aspetta che qualcuno lo tolga e, dopo 3 tentativi, rinuncia.
-Il registratore te lo segnala:
+Cosa sappiamo dalle due prove sul campo (stesso PC):
 
-- all'avvio, se il file c'è già;
-- appena scrivi una nota e dalla nota precedente il file non è cambiato.
+- **19/10**: il file c'era già (scritto un minuto e mezzo prima, modello a 30 colonne) e per 2 minuti e mezzo di
+  prove in cartella non è successo niente, nemmeno un tentativo di eliminarlo. Una sola versione.
+- **20/10**: modello a 48 colonne, file assente all'avvio: [42 versioni](../samples/registrazioni/2026-10-20_002138/README.md).
+  Passepartout **elimina il file e lo ricrea** a ogni aggiornamento, e mai prima di 3 s dalla scrittura precedente.
 
-Scrivi `/consuma` (o avvia con `--consuma`): dopo ogni lettura il registratore toglie il file, così Passepartout
-può scrivere il successivo. `/consuma` di nuovo la disattiva. Il contenuto di ogni versione resta salvato nella
-registrazione. Non usarla se sulla stessa cassa è acceso il vecchio `MonitorCliente.exe`: gli toglieresti il file.
+Il perché della prima prova non è ancora noto. Un'ipotesi da verificare: con `SovrascriviSeEsistente=false`
+Passepartout aspetta fino a `NumeroTentativi` × `SecondiAttesa` (3 × 1 s) che il file venga tolto. Poi, a seconda di
+come è configurato, lo sostituisce da sé (20/10) o rinuncia (19/10?). Se è così, oggi ogni aggiornamento arriva al
+display con circa 3 s di ritardo.
 
-Se anche con `/consuma` non arriva niente, Passepartout scrive in un'altra cartella o con un altro nome: controlla il
-percorso del dispositivo monitor. Gli altri file modificati nella stessa cartella compaiono comunque a video
-(`cartella: modificato …`).
+Il registratore ti avvisa alla seconda nota se nel frattempo il file non è cambiato, e ti dice cosa può significare:
+file assente (percorso sbagliato), file mai riscritto (prova qui sotto), vecchio monitor che legge un'altra cartella.
+
+### La prova A/B/A (in una sola registrazione)
+
+1. Avvia il registratore senza `/consuma`. Nota `A`, poi batti 3 articoli di fila, veloce.
+2. Scrivi `/consuma`. Nota `B`, batti altri 3 articoli di fila.
+3. Scrivi di nuovo `/consuma` (si spegne). Nota `A2`, batti altri 3 articoli.
+4. `/fine`.
+
+Con `/consuma` il registratore toglie il file subito dopo averlo letto, ma solo se contiene ancora la versione
+appena registrata: lo apre negando la scrittura, ricontrolla il contenuto e lo elimina prima di chiuderlo. Ogni
+versione resta salvata nella registrazione.
+
+Cosa guardiamo: se in `B` le versioni arrivano subito (e non più a 3,3 s una dall'altra) Passepartout aspetta davvero
+che qualcuno tolga il file, e il nuovo monitor dovrà farlo. Il riepilogo riporta il tempo minimo tra due scritture,
+con e senza `/consuma`. Durante la prova guarda anche la cassa: si ferma qualche secondo a ogni battuta? Compare un
+errore?
+
+`/consuma` non si attiva se è aperto il vecchio `MonitorCliente.exe` e legge lo stesso file: gli toglierebbe il conto
+da mostrare. Chiudilo, oppure scrivi `/consuma forza`. Il vecchio monitor legge sempre `Scontrino.txt` nella cartella
+del proprio exe. Se è aperto in un'altra cartella, il registratore te lo dice all'avvio: è lì che scrive Passepartout.
+
+Gli altri file modificati nella stessa cartella compaiono comunque a video (`cartella: modificato …`).
 
 ## Cosa vedi a video
 
@@ -74,10 +96,10 @@ identico conto (stesso contenuto, data del file cambiata).
 | `0001_hh-mm-ss.fff.txt`… | Ogni versione diversa del file, identica byte per byte all'originale |
 | `0006_qrcode.png` | L'immagine del QR, se Passepartout la manda in Base64 |
 | `letture-instabili\` | Contenuti letti mentre il file veniva scritto (raccontano come scrive Passepartout) |
-| `eventi.jsonl` | Una riga per evento: versioni (codifica, righe aggiunte/tolte, righe in comune col conto precedente, totale, dimensione e data del file), riscritture identiche, letture instabili, file eliminato/creato, note |
-| `sessione.txt` | Versione di Windows, schermi e risoluzioni, WebView2 installato o no |
-| `riepilogo.txt` | Conteggi finali |
-| `contesto\` | Copia di `XMLMonitorCliente.xml` e `MonitorCliente.exe.config` se sono nella stessa cartella |
+| `eventi.jsonl` | Una riga per evento: versioni (codifica, righe aggiunte/tolte, righe in comune col conto precedente, totale, dimensione, data di modifica e di creazione del file), riscritture identiche, letture instabili, file eliminato/creato, note, avvisi, `/consuma` |
+| `sessione.txt` | Versione di Windows, schermi e risoluzioni, WebView2 installato o no, vecchio monitor aperto |
+| `riepilogo.txt` | Conteggi finali, tempo minimo tra due scritture (con e senza `/consuma`) |
+| `contesto\` | Copia di `XMLMonitorCliente.xml` e `MonitorCliente.exe.config` se sono nella stessa cartella o in quella del vecchio monitor aperto |
 
 Attenzione: le registrazioni contengono gli scontrini. Per le prove usa articoli di test e, per le fatture,
 un cliente fittizio.

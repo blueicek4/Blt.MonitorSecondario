@@ -81,9 +81,14 @@ riceve subito lo stato corrente.
 ### Fase 0 — Raccolta dati reali (2–3 giorni) — *bloccante per il parser*
 - **Registratore pronto**: [tools/](../tools/README.md) — `BluetechRecorder.exe` salva ogni versione di `Scontrino.txt`
   byte per byte, con note dell'operatore, differenze riga per riga e uno zip finale da inviare.
-- **Primo giro (19/10)**: una sola versione registrata. Passepartout, con `SovrascriviSeEsistente=false`, non riscrive
-  un file esistente finché qualcuno non lo toglie. Da ripetere con `/consuma`, e da chiarire come si comporta in
-  produzione con il vecchio monitor (che non toglie mai il file).
+- **Primo giro (19/10)**: una sola versione registrata, nessuna attività nella cartella; causa ancora da capire.
+- **Secondo giro (20/10)**: 42 versioni, 5 conti ([registrazione](../samples/registrazioni/2026-10-20_002138/README.md)).
+  Passepartout elimina e ricrea il file a ogni aggiornamento, mai prima di 3 s dal precedente: probabile attesa che il
+  lettore tolga il file (`NumeroTentativi` × `SecondiAttesa`). Da verificare con la prova A/B/A (`/consuma`): se è così
+  l'Agent deve togliere il file dopo averlo letto, e il display del cliente guadagna 3 s a battuta rispetto a oggi.
+- Già chiarito dal secondo giro: formato a 48 colonne, intestazione e quantità unite in "dettagli conto", sconti sul
+  subtotale e ripartiti, righe `PAGATO …` e `Resto:` a fine conto. Ancora da registrare: Satispay, messaggi del visore,
+  annullo, reso, fattura, e perché il terzo conto non ha scritto la riga del pagamento.
 - Casi da registrare su una cassa vera: vendita semplice, quantità > 1, sconto riga e subtotale, maggiorazione, storno,
   annullo, reso, preconto, conto separato, fattura, pagamento contanti / carta / **Satispay**, messaggi del visore.
 - Verificare: codifica (UTF-8? ANSI? il simbolo €), se il file viene riscritto o ricreato, ordine degli eventi
@@ -167,7 +172,7 @@ riceve subito lo stato corrente.
 | Rischio | Impatto | Mitigazione |
 |---|---|---|
 | Il formato del file cambia con un aggiornamento di Passepartout | Scontrino mal interpretato | Test golden, parser tollerante, ripiego "testo grezzo" sempre leggibile |
-| Passepartout non sovrascrive il file (`SovrascriviSeEsistente=false`) | Il monitor resta fermo al primo conto | L'Agent "consuma" il file dopo averlo letto (come il registratore con `/consuma`), oppure si imposta il parametro a `true`; mai Agent e vecchio monitor insieme sullo stesso file |
+| Passepartout aspetta che il file venga tolto prima di riscriverlo (`SovrascriviSeEsistente=false`, da verificare) | Ogni battuta in ritardo di ~3 s, o monitor fermo al primo conto (prova del 19/10) | L'Agent toglie il file dopo averlo letto, solo se è ancora la versione letta (come il registratore con `/consuma`); mai Agent e vecchio monitor insieme sullo stesso file |
 | Nessun segnale di esito Satispay | Niente animazione "pagato" | Non promettere l'esito; Fase 0 per cercare un segnale |
 | PC cassa lenti o Windows vecchi (7/8.1) | Effetti a scatti / player non installabile | Profili animazione automatici; censimento in Fase 0; Windows 10+ come requisito |
 | Monitor cliente staccato o cambio risoluzione | Display sulla cassa | Gestito dal Player (si nasconde e ricompare) |

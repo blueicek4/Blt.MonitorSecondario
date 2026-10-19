@@ -1,0 +1,11 @@
+Riepilogo registrazione
+  Durata: 00:14:03
+  Versioni diverse registrate: 42
+    scontrino: 42
+  Riscritture identiche: 0
+  Notifiche doppie ignorate: 38
+  Letture prese durante la scrittura (messe da parte): 1
+  Letture ritentate (file bloccato): 0
+  Eventi della cartella: 83
+  Note: 12
+  Codifiche viste: ASCII
