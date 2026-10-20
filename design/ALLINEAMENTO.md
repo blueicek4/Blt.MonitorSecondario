@@ -101,7 +101,7 @@ confrontando ogni versione del file con quella precedente.
 | Punto del pacchetto | Problema | Decisione |
 |---|---|---|
 | Il `ThemeProvider` riceve `ThemeTokens` | I token non dicono da quale tema partono e hanno una sola serie di colori: con `mode: 'auto'` non si sa cosa mostrare di giorno | Il locale sceglie un **tema di partenza** (uno degli otto set) più i `ThemeTokens`. In `auto` si alternano le due varianti del tema e i colori dei token sono ignorati; con giorno o notte fissi i colori del locale vincono (`display/src/theme/theme.ts`) |
-| Ore di `mode: 'auto'` | "Orari di apertura del locale", che il protocollo non porta | Giorno dalle 7 alle 19, configurabile (`DayHours`). Gli orari veri arriveranno dal pannello |
+| Ore di `mode: 'auto'` | "Orari di apertura del locale", che il protocollo non porta | Giorno dalle 7 alle 19, configurabile (`DayHours`). Dal 20/10 le ore le sceglie il back office dell'Agent e arrivano in `cfg.dayHours` (§8) |
 | Formato degli importi | SPEC §4 chiede `€ 18,90` ma indica `Intl.NumberFormat('it-IT', {style: 'currency'})`, che dà `18,90 €` | Vale l'esempio: Intl formatta il numero, `€` davanti con spazio fine (`display/src/money/money.ts`) |
 | `qrLayout` di default | Non indicato nella SPEC | `beside`, come il prototipo |
 | Rapporti d'aspetto 1–1,2 | La SPEC copre ≥1,5 / 1,2–1,5 / <1 | `narrow`, la variante più vicina |
@@ -168,6 +168,31 @@ Per M5 in sviluppo: il display servito da Vite (`http://localhost:5173`) si coll
 dell'Agent c'è `"AltreOrigini": ["http://localhost:5173"]` e se il browser è stato abbinato una volta aprendo
 `http://localhost:5080/auth` (il cookie di `localhost` vale per tutte le porte).
 
+**Il messaggio `cfg` (aspetto dal back office, dal 20/10).** Il pannello del locale è nel back office dell'Agent
+(schede Aspetto e Promozioni, [agent/README.md](../agent/README.md#aspetto-e-promozioni)). L'Agent manda `cfg` a ogni
+display **al collegamento, prima del `sync`**, a ogni modifica salvata e quando una promozione entra o esce dal suo
+orario: già scelto per la cassa del display, il giorno e l'ora. Oltre a `theme`, `ads` e `ticker` di `protocol.ts`:
+
+| Campo | Cosa porta | Cosa fa il display |
+|---|---|---|
+| `theme` | `ThemeTokens` sempre completi. Con `mode: 'auto'` i colori sono quelli della notte del tema (`presetConfig`), con giorno o notte fissi quelli del locale, già controllati dal back office con `contrastProblems` | `ThemeConfig = { preset, tokens: theme }` e `resolveTheme` come ora (§7) |
+| `preset` | Il tema di partenza, `ThemeId`: è la decisione M1 del §7, che i soli token non dicevano | Vedi sopra |
+| `dayHours` | `{ start, end }` in ore con i decimali (7,5 = 07:30) | `modeAt(date, dayHours)` |
+| `ads` | Le `AdSlide` della cassa, nell'ordine del back office: immagini con `durationMs`, video senza. `src` è `/media/<impronta>.<ext>` dell'Agent: solo ai dispositivi autorizzati (il cookie della stessa origine), contenuto che non cambia mai a parità di nome | La playlist dell'attesa (SPEC §2.1) |
+| `venue` | `{ name, tagline, logo?, logoLight? }`: `logo` per i fondi scuri e sopra le slide, `logoLight` (facoltativo) per i fondi chiari dei temi di giorno, dove un logo chiaro non si vedrebbe. `name` vuoto se il logo ha già il nome | Il logo del locale in alto (SPEC §2.1) e nella testata del conto |
+| `texts` | `{ welcome, receipt, thanks }`: il benvenuto (attesa senza slide), l'etichetta del conto ("Il tuo conto"), il saluto del Grazie | Al posto dei testi fissi |
+| `promos` | `[{ id, title, text, image? }]`: le schede della colonna laterale durante il conto (SPEC §2.2, "promozione del locale"); `image` è un'immagine 16:9 | Una per conto, a rotazione. Sui formati `narrow` e sul palmare niente colonna: le promozioni stanno nelle slide |
+| `thanks` | `{ png, title, caption, seconds }`, solo se il locale l'ha attivato: la proposta del §9, fatta, con `title` in più (il prototipo S5 ha "Com'è andata?" sopra la didascalia) | `QrStage` nel Grazie; Grazie fino al conto dopo, al massimo `seconds` |
+| `pricesOnlyOnBill` | L'opzione "prezzi solo sul conto" (`ShowPricesDuringOrder=false` della 6.0) | Niente importi né totale finché `bill` è falso, come detto per `sale.total.bill` |
+
+I font del design sono anche dentro l'Agent, a `/fonts/` (con `/fonts/fonts.css`): se la build del display ha i suoi
+in `display/fonts`, l'Agent serve quelli. La pagina `/cliente` dell'Agent oggi applica questi campi con le misure della
+SPEC (formati, tipografia, stati) e `tema.js`, una copia di `theme.ts` in JavaScript: è lo schermo che si vede finché
+il display non arriva. **Per M5, facoltativo**: l'anteprima del back office oggi è quella pagina in un `iframe`
+(`/cliente?anteprima=demo`), con la bozza dell'aspetto mandata via `postMessage` (`cfg`) e un conto finto comandato da
+`{ t: 'demo', fase: 'attesa' | 'conto' | 'pagamento' | 'grazie' | 'auto', qr }`. Se il display accetta gli stessi due
+messaggi, l'anteprima può mostrare lui.
+
 **Il vecchio monitor sullo scontrino pagato** (foto del 20/10, [`samples/scontrino-bar-pagato-carta.txt`](../samples/scontrino-bar-pagato-carta.txt)):
 mostra ragione sociale, indirizzo e partita IVA, `EURO`, le righe con `SCONTO`, `PAGATO C.CREDITO:` e `Resto:` nel
 corpo, `TOTALE` in basso; nasconde `SNF`, i trattini, `SUBTOT.` e `TOT. DA PAGARE` (che diventa il totale in basso).
@@ -197,7 +222,7 @@ la partita IVA).
   il cliente pagava in 6 conti su 9.
 - **QR di ringraziamento impostabile dal pannello** (Fase 4): recensioni Google, registrazione cliente/fidelity, menu
   digitale o un indirizzo qualunque, con la didascalia. La SPEC §2.5 lo prevedeva già ("QR opzionale a destra"), ma
-  nessun campo del protocollo lo portava. Proposta:
+  nessun campo del protocollo lo portava. Proposta (**fatta il 20/10** nell'Agent, con `title` in più: §8):
   - nel messaggio `cfg`: `thanks?: { png: string; caption: string; seconds?: number }`. Il pannello salva l'indirizzo,
     l'**Agent genera il PNG** (un pixel per modulo, senza quiet zone, come quello di Satispay): il display lo mostra con
     lo stesso `QrStage` e resta senza librerie QR;
