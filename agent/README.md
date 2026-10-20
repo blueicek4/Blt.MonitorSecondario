@@ -6,8 +6,8 @@ Il servizio che gira sul PC cassa:
 2. **Lo toglie subito dopo la lettura**, così Passepartout scrive il successivo senza aspettare. Se il file resta lì,
    Passepartout aspetta circa 3 s prima di sostituirlo (con `SovrascriviSeEsistente=true`), oppure rinuncia (con
    `false`): [prova A/B/A](../samples/registrazioni/2026-10-20_064854/README.md).
-3. **Manda al display** i messaggi di [`protocol.ts`](../design/handoff/src/types/protocol.ts) via WebSocket, solo con
-   quello che cambia.
+3. **Manda al display** i messaggi di `protocol.ts` (`display/src/types/protocol.ts`, ramo `claude/design-handoff`) via
+   WebSocket, solo con quello che cambia.
 
 La lettura e la cancellazione sono quelle del [registratore](../tools/README.md), già provate in cassa: il file si
 toglie solo se contiene ancora la versione letta.
