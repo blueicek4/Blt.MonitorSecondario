@@ -1,0 +1,20 @@
+SNF
+ 
+           LOCALE 1           
+    VIA DELLE PROVE NUM 1     
+ 00000 COMUNE DI PROVA      XX
+       P.I.00000000000       
+       C.F. 00000000000       
+ 
+------------------------------
+                          EURO
+ Caffe'                   1,40
+                SCONTO   -0,20
+SUBTOT.                   1,20
+ 
+TOT. DA PAGARE            1,20
+ 
+PAGATO C.CREDITO:   1,20
+Resto:              0,00
+ 
+ 

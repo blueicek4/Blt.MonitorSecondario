@@ -19,5 +19,5 @@ personalizzabile con il brand del locale e sempre firmata "powered by Bluetech".
 |---|---|
 | [`player/`](player/README.md) | **Bluetech Display Player** — WebView2 a schermo intero sul monitor secondario, avvio automatico, configurazione protetta da codice. Pronto per il collaudo |
 | [`tools/`](tools/README.md) | **Bluetech Recorder** — registra ogni versione di `Scontrino.txt` per la Fase 0. Pronto |
-| `agent/` | Servizio Windows che legge `Scontrino.txt` e pubblica lo stato in tempo reale — da fare (Fase 1) |
+| [`agent/`](agent/README.md) | **Bluetech Display Agent** — servizio Windows che legge `Scontrino.txt`, lo toglie appena letto e manda al display solo quello che cambia, via WebSocket. Pagina di diagnostica e replay delle registrazioni. Pronto per la prova in cassa |
 | `display/` | Interfaccia web del monitor e pannello di amministrazione — da fare (Fasi 3–4) |

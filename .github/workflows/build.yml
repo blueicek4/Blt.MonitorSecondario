@@ -5,6 +5,7 @@ on:
     paths:
       - "player/**"
       - "tools/**"
+      - "agent/**"
       - "samples/**"
       - ".github/workflows/build.yml"
   workflow_dispatch:
@@ -28,6 +29,13 @@ jobs:
       - name: Build player
         run: dotnet build player/Bluetech.Display.Player/Bluetech.Display.Player.csproj -c Release
 
+      - name: Test Agent
+        run: dotnet test agent/Bluetech.Display.Agent.Tests/Bluetech.Display.Agent.Tests.csproj -c Release
+
+      # Un solo exe, con dentro .NET: in cassa non si installa niente.
+      - name: Pubblica Agent
+        run: dotnet publish agent/Bluetech.Display.Agent/Bluetech.Display.Agent.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o out/agent
+
       - uses: actions/upload-artifact@v4
         with:
           name: BluetechRecorder
@@ -43,3 +51,11 @@ jobs:
             player/Bluetech.Display.Player/bin/Release/net472/
             !player/Bluetech.Display.Player/bin/Release/net472/*.pdb
             !player/Bluetech.Display.Player/bin/Release/net472/Microsoft.Web.WebView2.Wpf.dll
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BluetechDisplayAgent
+          path: |
+            out/agent/BluetechDisplayAgent.exe
+            out/agent/appsettings.json
+            agent/README.md
