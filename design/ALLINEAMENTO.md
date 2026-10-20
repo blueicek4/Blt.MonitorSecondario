@@ -119,8 +119,8 @@ il QR non si copre, quindi il cambio aspetta la fine del pagamento.
 ## 8. Aggiunte al protocollo fatte nell'Agent (da implementare in M5)
 
 L'[Agent](../agent/README.md) manda i messaggi di `protocol.ts` con queste aggiunte. In `display/src/types/protocol.ts`
-vanno aggiunte con il trasporto WebSocket (M5). Le ultime quattro vengono dal vecchio monitor 6.0 di Passepartout
-(`docs/01` §10).
+vanno aggiunte con il trasporto WebSocket (M5). Le righe da `receipt.qr` a `pay.clear` vengono dal vecchio monitor 6.0
+di Passepartout (`docs/01` §10), le ultime dallo scontrino digitale a video (§10).
 
 | Messaggio | Perché | Cosa fa il display |
 |---|---|---|
@@ -132,9 +132,21 @@ vanno aggiunte con il trasporto WebSocket (M5). Le ultime quattro vengono dal ve
 | `pay.qr.caption?` | La 6.0 mostra sopra il QR la riga che la cassa scrive dopo l'immagine. Finora quella riga è vuota | Se c'è, al posto del testo del design |
 | `sale.total.bill` (e `bill` in `sync`) | `true` quando la cassa mostra il conto (intestazione: dettagli conto, preconto, scontrino), `false` durante la battuta | Con l'opzione del pannello "prezzi solo sul conto" (`ShowPricesDuringOrder=false` della 6.0, per chi la usa già) le righe senza importi e niente totale finché è `false` |
 | `pay.clear` seguito da `sale.close` | Un QR arrivato dopo la chiusura per inattività (nessun conto a video) scade da solo dopo 3 minuti | L'attesa, non una vendita vuota. In generale `pay.clear` torna alla vendita solo se ci sono righe |
+| `receipt.digital { id, png, caption?, notice?, receipt?, paperCopy, paper, issuedAt }` | Solo con l'opzione `ScontrinoDigitale.MostraScontrino` dell'Agent (§10): il QR dello scontrino digitale con il conto pagato da cui viene. Senza l'opzione resta `receipt.qr` | Lo stato `receipt`. Senza `receipt` (abbinamento non sicuro) il solo QR con la didascalia. Il pulsante della copia c'è solo con `paperCopy: true` |
+| `receipt.paper.status { id, state, message? }` | L'esito della richiesta di copia, a tutti i display: `printing`, `requested` (partita verso la stampante, con il testo da mostrare, default "Ritira la copia alla cassa"), `failed`. `already` solo a chi tocca di nuovo | Aggiorna il pulsante; dopo `failed` torna toccabile ("Riprova"). `requested` non vuol dire "stampata": la carta non si controlla |
+| `receipt.clear { id }` | Passati `SecondiAVideo` (45 s) o all'apertura della vendita successiva | Lascia lo stato `receipt`: l'attesa, o la vendita nuova che arriva subito dopo |
+| `phase: 'receipt'` e `state.receipt` in `sync` | Chi si ricollega (un palmare uscito dallo standby) rivede lo scontrino con lo stato della copia | Come `receipt.digital` |
+| Dal display all'Agent: `{ t: 'receipt.paper', id }` | Il tocco sul pulsante. È l'unico messaggio in salita: al massimo 1 KB, uno ogni 2 s per display, ogni altro testo si ignora | Lo manda e passa subito in "sto stampando", senza aspettare la risposta |
 
 `pay.qr.amount` è l'ultimo totale ricevuto: il file del QR non porta l'importo. Il PNG arriva già ridotto a un pixel
 per modulo (49×49 per il QR Satispay), senza quiet zone.
+
+`receipt.digital.receipt` è `{ header: string[], lines: Line[], total: Cents, paid?: { method, amount, change? } }`, con
+`Line` = `{ kind: 'item', desc, qty, amount, unit: Cents | null }` | `{ kind: 'discount' | 'surcharge', desc, amount,
+underItem }` | `{ kind: 'note', text }`; `qty` può avere decimali (unità di misura), `issuedAt` è l'ora del pagamento
+in ISO 8601 con il fuso. L'Agent abbina il QR al conto solo se l'ultimo `PAGATO` è arrivato entro 30 s e nel frattempo
+non è partita un'altra vendita: mai il QR di un cliente con le righe di un altro. Senza transazioni vere con lo
+scontrino digitale, il formato viene dal vecchio monitor 6.0 e va verificato con le prime.
 
 Per M5 in sviluppo: l'Agent accetta su `/ws` solo le pagine servite da lui stesso. Il display servito da Vite
 (`http://localhost:5173`) si collega se nell'`appsettings.json` dell'Agent c'è `"AltreOrigini": ["http://localhost:5173"]`.
@@ -180,7 +192,12 @@ la partita IVA).
   - legare la registrazione allo scontrino (punti fidelity sull'acquisto appena fatto) oggi non si può: nel file non c'è
     il numero del documento.
 
-## 10. Proposta: scontrino digitale a video e copia cartacea (da decidere)
+## 10. Scontrino digitale a video e copia cartacea: Agent fatto, display da fare (M5)
+
+**Stato al 20/10**: la parte dell'Agent è fatta e spenta di default (abbinamento, stato `receipt`, copia stampata in
+ESC/POS su una stampante comande in rete o nella coda di Windows, palmari abbinati con una chiave), messaggi in §8.
+Il display del design non ha ancora lo stato `receipt`: per provarlo oggi c'è la pagina dell'Agent `/cliente`, la
+diagnostica senza le parti tecniche, adatta a palmare e tablet. Restano da decidere per M5 le deroghe qui sotto.
 
 Studio in [`docs/03`](../docs/03-studio-copia-cartacea.md). Funzione opzionale che **cambia lo scopo** della SPEC
 §13 ("lo schermo non è touch e non ha controlli"; "la stampa resta sulla cassa"): un nuovo stato `receipt` dopo Grazie,
