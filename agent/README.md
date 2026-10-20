@@ -17,7 +17,9 @@ lavorare (il vecchio monitor, anche nella versione 6.0, lascia il file dov'è).
 
 Serve Windows 10 o 11 a 64 bit. L'exe contiene già .NET: non si installa niente.
 
-1. Copia `BluetechDisplayAgent.exe` e `appsettings.json` in una cartella, per esempio `C:\Bluetech\Agent`.
+1. Copia `BluetechDisplayAgent.exe` e `appsettings.json` in una cartella, per esempio `C:\Bluetech\Agent`. In
+   `appsettings.json` metti in `FileCassa` lo `Scontrino.txt` che Passepartout scrive per il monitor: è quello nella
+   cartella del vecchio `MonitorCliente.exe`, che legge il file accanto a sé.
 2. **Chiudi il vecchio `MonitorCliente.exe` e toglilo dall'avvio automatico.** L'Agent toglie il file dopo averlo letto:
    il vecchio monitor resterebbe senza conti. Se lo trova aperto, l'Agent lo scrive nel log e in `/api/stato`.
 3. Prova a mano: doppio clic sull'exe, poi apri <http://localhost:5080/diagnostica> e batti un articolo in cassa.
@@ -36,7 +38,8 @@ Serve Windows 10 o 11 a 64 bit. L'exe contiene già .NET: non si installa niente
 `FileCassa` deve stare su un disco del PC: da servizio i dischi di rete collegati con una lettera (`Z:`) non si vedono.
 Se il percorso non si raggiunge, l'Agent resta acceso, lo scrive in `/api/stato` e nel log e riprova ogni 10 s.
 
-Il Player apre `http://localhost:5080/display`, che rimanda al display.
+Il Player apre `http://localhost:5080/display`, che rimanda al display. Finché il display non c'è (M5), nel Player si
+può mettere `http://localhost:5080/diagnostica` per vedere sul monitor cliente cosa arriva dalla cassa.
 
 ## Configurazione (`appsettings.json`, sezione `Agent`)
 
