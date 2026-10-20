@@ -98,7 +98,9 @@ public sealed class AgentAppTests : IAsyncLifetime
         Assert.Equal(_file, (string)status["file"]!);
 
         Assert.Contains("Diagnostica Agent", await http.GetStringAsync("/diagnostica"));
-        Assert.Contains("il display non è installato", await http.GetStringAsync("/"));
+        var placeholder = await http.GetStringAsync("/");
+        Assert.Contains("il display non è installato", placeholder);
+        Assert.Contains("http-equiv=\"refresh\"", placeholder);   // il Player la ricarica finché il display non c'è
 
         var redirect = await http.GetAsync("/display");
         Assert.Equal(HttpStatusCode.Redirect, redirect.StatusCode);

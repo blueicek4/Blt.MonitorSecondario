@@ -59,7 +59,7 @@ Dalla riga di comando: `--file`, `--porta`, `--replay`, `--velocita`, `--ripeti`
 
 | | |
 |---|---|
-| `/` | Il display. Finché nella cartella `display` non c'è, una pagina che lo dice. Un display copiato ad Agent acceso si vede subito, e `index.html` si riconvalida sempre: dopo un aggiornamento il Player non tiene la versione vecchia |
+| `/` | Il display. Finché nella cartella `display` non c'è, una pagina che lo dice. Quella pagina si ricarica ogni 10 s: un display copiato ad Agent acceso compare da solo anche nel Player. `index.html` si riconvalida sempre: dopo un aggiornamento il Player non tiene la versione vecchia |
 | `/display` | Rimanda a `/` (indirizzo predefinito del Player) |
 | `/ws` | WebSocket: alla connessione lo stato completo (`sync`), poi ogni cambiamento |
 | `/diagnostica` | Il conto come lo vedrà il cliente, il QR, gli ultimi messaggi: per le prove e l'assistenza |
