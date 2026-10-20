@@ -28,6 +28,7 @@
   .row.note { color: var(--muted); font-style: italic; padding-left: 28px; }
   .total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 16px; font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
   .empty { color: var(--faint); }
+  #paid { margin: 12px 0 0; color: var(--ok); font-weight: 600; display: none; }
   #qr { margin-top: 16px; display: none; }
   #qr img { image-rendering: pixelated; width: 240px; height: 240px; background: #fff; padding: 16px; border-radius: 12px; }
   #log li { font: 12px/1.5 ui-monospace, Consolas, monospace; color: var(--muted); padding: 4px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
@@ -46,8 +47,9 @@
   <section aria-label="Conto">
     <h2>Il conto, come lo vedrà il cliente</h2>
     <ul id="lines"></ul>
-    <p id="nolines" class="empty">Nessun conto in corso.</p>
+    <p id="nolines" class="empty">Nessun conto in corso: il display mostra le slide.</p>
     <div class="total"><span>Totale</span><span id="total">€ 0,00</span></div>
+    <p id="paid"></p>
     <div id="qr"><h2>QR di pagamento</h2><img id="qrimg" alt="QR di pagamento"></div>
   </section>
   <section aria-label="Messaggi">
@@ -59,21 +61,32 @@
 "use strict";
 const euro = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const money = (cents) => (cents < 0 ? "−" : "") + "€ " + euro.format(Math.abs(cents) / 100);
-const state = { phase: "idle", lines: [], total: 0, payment: null };
+const state = { phase: "idle", lines: [], total: 0, payment: null, paid: null };
 const voidedAt = new Map();
+// Come il display: dopo PAGATO, Grazie con le righe per 8 s, poi l'attesa (le slide) senza il conto vecchio.
+const THANKS_MS = 8000;
+let thanksTimer = 0;
+
+function clear(phase) {
+  clearTimeout(thanksTimer);
+  state.phase = phase; state.lines = []; state.total = 0; state.payment = null; state.paid = null;
+}
 
 function apply(m) {
   switch (m.t) {
     case "sync":
+      clearTimeout(thanksTimer);
+      state.paid = null;
       state.phase = m.state.phase || "idle";
       state.lines = (m.state.lines || []).slice();
       state.total = m.state.total || 0;
       state.payment = m.state.payment || null;
       break;
     case "sale.open":
-      state.phase = "sale"; state.lines = []; state.total = 0; state.payment = null;
+      clear("sale");
       break;
     case "sale.line": {
+      if (state.phase === "thanks") clear("sale");
       const i = state.lines.findIndex((l) => l.id === m.line.id);
       if (i >= 0) state.lines[i] = m.line; else state.lines.push(m.line);
       if (m.line.kind === "void") voidedAt.set(m.line.id, Date.now());
@@ -81,7 +94,12 @@ function apply(m) {
       break;
     }
     case "sale.total": state.total = m.total; break;
-    case "sale.close": state.phase = "idle"; state.lines = []; state.total = 0; state.payment = null; break;
+    case "sale.close":
+      if (!m.paid) { clear("idle"); break; }
+      clearTimeout(thanksTimer);
+      state.phase = "thanks"; state.payment = null; state.paid = m.paid;
+      thanksTimer = setTimeout(() => { clear("idle"); render(); }, THANKS_MS);
+      break;
     case "pay.qr": state.phase = "payment"; state.payment = { png: m.png, amount: m.amount }; break;
     case "pay.clear": state.payment = null; if (state.phase === "payment") state.phase = "sale"; break;
   }
@@ -117,6 +135,12 @@ function render() {
   document.getElementById("nolines").style.display = list.children.length ? "none" : "";
   document.getElementById("total").textContent = money(state.total);
   document.getElementById("phase").textContent = state.phase;
+  const paid = document.getElementById("paid");
+  paid.style.display = state.paid ? "block" : "none";
+  if (state.paid) {
+    paid.textContent = "Grazie · pagato " + state.paid.method + " " + money(state.paid.amount)
+      + (state.paid.change > 0 ? " · resto " + money(state.paid.change) : "");
+  }
   const qr = document.getElementById("qr");
   qr.style.display = state.payment ? "block" : "none";
   if (state.payment && typeof state.payment.png === "string" && state.payment.png.startsWith("data:image/")) {

@@ -42,7 +42,7 @@ Il Player apre `http://localhost:5080/display`, che rimanda al display.
 | `Porta` | `5080` | |
 | `ApertoInRete` | `false` | `false`: risponde solo a questo PC. `true`: anche a tablet e TV della rete (serve una regola nel firewall). I conti viaggiano in chiaro |
 | `CartellaDisplay` | `display` | La build del display (`display/dist`), accanto all'exe |
-| `ChiusuraVenditaDopoSecondi` | `300` | Vendita aperta e nessun file per 5 minuti: si chiude. All'avvio, un file più vecchio di così si toglie senza mostrarlo |
+| `ChiusuraVenditaDopoSecondi` | `120` | Conto aperto, senza `PAGATO`, e nessun file per 2 minuti: si chiude e il display torna alle slide. Nelle registrazioni il pagamento più lento è arrivato 80 s dopo l'ultimo file (QR Satispay a video): con i 20 s del vecchio monitor il totale sarebbe sparito mentre il cliente pagava in 6 conti su 9. All'avvio, un file più vecchio di così si toglie senza mostrarlo |
 | `CartellaLog`, `GiorniLog` | `log`, `14` | Un file al giorno |
 
 Dalla riga di comando: `--file`, `--porta`, `--replay`, `--velocita`, `--ripeti`.
@@ -77,7 +77,7 @@ Le regole vengono dalle [registrazioni](../samples/registrazioni) (30 e 48 colon
 | Riga sparita, le altre uguali invariate | storno: `sale.line` `void` con `voidsId` |
 | Righe uguali unite in "dettagli conto", sconti spostati sotto le righe, ordine cambiato | `sync`, lo stato completo: niente storni finti |
 | `TOT. DA PAGARE` | `sale.total`, in centesimi (il display non somma mai) |
-| `PAGATO …:` e `Resto:` | `sale.close` con `paid: { method, amount, change }` |
+| `PAGATO …:` e `Resto:` | `sale.close` con `paid: { method, amount, change }`: Grazie con le righe, poi le slide |
 | Conto dopo un `PAGATO`, o senza nessuna riga in comune con quello a video | `sale.open`: vendita nuova |
 | QR in Base64 | `pay.qr` con l'ultimo totale; il conto successivo lo toglie (`pay.clear`) |
 | Intestazione del locale, `SUBTOT.`, `EURO` | niente |
