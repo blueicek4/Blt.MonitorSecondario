@@ -185,7 +185,9 @@ la partita IVA).
 Studio in [`docs/03`](../docs/03-studio-copia-cartacea.md). Funzione opzionale che **cambia lo scopo** della SPEC
 §13 ("lo schermo non è touch e non ha controlli"; "la stampa resta sulla cassa"): un nuovo stato `receipt` dopo Grazie,
 con lo scontrino, il QR dello scontrino digitale e un pulsante per chiedere la copia di carta. La copia la compone
-l'Agent con i dati già passati dal file del monitor e la stampa Passepartout (web service) o l'Agent stesso.
+l'Agent con i dati già passati dal file del monitor e la stampa lui, in ESC/POS su una stampante comande, senza
+nessuna richiesta a Passepartout. A video lo scontrino è l'anteprima della copia, con il QR piccolo in fondo: un'altra
+deroga da decidere, all'invariante sulla misura minima del QR.
 Per il design: un `<button>` vero in un solo stato e solo se il locale lo attiva, una deroga all'invariante del
 totale come elemento più grande (in questo stato il protagonista è il QR) e un formato in più, **palmare** (verticale,
 360-430 px), perché la funzione è pensata per un palmare o uno schermo touch. La prova sul focus della cassa (§7.2
