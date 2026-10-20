@@ -149,12 +149,14 @@ la partita IVA).
   | Come finisce il conto | Cosa manda l'Agent | Cosa fa il display |
   |---|---|---|
   | Riga `PAGATO …` | `sale.close` con `paid` | Grazie con le righe per 8 s (30 s con il QR di ringraziamento), poi l'attesa |
-  | Nessun `PAGATO` e nessun file per 2 minuti (conto visto e lasciato, tavolo parcheggiato) | `sale.close` senza `paid` | Subito l'attesa: senza pagamento non si ringrazia |
+  | Nessun `PAGATO` e nessun file per 60 s (conto visto e lasciato, tavolo parcheggiato); con il QR Satispay a video almeno 3 minuti | `sale.close` senza `paid` | Subito l'attesa: senza pagamento non si ringrazia |
   | Conto nuovo prima della fine di Grazie | `sale.open` | Il conto nuovo |
 
-  I 2 minuti (`ChiusuraVenditaDopoSecondi` dell'Agent, configurabile) vengono dalle registrazioni del 20/10: tra l'ultimo
-  file e la riga `PAGATO` sono passati 9–67 s con contanti e POS e 80 s con il QR Satispay a video. Con i 20 s del vecchio
-  monitor il totale sarebbe sparito mentre il cliente pagava in 6 conti su 9.
+  I 60 s (`ChiusuraVenditaDopoSecondi` dell'Agent, configurabile) sono una tua scelta del 20/10. Nelle registrazioni tra
+  l'ultimo file e la riga `PAGATO` sono passati 9–67 s con contanti e POS e 80 s con il QR Satispay a video: oltre i
+  60 s (2 pagamenti POS su 8) il display va alle slide e torna con Grazie e le righe quando arriva `PAGATO`. Il QR invece
+  resta almeno 3 minuti, perché il cliente lo sta usando. Con i 20 s del vecchio monitor il totale sarebbe sparito mentre
+  il cliente pagava in 6 conti su 9.
 - **QR di ringraziamento impostabile dal pannello** (Fase 4): recensioni Google, registrazione cliente/fidelity, menu
   digitale o un indirizzo qualunque, con la didascalia. La SPEC §2.5 lo prevedeva già ("QR opzionale a destra"), ma
   nessun campo del protocollo lo portava. Proposta:
