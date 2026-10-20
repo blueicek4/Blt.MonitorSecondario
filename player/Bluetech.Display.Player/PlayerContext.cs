@@ -44,6 +44,7 @@ sealed class PlayerContext : ApplicationContext
             Log.Info("Scorciatoia Ctrl+Alt+Maiusc+F12 già usata da un altro programma: usare l'icona nell'area di notifica");
 
         _form = new PlayerForm(settings, forceWindowed);
+        _form.CloseRequested += Exit;
         _form.ApplyPlacement();
         _ = _form.StartBrowserAsync();
 

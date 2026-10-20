@@ -34,6 +34,10 @@
     <EmbeddedResource Include="Server\auth.html" LogicalName="auth.html" />
     <EmbeddedResource Include="Server\backoffice.html" LogicalName="backoffice.html" />
     <EmbeddedResource Include="Server\negato.html" LogicalName="negato.html" />
+    <!-- La PWA di /cliente: manifest, service worker, pagina di attesa, script dell'installazione, icone. -->
+    <Content Remove="Server\pwa\**" />
+    <None Remove="Server\pwa\**" />
+    <EmbeddedResource Include="Server\pwa\*" LogicalName="pwa/%(Filename)%(Extension)" />
     <!-- Il QR della stampa di prova: porta a example.com, con la geometria di quello di Satispay. -->
     <EmbeddedResource Include="..\..\samples\qr-di-prova-geometria-satispay.txt" LogicalName="qr-prova.txt" Link="Server\qr-prova.txt" />
   </ItemGroup>

@@ -106,10 +106,15 @@ sealed class HotkeyWindow : NativeWindow, IDisposable
 
 static class ScreenLocator
 {
-    /// <summary>Lo schermo scelto se collegato, altrimenti il primo secondario. Mai il principale in automatico.</summary>
+    /// <summary>
+    /// Lo schermo scelto se collegato, altrimenti il primo secondario. Il principale solo se scelto apposta: in automatico
+    /// il monitor cliente non copre mai la cassa.
+    /// </summary>
     public static Screen Find(PlayerSettings settings)
     {
         var screens = Screen.AllScreens;
+        if (settings.Screen == PlayerSettings.PrimaryScreen)
+            return Screen.PrimaryScreen;
         if (!string.IsNullOrEmpty(settings.Screen))
         {
             var chosen = screens.FirstOrDefault(s => string.Equals(s.DeviceName, settings.Screen, StringComparison.OrdinalIgnoreCase));

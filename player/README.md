@@ -1,7 +1,9 @@
 # Bluetech Display Player
 
 Mini eseguibile che apre il monitor cliente web a schermo intero sullo schermo secondario della cassa,
-dentro una WebView2 (il motore di Microsoft Edge), e parte da solo all'accensione.
+dentro una WebView2 (il motore di Microsoft Edge), e parte da solo all'accensione. È il "client" Windows del monitor:
+va bene anche su un PC o un tablet Windows usato come schermo del cliente. Su Android e iOS si usa il browser, con la
+pagina installata come app (vedi il README dell'Agent).
 
 ## Requisiti
 
@@ -19,7 +21,8 @@ dentro una WebView2 (il motore di Microsoft Edge), e parte da solo all'accension
      `http://<pc-dell-agent>:5080/auth` (senza `http://` viene aggiunto). La prima volta lo schermo mostra un codice
      di 6 cifre: si scrive nel back office dell'Agent (Dispositivi) e il Player passa da solo allo schermo del
      cliente. Le volte dopo `/auth` porta subito lì: il Player ricorda l'autorizzazione nel suo profilo;
-   - schermo (automatico = primo schermo secondario; "Identifica schermi" mostra il numero su ogni monitor);
+   - schermo (automatico = primo schermo secondario, principale, o uno preciso) e schermo intero o finestra: vedi
+     [Schermo e finestra](#schermo-e-finestra);
    - **codice di accesso** (almeno 4 caratteri), obbligatorio;
    - avvio automatico con Windows (attivo di default).
 3. Salva: il player si apre sul monitor cliente.
@@ -33,14 +36,28 @@ avvio automatico e dati del browser sono per utente.
 |---|---|
 | Configurazione | doppio clic sull'icona Bluetech nell'area di notifica, oppure **Ctrl+Alt+Maiusc+F12**, oppure `BluetechDisplayPlayer.exe --config` |
 | Ricaricare la pagina | menu dell'icona → Ricarica la pagina |
-| Chiudere il player | menu dell'icona → Esci… (chiede il codice). Alt+F4 è disattivato |
+| Chiudere il player | menu dell'icona → Esci…, oppure la X della finestra o Alt+F4: chiedono sempre il codice |
 | Prove su PC con un solo monitor | `BluetechDisplayPlayer.exe --windowed` |
+
+## Schermo e finestra
+
+Nella configurazione:
+
+- **Schermo**: *Automatico* (il primo schermo secondario: il player non copre mai la cassa), *Principale* (lo schermo
+  principale di Windows, per un PC o un tablet con un solo schermo dedicato al cliente) oppure uno schermo preciso
+  dell'elenco ("Identifica schermi" mostra il numero su ogni monitor).
+- **Schermo intero senza bordi**: con la spunta il player copre tutto lo schermo scelto, senza bordi, senza barra delle
+  applicazioni e senza mai prendere il focus. Senza la spunta è una **finestra normale di Windows**: bordi, titolo,
+  pulsanti riduci/ingrandisci/chiudi, pulsante nella barra delle applicazioni e in Alt+Tab. Si sposta, si ridimensiona
+  e si ingrandisce a tutto schermo tenendo i bordi; alla volta dopo si riapre dov'era e com'era (anche ingrandita), se
+  quello schermo c'è ancora.
 
 Ogni accesso alla configurazione e la chiusura chiedono il codice. Dopo 5 codici errati l'accesso si blocca per 60 secondi.
 
 ## Comportamento
 
-- **Non prende mai il focus**: la tastiera resta a Passepartout anche quando il player si apre o si riposiziona.
+- **A schermo intero non prende mai il focus**: la tastiera resta a Passepartout anche quando il player si apre o si
+  riposiziona.
 - **Non copre mai la cassa**: se il monitor cliente è scollegato il player si nasconde e ricompare quando torna
   (in alternativa, dalla configurazione: finestra sullo schermo principale).
 - Si riposiziona da solo quando cambiano monitor, risoluzione o scala e al risveglio dallo standby.
@@ -77,4 +94,5 @@ A ogni push la GitHub Action **Build** compila su Windows e pubblica la cartella
 - Icona ufficiale `.ico` (ora è generata a runtime).
 - Firma digitale dell'exe: senza, SmartScreen e alcuni antivirus bloccano i programmi in avvio automatico.
 - Installer (insieme all'Agent).
-- Collaudo su hardware reale: il codice è stato compilato ma non ancora eseguito su Windows.
+- Collaudo su hardware reale: il codice è stato compilato ma non ancora eseguito su Windows (compresa la modalità
+  finestra con il pulsante nella barra delle applicazioni).

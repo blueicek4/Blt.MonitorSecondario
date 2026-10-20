@@ -34,20 +34,48 @@ public static class AgentApp
         ["--ripeti"] = "Agent:RipetiReplay",
     };
 
-    static readonly Dictionary<string, string> Pages = [];
+    static readonly Dictionary<string, byte[]> Resources = [];
 
-    internal static string Page(string name)
+    /// <summary>Un file incorporato nell'exe (pagine, PWA); null se non c'è.</summary>
+    internal static byte[]? Resource(string name)
     {
-        lock (Pages)
+        lock (Resources)
         {
-            if (!Pages.TryGetValue(name, out var page))
+            if (!Resources.TryGetValue(name, out var bytes))
             {
-                using var stream = typeof(AgentApp).Assembly.GetManifestResourceStream(name)!;
-                using var reader = new StreamReader(stream);
-                Pages[name] = page = reader.ReadToEnd();
+                using var stream = typeof(AgentApp).Assembly.GetManifestResourceStream(name);
+                if (stream == null)
+                    return null;
+                using var memory = new MemoryStream();
+                stream.CopyTo(memory);
+                Resources[name] = bytes = memory.ToArray();
             }
-            return page;
+            return bytes;
         }
+    }
+
+    internal static string Page(string name) => new System.Text.UTF8Encoding(false).GetString(Resource(name)!).TrimStart('\uFEFF');
+
+    /// <summary>
+    /// Quello che serve per installare /cliente come app: il manifest (schermo intero, si parte da /auth: su iPhone l'app
+    /// installata non ha i cookie di Safari e si riabbina), le icone, il colore e lo script dell'invito.
+    /// </summary>
+    const string PwaHead = """
+        <link rel="manifest" href="/manifest.webmanifest">
+        <meta name="theme-color" content="#0b1017">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <meta name="apple-mobile-web-app-title" content="Monitor">
+        <link rel="apple-touch-icon" href="/pwa/icona-180.png">
+        <script src="/pwa/pwa.js" defer></script>
+
+        """;
+
+    internal static string WithPwa(string html)
+    {
+        var head = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+        return head < 0 ? PwaHead + html : html.Insert(head, PwaHead);
     }
 
     static IResult Html(string name) => Results.Text(Page(name), "text/html; charset=utf-8");
@@ -164,9 +192,34 @@ public static class AgentApp
             stats.Seen(device.Id, Remote(context), connected: false);
             NoCache(context);
             var display = Path.Combine(runtime.DisplayFolder, "index.html");
-            return File.Exists(display)
-                ? Results.File(display, "text/html; charset=utf-8")   // il display del design, quando c'è (M5)
-                : Html("diagnostica.html");
+            var page = File.Exists(display) ? File.ReadAllText(display) : Page("diagnostica.html");   // il display del design, quando c'è (M5)
+            return Results.Content(WithPwa(page), "text/html; charset=utf-8");
+        });
+
+        // La PWA: pubblica, senza dati (il browser chiede manifest e icone senza cookie).
+        app.MapGet("/manifest.webmanifest", (HttpContext context) =>
+        {
+            NoCache(context);
+            return Results.Text(Page("pwa/manifest.webmanifest"), "application/manifest+json; charset=utf-8");
+        });
+        app.MapGet("/sw.js", (HttpContext context) =>
+        {
+            NoCache(context);   // un service worker nuovo deve arrivare subito
+            return Results.Text(Page("pwa/sw.js"), "text/javascript; charset=utf-8");
+        });
+        app.MapGet("/pwa/{name}", (string name, HttpContext context) =>
+        {
+            var type = Path.GetExtension(name) switch
+            {
+                ".js" => "text/javascript; charset=utf-8",
+                ".html" => "text/html; charset=utf-8",
+                ".png" => "image/png",
+                _ => null,
+            };
+            if (type == null || name == "manifest.webmanifest" || name == "sw.js" || Resource("pwa/" + name) is not { } bytes)
+                return Results.NotFound();
+            context.Response.Headers.CacheControl = type == "image/png" ? "public, max-age=86400" : "no-cache";
+            return Results.Bytes(bytes, type);
         });
         app.MapGet("/auth", (HttpContext context, DeviceAccess devices) =>
         {
