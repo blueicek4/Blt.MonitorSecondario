@@ -1,0 +1,18 @@
+SNF
+ 
+       LOCALE DI PROVA        
+      VIA DELLE PROVE 1       
+  00000 COMUNE DI PROVA XX   
+       P.I.00000000000       
+ 
+------------------------------
+                          EURO
+ TARTARE DI MANZO        18,00
+ TARTARE DI MANZO        18,00
+   2 pz X 2,00 Euro
+ Coperti                  4,00
+SUBTOT.                  40,00
+ 
+TOT. DA PAGARE           40,00
+ 
+ 

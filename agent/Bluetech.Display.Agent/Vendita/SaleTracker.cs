@@ -14,7 +14,9 @@ namespace Bluetech.Display.Agent.Vendita;
 ///   sono storni, si manda lo stato completo (<c>sync</c>);
 /// - "PAGATO …" chiude la vendita; il conto successivo ne apre una nuova. Senza PAGATO, un conto che non ha nessuna
 ///   riga in comune con quello a video è una vendita nuova (il coperto non conta: c'è su ogni tavolo);
-/// - un conto dopo il QR toglie il QR (come fa il vecchio monitor con qualunque file nuovo);
+/// - un conto dopo il QR toglie il QR, tranne lo stesso conto rimandato entro 20 s (il vecchio monitor 6.0 ignora ogni
+///   file per 20 s dopo il QR: la cassa rimanda il conto mentre il cliente paga);
+/// - "QRCODESD", il QR dello scontrino digitale, è un messaggio a parte (<c>receipt.qr</c>);
 /// - una versione identica alla precedente non produce niente.
 ///
 /// Non è thread-safe: lo usa un solo chiamante alla volta (vedi <see cref="Server.AgentEngine"/>).
@@ -28,7 +30,10 @@ public sealed class SaleTracker
     // L'ultimo totale di un conto non pagato, anche dopo la chiusura per inattività: un QR che arriva dopo è per quello.
     long _lastBillTotal;
     int _cover;
+    bool _bill;
     PayQr? _qr;
+    DateTimeOffset _qrAt;
+    string? _qrHash;
     string? _lastHash;
 
     public DateTimeOffset LastActivity { get; private set; }
@@ -50,11 +55,24 @@ public sealed class SaleTracker
         {
             case CashFileKind.Message:
                 return [new DisplayMessage(file.MessageText ?? "")];
+            case CashFileKind.Qr when file.QrPurpose == QrPurpose.DigitalReceipt:
+            {
+                var messages = new List<CashIn>();
+                if (_qr != null)
+                {
+                    _qr = null;   // lo scontrino digitale arriva a pagamento fatto
+                    messages.Add(new PayClear());
+                }
+                messages.Add(new ReceiptQr(file.QrDataUri!, file.QrCaption));
+                return messages;
+            }
             case CashFileKind.Qr:
-                _qr = new PayQr(file.QrDataUri!, _open ? _total : _lastBillTotal);
+                _qr = new PayQr(file.QrDataUri!, _open ? _total : _lastBillTotal, file.QrCaption);
+                _qrAt = now;
+                _qrHash = file.Hash;
                 return [_qr];
             case CashFileKind.Receipt:
-                return ApplyReceipt(file);
+                return ApplyReceipt(file, now);
             default:
                 return [];
         }
@@ -62,6 +80,12 @@ public sealed class SaleTracker
 
     /// <summary>Con il QR a video il cliente sta pagando: il QR resta almeno tanto (80 s nella registrazione del 20/10).</summary>
     public static readonly TimeSpan MinimumWithQr = TimeSpan.FromMinutes(3);
+
+    /// <summary>
+    /// Lo stesso conto rimandato entro questo tempo dal QR non lo toglie. Il vecchio monitor 6.0 ignora ogni file per
+    /// TimeoutClearDisplay (20 s) dopo il QR: segno che la cassa rimanda il conto mentre il cliente paga.
+    /// </summary>
+    public static readonly TimeSpan QrResendWindow = TimeSpan.FromSeconds(20);
 
     /// <summary>
     /// Vendita aperta e nessun file da <paramref name="timeout"/>: si chiude e il display torna alle slide, come faceva il
@@ -105,17 +129,28 @@ public sealed class SaleTracker
             ["lines"] = new JsonArray(_visible.Select(l => (JsonNode)l.ToJson()).ToArray()),
             ["total"] = _total,
             ["cover"] = _cover,
+            ["bill"] = _bill,
         };
         if (_qr != null)
-            state["payment"] = new JsonObject { ["provider"] = "satispay", ["png"] = _qr.Png, ["amount"] = _qr.Amount };
+        {
+            var payment = new JsonObject { ["provider"] = "satispay", ["png"] = _qr.Png, ["amount"] = _qr.Amount };
+            if (_qr.Caption != null)
+                payment["caption"] = _qr.Caption;
+            state["payment"] = payment;
+        }
         return state;
     }
 
-    List<CashIn> ApplyReceipt(CashFile receipt)
+    List<CashIn> ApplyReceipt(CashFile receipt, DateTimeOffset now)
     {
         var messages = new List<CashIn>();
         if (_qr != null)
         {
+            if (receipt.Payment == null && now - _qrAt < QrResendWindow && SameBill(receipt))
+            {
+                _lastHash = _qrHash;   // il QR resta; lo stesso conto più tardi (pagamento annullato) lo toglierà
+                return messages;
+            }
             messages.Add(new PayClear());
             _qr = null;
         }
@@ -137,10 +172,11 @@ public sealed class SaleTracker
         var (lineMessages, needsSync) = Reconcile(receipt.Entries);
         var total = receipt.Total ?? _total;
         var cover = CountCover();
-        var totalChanged = opening || total != _total || cover != _cover;
+        var totalChanged = opening || total != _total || cover != _cover || receipt.IsBill != _bill;
         _total = total;
         _lastBillTotal = total;
         _cover = cover;
+        _bill = receipt.IsBill;
 
         if (needsSync && !opening)
         {
@@ -150,7 +186,7 @@ public sealed class SaleTracker
         {
             messages.AddRange(lineMessages);
             if (totalChanged)
-                messages.Add(new SaleTotal(_total, _cover));
+                messages.Add(new SaleTotal(_total, _cover, _bill));
         }
 
         if (receipt.Payment != null)
@@ -166,6 +202,14 @@ public sealed class SaleTracker
     /// Nessuna riga in comune con il conto a video. Il coperto non conta: c'è su quasi ogni tavolo, e un tavolo nuovo
     /// che parte dal coperto mostrerebbe come storni i piatti del tavolo prima.
     /// </summary>
+    /// <summary>Il conto letto è quello a video, riga per riga, con lo stesso totale.</summary>
+    bool SameBill(CashFile receipt) =>
+        _open
+        && (receipt.Total ?? _total) == _total
+        && receipt.Entries.Count == _visible.Count
+        && receipt.Entries.Zip(_visible).All(p => Key(p.First) == Key(p.Second)
+            && (p.First is not ItemEntry item || (item.Qty == p.Second.Qty && item.Amount == p.Second.Amount)));
+
     bool StartsNewSale(List<ItemEntry> items)
     {
         var current = _visible.Where(l => l.Kind == LineKind.Item && !IsCover(l.Desc)).Select(l => Key(l.Desc)).ToHashSet();
@@ -272,6 +316,7 @@ public sealed class SaleTracker
         _visible.Clear();
         _total = 0;
         _cover = 0;
+        _bill = false;
         _qr = null;
     }
 

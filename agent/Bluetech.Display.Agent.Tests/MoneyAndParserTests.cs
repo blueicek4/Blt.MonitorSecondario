@@ -196,4 +196,52 @@ public class MoneyAndParserTests
         Assert.Equal(CashFileKind.Qr, file.Kind);
         Assert.Equal("data:image/png;base64," + notQr, file.QrDataUri);
     }
+
+    // Dal vecchio monitor 6.0 (docs/01 §10).
+
+    [Fact]
+    public void The_sample_of_the_6_0_monitor_is_a_bill_with_covers()
+    {
+        var file = ReceiptParser.Parse(Samples.Receipt("scontrino-monitor-6.0-esempio.txt"));
+        Assert.True(file.IsBill);
+        Assert.Equal(
+            [new ItemEntry("TARTARE DI MANZO", 1, 1800, 1800), new ItemEntry("TARTARE DI MANZO", 1, 1800, 1800), new ItemEntry("Coperti", 2, 400, 200)],
+            file.Items);
+        Assert.Equal(4000, file.Total);
+        Assert.Empty(file.Entries.OfType<NoteEntry>());
+    }
+
+    [Fact]
+    public void Only_the_bill_has_the_header()
+    {
+        Assert.False(ReceiptParser.Parse(Samples.Version("2026-10-20_002138", "0006")).IsBill);   // battuta
+        Assert.True(ReceiptParser.Parse(Samples.Version("2026-10-20_002138", "0007")).IsBill);    // dettagli conto
+        Assert.True(ReceiptParser.Parse(Samples.Version("2026-10-20_002138", "0009")).IsBill);    // scontrino
+    }
+
+    [Fact]
+    public void Digital_receipt_qr_with_its_caption()
+    {
+        var png = QrPng(Samples.Receipt("qr-di-prova-geometria-satispay.txt"));
+        var text = $"SNF\r\n \r\nQRCODESD\r\n{Convert.ToBase64String(png)}\r\nScarica il tuo scontrino digitale!\r\n";
+        var file = ReceiptParser.Parse(Encoding.ASCII.GetBytes(text));
+        Assert.Equal(CashFileKind.Qr, file.Kind);
+        Assert.Equal(QrPurpose.DigitalReceipt, file.QrPurpose);
+        Assert.Equal("Scarica il tuo scontrino digitale!", file.QrCaption);
+
+        var satispay = ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008"));
+        Assert.Equal(QrPurpose.Payment, satispay.QrPurpose);
+        Assert.Null(satispay.QrCaption);   // la riga dopo l'immagine è di spazi
+    }
+
+    [Fact]
+    public void The_currency_line_after_the_dashes_is_skipped_whatever_it_is()
+    {
+        var file = Receipt("INTESTAZIONE", "------------------------------", "                           EUR", " CAFFE                     1,20", "TOT. DA PAGARE            1,20");
+        Assert.Equal(["CAFFE"], file.Items.Select(i => i.Desc));
+        Assert.Empty(file.Entries.OfType<NoteEntry>());
+
+        var note = Receipt("INTESTAZIONE", "------------------------------", "                          EURO", "ASPORTO", " CAFFE                     1,20");
+        Assert.Equal(new NoteEntry("ASPORTO"), note.Entries[0]);   // solo la prima riga dopo i trattini
+    }
 }

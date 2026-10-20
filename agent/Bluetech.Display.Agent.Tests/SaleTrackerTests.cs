@@ -100,10 +100,11 @@ public class SaleTrackerTests
         var tracker = new SaleTracker();
         var model = new DisplayModel();
         var byVersion = new Dictionary<string, List<CashIn>>();
-        var now = T0;
+        // I tempi veri della registrazione: contano per il QR (il conto rimandato subito non lo toglie).
+        var times = Server.AgentEngine.LoadReplay(Samples.Folder(recording)).ToDictionary(s => Path.GetFileName(s.File), s => s.Ms);
         foreach (var (name, bytes) in Samples.Versions(recording))
         {
-            now = now.AddSeconds(1);
+            var now = T0.AddMilliseconds(times[name]);
             var file = ReceiptParser.Parse(bytes);
             var messages = tracker.Apply(file, now).ToList();
             byVersion[name[..4]] = messages;
@@ -308,6 +309,71 @@ public class SaleTrackerTests
         Assert.Empty(tracker.Apply(Bill("CAFFE"), T0.AddSeconds(50)));   // stesso conto: niente al display…
         Assert.Empty(tracker.CheckIdle(T0.AddSeconds(100), timeout));      // …ma la cassa ci sta lavorando
         Assert.Single(tracker.CheckIdle(T0.AddSeconds(110), timeout));
+    }
+
+    /// <summary>Lo scontrino digitale del vecchio monitor 6.0, con l'immagine del QR della registrazione.</summary>
+    static CashFile DigitalReceiptQr()
+    {
+        var base64 = Encoding.ASCII.GetString(Samples.Version("2026-10-20_075632", "0008")).Split("\r\n")[3];
+        return ReceiptParser.Parse(Encoding.ASCII.GetBytes($"SNF\r\n \r\nQRCODESD\r\n{base64}\r\nScarica il tuo scontrino digitale!\r\n"));
+    }
+
+    [Fact]
+    public void The_digital_receipt_qr_after_payment_is_a_message_of_its_own()
+    {
+        var tracker = new SaleTracker();
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007")), T0);
+        Assert.Contains(tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0010")), T0.AddSeconds(20)), m => m.Type == "sale.close");
+        var qr = Assert.IsType<ReceiptQr>(Assert.Single(tracker.Apply(DigitalReceiptQr(), T0.AddSeconds(21))));
+        Assert.Equal("Scarica il tuo scontrino digitale!", qr.Caption);
+        Assert.Equal("idle", tracker.Phase);
+    }
+
+    [Fact]
+    public void A_digital_receipt_qr_takes_the_place_of_the_payment_qr()
+    {
+        var tracker = new SaleTracker();
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007")), T0);
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddSeconds(5));
+        Assert.Equal(["pay.clear", "receipt.qr"], tracker.Apply(DigitalReceiptQr(), T0.AddSeconds(30)).Select(m => m.Type));
+    }
+
+    [Fact]
+    public void The_same_bill_resent_right_after_the_qr_keeps_it()
+    {
+        var tracker = new SaleTracker();
+        var bill = ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007"));
+        tracker.Apply(bill, T0);
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddSeconds(5));
+        Assert.Empty(tracker.Apply(bill, T0.AddSeconds(6)));
+        Assert.Empty(tracker.Apply(bill, T0.AddSeconds(10)));
+        Assert.Equal("payment", tracker.Phase);
+
+        // Più tardi lo stesso conto vuol dire che la cassa è tornata al conto: il QR va tolto.
+        Assert.Equal(["pay.clear"], tracker.Apply(bill, T0.AddSeconds(5) + SaleTracker.QrResendWindow).Select(m => m.Type));
+        Assert.Equal("sale", tracker.Phase);
+    }
+
+    [Fact]
+    public void Payment_right_after_the_qr_removes_it()
+    {
+        var tracker = new SaleTracker();
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007")), T0);
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddSeconds(5));
+        var paid = tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0010")), T0.AddSeconds(7)).Select(m => m.Type).ToList();
+        Assert.Equal("pay.clear", paid[0]);
+        Assert.Equal("sale.close", paid[^1]);
+    }
+
+    [Fact]
+    public void The_display_knows_when_the_bill_is_shown()
+    {
+        var tracker = new SaleTracker();
+        foreach (var (name, bytes) in Samples.Versions("2026-10-20_002138").Take(7))
+        {
+            tracker.Apply(ReceiptParser.Parse(bytes), T0.AddSeconds(int.Parse(name[..4])));
+            Assert.Equal(name.StartsWith("0007"), (bool)tracker.Snapshot()["bill"]!);
+        }
     }
 
     [Fact]

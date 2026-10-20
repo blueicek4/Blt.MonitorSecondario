@@ -296,3 +296,43 @@ if (riga.StartsWith("TOT. DA PAGARE")) totale = riga.Substring(sp);
 else if (sp > 0) { descrizione = riga[..sp].TrimStart(); importo = riga[sp..].TrimEnd(); }
 else             { descrizione = ""; importo = ""; }
 ```
+
+## 10. La versione 6.0.0.0 (Passepartout, agosto 2026)
+
+Arrivata il 20/10 da un'installazione aggiornata (`24 MonitorSecondario.zip`): `MonitorCliente.exe` di 93 KB, versione
+6.0.0.0, copyright "Mirco & Mika @ Passepartout S.p.a." (la 2.0.0.0 era di Hewlett-Packard, 2015). Stesso progetto
+(stesso GUID), decompilato con `ilspycmd` e confrontato riga per riga con la 2.0. Il modello XML allegato è quello a 30
+colonne con `SovrascriviSeEsistente=false`; cambiano solo due comandi da stampante fiscale (`VEND … QTY=`) che il
+monitor non usa.
+
+### 10.1 Cosa cambia
+
+| Novità della 6.0 | Dettaglio dal codice |
+|---|---|
+| **QR dello scontrino digitale** | Oltre a `QRCODE` riconosce `QRCODESD`: stessa forma (riga del marcatore, PNG in Base64 sulla riga dopo), didascalia predefinita "Scarica il tuo scontrino digitale!" invece di "Leggi il QR code per effettuare il pagamento". Il modello XML non lo contiene: lo scrive Passepartout da sé |
+| **Didascalia del QR dalla cassa** | La riga dopo il Base64 diventa la didascalia sopra il QR. Con i file visti il 20/10 quella riga è di 30 spazi: la didascalia risulta vuota. Se il Base64 è l'ultima riga del file l'indice va fuori dai limiti, l'eccezione è presa dal ciclo dei tentativi e il QR non compare (bug) |
+| **Il QR non si toglie con il file successivo** | Finché il QR è a video, ogni file nuovo viene **ignorato** per `TimeoutClearDisplay` secondi (20 di default); poi il QR sparisce da solo. Nella 2.0 lo toglieva qualunque file. Se in quei secondi arriva lo scontrino con `PAGATO`, va perso: il monitor non lo rilegge |
+| **Pulizia dopo l'inattività** (`TimeoutClearDisplay`, default 20 s) | Passati i secondi senza file: toglie il QR, scrive "ARRIVEDERCI E GRAZIE" in alto se c'era un messaggio e **cancella lo scontrino** (nella 2.0 restava a video fino alla vendita successiva, bug 10). Vale anche a conto aperto: una pausa di 20 s mentre si batte svuota il monitor fino alla battuta successiva |
+| **Intestazione** | Le righe prima della riga di trattini sono l'intestazione: centrate in un blocco in alto invece che spezzate sull'ultimo spazio (la foto del 20/10: `40033 CASALECCHIO DI R` … `BO`). `HideHeader=true` la nasconde sempre |
+| **Prezzi durante la presa comanda** (`ShowPricesDuringOrder`, default true) | Con `false`, finché il conto non ha l'intestazione (cioè durante la battuta, prima di "dettagli conto", preconto o scontrino) mostra solo le descrizioni: niente importi e niente totale |
+| **Riga della valuta** | La riga uguale a `Currency` (default `EURO`) non si mostra più |
+| **Dimensione del testo** (`ReceiptFontSize`, default 20) | Letta solo se nel config c'è anche `ShowPricesDuringOrder` (bug) |
+| Varie | Area immagini nascosta se non ci sono immagini; logo Passepartout in basso ridimensionato invece che centrato |
+
+Restano com'erano: filtro delle righe con ` x ` (bug 14), QR a grandezza naturale (bug 7), nessuna cancellazione del
+file (Passepartout continua ad aspettare 3 s o a rinunciare, §7), nessun debounce e `Thread.Sleep` sul thread
+dell'interfaccia (bug 4 e 5), solo l'evento Changed, file letto dalla cartella dell'exe.
+
+### 10.2 Cosa serve al nostro progetto
+
+| Novità | Per noi | Dove |
+|---|---|---|
+| `QRCODESD` | **Serve**: senza, l'Agent leggerebbe il marcatore e il Base64 come righe di testo del conto. Diventa un messaggio a parte, `receipt.qr`, mostrato nello stato Grazie al posto del QR di ringraziamento del pannello | Agent, ALLINEAMENTO §8 |
+| Didascalia dalla cassa | **Serve**, solo se non è vuota: va nel messaggio del QR (`caption`); se manca, il display usa i suoi testi | Agent |
+| QR che resta nonostante i file successivi | **Serve in parte.** Indica che dopo il QR arrivano altri file (verosimilmente il conto rimandato) che nella 2.0 toglievano il QR troppo presto. Noi non ignoriamo i file, perché `PAGATO` non si deve perdere: il conto **identico** rimandato nei 20 s dopo il QR non toglie il QR; un conto cambiato o `PAGATO` sì | Agent |
+| Pulizia dopo l'inattività | **Già fatto, meglio**: chiusura dopo 60 s senza file (configurabile), Grazie solo con `PAGATO`, il QR almeno 3 minuti, poi le slide. La 6.0 svuota il monitor dopo 20 s anche a conto aperto e durante il QR | Agent, ALLINEAMENTO §9 |
+| Intestazione e `HideHeader` | **Non serve**: il nostro display non mostra l'intestazione di testo, l'identità del locale la fa il tema (logo) | — |
+| `ShowPricesDuringOrder` | **Serve per la migrazione**: chi l'ha impostato a `false` se lo aspetta anche dal nuovo monitor. L'Agent dice al display se il conto è "in battuta" o "conto" (`sale.total.bill`); il display nasconde importi e totale finché `bill` è falso, se l'opzione del locale lo chiede | Agent, display (M5), pannello |
+| `Currency` | **Serve poco**: l'Agent salta già `EURO`; ora salta qualunque riga di una sola parola subito dopo i trattini | Agent |
+| `ReceiptFontSize`, `TimeoutClearDisplay`, `HideHeader` | Da importare dal vecchio `.config` quando si migra un cliente (Fase 1, importazione): `TimeoutClearDisplay` → `ChiusuraVenditaDopoSecondi` solo se più lungo di 60 s | Importazione |
+
