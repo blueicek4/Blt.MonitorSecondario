@@ -64,16 +64,16 @@ confrontando ogni versione del file con quella precedente.
   lunghe, cambia aspetto.
 - **Accenti resi con l'apostrofo** (`Maesta'`): il file è ASCII. Rimettere l'accento su una vocale finale seguita da
   apostrofo funziona quasi sempre, ma sbaglia `po'`: da decidere se farlo, con un elenco di eccezioni.
-- **Ritmo**: il 20/10 Passepartout non ha mai scritto prima di 3 s dalla scrittura precedente, e battendo articoli di
-  fila li ha accodati (uno ogni 3,3 s). Se, come sembra, aspetta che il file venga tolto, l'Agent lo toglierà dopo
-  averlo letto: le battute arriveranno subito, e anche a raffica. Il motore dello scontrino (M3) deve reggere più
-  righe nuove nello stesso secondo, scaglionando gli ingressi.
+- **Ritmo**: col file tolto appena letto le battute arrivano col ritmo di chi batte: nella prova A/B/A 7 versioni in
+  2 secondi (0,23–0,47 s l'una dall'altra). Il motore dello scontrino (M3) deve reggere più righe nuove nello stesso
+  secondo, scaglionando gli ingressi.
 - **Maiuscole e minuscole** arrivano come sono scritte in anagrafica (`Tagliata Al Rosmarino`): coerente con "mai
   maiuscolo forzato".
 - **Coperti**: `sale.total.cover` non ha ancora una fonte. Se il conto ha una riga "Coperto", l'Agent li ricava da lì.
-- **Il file va tolto dopo la lettura?** Il 19/10 una sola versione e nessuna attività nella cartella; il 20/10
-  42 versioni con il file eliminato e ricreato da Passepartout dopo almeno 3 s. Si verifica con la prova A/B/A del
-  registratore (`/consuma`). Se serve toglierlo, l'Agent non può convivere col vecchio monitor sullo stesso file.
+- **L'Agent toglie sempre il file appena letto** (decisione del 20/10). Lo dice la [prova A/B/A](../samples/registrazioni/2026-10-20_064854/README.md):
+  se il file c'è ancora Passepartout aspetta circa 3 s, lo elimina da sé e scrive (oggi, col vecchio monitor, ogni
+  battuta arriva 3 s dopo e alcuni stati intermedi si perdono); se è già stato tolto scrive subito. Lo toglie solo se
+  contiene ancora la versione letta, come il registratore. Non convive col vecchio monitor sullo stesso file.
 
 ## 5. Asset da recuperare (dal pacchetto)
 
@@ -84,9 +84,10 @@ confrontando ogni versione del file con quella precedente.
 
 1. **Subito, contro il mock**: M0 e M1 del [TASKS.md](handoff/TASKS.md) in `display/` (scaffolding, font locali,
    token, tema, formato, trasporto finto). Poi M2–M4 (i sei stati, motore dello scontrino, QR).
-2. **Dopo la prova A/B/A e il resto del giro completo** (Satispay, messaggi del visore, annullo, reso, fattura):
-   protocollo reale nell'Agent (diff → `CashIn`, con unione delle righe e `PAGATO`) e M5 (trasporto WebSocket,
-   resilienza). La registrazione del 20/10 è già un banco di prova per il parser: 42 versioni, 6 conti.
+2. **Agent**: lettura del file e cancellazione subito dopo (il codice del registratore, già provato in cassa), poi
+   protocollo reale (diff → `CashIn`, con unione delle righe e `PAGATO`) e M5 (trasporto WebSocket, resilienza).
+   Le registrazioni del 20/10 sono già un banco di prova per il parser. Da registrare ancora: Satispay, messaggi del
+   visore, annullo, reso, fattura.
 3. Decisioni di prodotto ancora aperte nel pacchetto: `compactRows` per i monitor da 10″ e `showLastItemPhoto`.
 
 ## 7. Decisioni prese in M0 e M1 (da confermare)
