@@ -91,6 +91,10 @@ Corrisponde al comando `VisualizzaMessaggioDisplay` del modello XML (`{1} {2}` =
   nell'area pubblicità, con la scritta in alto "Leggi il QR code per effettuare il pagamento".
 - Lo slideshow si ferma; riparte al primo file successivo (qualunque esso sia).
 - Non c'è timeout né esito del pagamento: il QR resta finché la cassa non scrive di nuovo il file.
+- **Visto sul campo** ([registrazione del 20/10 alle 7:56](../samples/registrazioni/2026-10-20_075632/README.md)): il file è `SNF`, una riga di spazi, `QRCODE`, il PNG in Base64 su una riga sola,
+  una riga di spazi. L'immagine è un PNG 197×197 in bianco e nero: QR versione 8, 49×49 moduli da 4 pixel, **senza
+  quiet zone**. Arriva 4,9 s dopo "dettagli conto"; dopo il QR la cassa rimanda il conto (che toglie il QR) e poi la
+  riga `PAGATO`. A grandezza naturale, su uno schermo da 1920, il QR è largo un decimo dello schermo.
 
 ### 3.4 Stato "Arrivederci"
 

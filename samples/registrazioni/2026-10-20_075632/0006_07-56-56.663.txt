@@ -1,0 +1,12 @@
+SNF
+ 
+ SPREMUTA ARANCIA         4,00
+ CAPPUCCINO               1,80
+ CAFFE ORZO PICCOLO       1,50
+ LATTE MACCHIATO          1,60
+ BRIOCHES                 1,40
+SUBTOT.                  10,30
+ 
+TOT. DA PAGARE           10,30
+ 
+ 

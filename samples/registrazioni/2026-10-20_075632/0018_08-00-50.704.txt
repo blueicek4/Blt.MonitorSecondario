@@ -1,0 +1,17 @@
+SNF
+ 
+           LOCALE 1           
+    VIA DELLE PROVE NUM 1     
+ 00000 COMUNE DI PROVA      XX
+       P.I.00000000000       
+       C.F. 00000000000       
+ 
+------------------------------
+                          EURO
+ SPREMUTA ARANCIA         4,00
+ CAPPUCCINO               1,80
+SUBTOT.                   5,80
+ 
+TOT. DA PAGARE            5,80
+ 
+ 
