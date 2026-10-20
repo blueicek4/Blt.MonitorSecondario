@@ -86,7 +86,8 @@ riceve subito lo stato corrente.
   Passepartout elimina e ricrea il file a ogni aggiornamento, mai prima di 3 s dal precedente.
 - **Prova A/B/A (20/10 alle 6:48)**: [confermato](../samples/registrazioni/2026-10-20_064854/README.md). Se il file c'è ancora Passepartout aspetta
   circa 3 s e lo toglie da sé; se è già stato tolto scrive subito (0,23–0,85 s tra due battute contro 3,3 s).
-  **Decisione**: l'Agent toglie il file dopo averlo letto, come il registratore con `/consuma`. Il display del cliente
+  **Decisione (20/10)**: l'Agent toglie **sempre** il file appena letto, come il registratore, che ora lo fa di
+  default per registrare nelle stesse condizioni della produzione. Il display del cliente
   guadagna 3 s a battuta rispetto a oggi e non perde più stati intermedi.
 - Già chiarito dal secondo giro: formato a 48 colonne, intestazione e quantità unite in "dettagli conto", sconti sul
   subtotale e ripartiti, righe `PAGATO …` e `Resto:` a fine conto. Ancora da registrare: Satispay, messaggi del visore,

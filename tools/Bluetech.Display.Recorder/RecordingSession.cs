@@ -68,8 +68,8 @@ public sealed class RecordingSession : IDisposable
     int _consumed;
     readonly Dictionary<string, int> _otherFileChanges = new(StringComparer.OrdinalIgnoreCase);
 
-    // Modalità consumo: dopo ogni versione il file viene tolto. Serve a verificare un'ipotesi: che Passepartout non
-    // sovrascriva un file esistente (SovrascriviSeEsistente=false) e aspetti che qualcuno lo tolga.
+    // Modalità consumo: dopo ogni versione il file viene tolto, come farà il nuovo monitor. Se il file c'è ancora,
+    // Passepartout aspetta circa 3 s e lo toglie da sé; se è già stato tolto scrive subito (prova A/B/A del 20/10).
     volatile bool _consume;
     volatile bool _removedByUs;
     // Passepartout ha già sostituito da sé un file che c'era (sovrascrivendolo, o eliminandolo e ricreandolo),

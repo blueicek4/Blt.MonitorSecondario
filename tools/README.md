@@ -4,10 +4,15 @@ Registra **ogni versione** del file che Passepartout Menu scrive per il monitor 
 con l'ora al millisecondo. Serve per la Fase 0: capire con dati veri come si comporta la cassa
 (scontrino, storni, sconti, QR Satispay, messaggi del visore) prima di scrivere l'Agent.
 
-Non intralcia la cassa e funziona anche con il vecchio `MonitorCliente.exe` acceso. Legge il file senza negare
-a nessuno né la lettura né la scrittura. Per confermare che Passepartout abbia finito di scriverlo lo apre per un
-istante come fa il vecchio monitor a ogni lettura (che però lo tiene aperto per tutta la lettura): se in
-quell'istante Passepartout volesse scrivere, riproverebbe da sé, come già succede con il vecchio monitor.
+**Dopo ogni lettura toglie il file**, come farà il nuovo monitor: se il file c'è ancora, Passepartout aspetta circa
+3 s prima di scrivere il successivo; tolto, scrive subito ([prova A/B/A](../samples/registrazioni/2026-10-20_064854/README.md)).
+Lo toglie solo se contiene ancora la versione appena registrata: lo apre negando la scrittura, ricontrolla il contenuto
+e lo elimina prima di chiuderlo. Ogni versione resta salvata nella registrazione.
+
+Per questo **non va usato con il vecchio `MonitorCliente.exe` acceso sullo stesso file**: gli toglierebbe il conto da
+mostrare. Se lo trova aperto, il registratore non toglie il file e lo dice (`/consuma forza` scavalca il blocco).
+Legge il file senza negare a nessuno né la lettura né la scrittura; per confermare che Passepartout abbia finito di
+scriverlo lo apre per un istante come fa il vecchio monitor a ogni lettura.
 
 ## Avvio
 
@@ -17,7 +22,8 @@ quell'istante Passepartout volesse scrivere, riproverebbe da sé, come già succ
    - Altro percorso: trascina il file `Scontrino.txt` (o la sua cartella) sull'exe, oppure
      `BluetechRecorder.exe D:\percorso\Scontrino.txt`.
    - Altra cartella di destinazione: `--out D:\Registrazioni`.
-   - Modalità consumo da subito: `--consuma` (vedi sotto).
+   - Senza togliere il file (solo per le prove di diagnosi): `--senza-consumo`, oppure `/consuma` durante la
+     registrazione, che lo spegne e lo riaccende.
 3. Lavora in cassa. Prima di ogni prova **scrivi una nota** nella finestra e premi Invio
    (es. `storno seconda riga`): finisce nell'indice con l'ora, così ogni file si collega a cosa stavi facendo.
 4. Per finire scrivi `/fine` (oppure Ctrl+C, oppure chiudi la finestra: lo zip viene creato lo stesso, di norma
@@ -47,24 +53,19 @@ Il perché della prima prova non è ancora noto: quel giorno Passepartout non ha
 Il registratore ti avvisa alla seconda nota se nel frattempo il file non è cambiato, e ti dice cosa può significare:
 file assente (percorso sbagliato), file mai riscritto (prova qui sotto), vecchio monitor che legge un'altra cartella.
 
-### La prova A/B/A (in una sola registrazione)
+### La prova A/B/A (per rifarla su un'altra cassa)
 
-1. Avvia il registratore senza `/consuma`. Nota `A`, poi batti 3 articoli di fila, veloce.
-2. Scrivi `/consuma`. Nota `B`, batti altri 3 articoli di fila.
-3. Scrivi di nuovo `/consuma` (si spegne). Nota `A2`, batti altri 3 articoli.
+Fatta il 20/10 sul primo PC: il risultato è nella [registrazione](../samples/registrazioni/2026-10-20_064854/README.md).
+Per ripeterla altrove, in una sola registrazione:
+
+1. Avvia con `--senza-consumo`. Nota `A`, poi batti 3 articoli di fila, veloce.
+2. Scrivi `/consuma` (il file viene tolto). Nota `B`, batti altri 3 articoli di fila.
+3. Scrivi di nuovo `/consuma` (non viene più tolto). Nota `A2`, batti altri 3 articoli.
 4. `/fine`.
 
-Con `/consuma` il registratore toglie il file subito dopo averlo letto, ma solo se contiene ancora la versione
-appena registrata: lo apre negando la scrittura, ricontrolla il contenuto e lo elimina prima di chiuderlo. Ogni
-versione resta salvata nella registrazione.
+Il riepilogo riporta il tempo minimo tra due scritture con e senza `/consuma`: sul primo PC 3,31 s contro 0,22 s.
 
-Cosa guardiamo: se in `B` le versioni arrivano subito (e non più a 3,3 s una dall'altra) Passepartout aspetta davvero
-che qualcuno tolga il file, e il nuovo monitor dovrà farlo. Il riepilogo riporta il tempo minimo tra due scritture,
-con e senza `/consuma`. Durante la prova guarda anche la cassa: si ferma qualche secondo a ogni battuta? Compare un
-errore?
-
-`/consuma` non si attiva se è aperto il vecchio `MonitorCliente.exe` e legge lo stesso file: gli toglierebbe il conto
-da mostrare. Chiudilo, oppure scrivi `/consuma forza`. Il vecchio monitor legge sempre `Scontrino.txt` nella cartella
+Il vecchio monitor, se aperto sullo stesso file, va chiuso prima (oppure `/consuma forza`). Il vecchio monitor legge sempre `Scontrino.txt` nella cartella
 del proprio exe. Se è aperto in un'altra cartella, il registratore te lo dice all'avvio: se il display del cliente si
 aggiorna, è lì che scrive Passepartout. Se Windows non dice la cartella (vecchio monitor avviato da un altro utente),
 avvia il registratore come amministratore.
@@ -102,7 +103,7 @@ identico conto (stesso contenuto, data del file cambiata).
 | `letture-instabili\` | Contenuti letti mentre il file veniva scritto (raccontano come scrive Passepartout) |
 | `eventi.jsonl` | Una riga per evento: versioni (codifica, righe aggiunte/tolte, righe in comune col conto precedente, totale, dimensione, data di modifica e di creazione del file), riscritture identiche, letture instabili, file eliminato/creato, note, avvisi, `/consuma` |
 | `sessione.txt` | Versione di Windows, schermi e risoluzioni, WebView2 installato o no, vecchio monitor aperto |
-| `riepilogo.txt` | Conteggi finali, tempo minimo tra due scritture (con e senza `/consuma`) |
+| `riepilogo.txt` | Conteggi finali, file tolti, tempo minimo tra due scritture (con e senza `/consuma`) |
 | `contesto\` | Copia di `XMLMonitorCliente.xml` e `MonitorCliente.exe.config` se sono nella stessa cartella o in quella del vecchio monitor aperto |
 
 Attenzione: le registrazioni contengono gli scontrini. Per le prove usa articoli di test e, per le fatture,
