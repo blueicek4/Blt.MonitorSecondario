@@ -144,10 +144,15 @@ public static class AgentApp
         return extra.Any(o => string.Equals(o.TrimEnd('/'), origin.TrimEnd('/'), StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Si ricarica ogni 10 s: il Player non riapre la pagina da solo, così il display copiato più tardi compare senza
+    /// toccare il monitor cliente.
+    /// </summary>
     static string Placeholder(string folder) => $$"""
         <!doctype html>
         <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Bluetech Display Agent</title><link rel="icon" href="data:,">
+        <meta http-equiv="refresh" content="10">
         <style>body{font:16px/1.5 system-ui,sans-serif;background:#0b1017;color:#e6eaf2;margin:0;padding:48px}a{color:#8fb8ff}</style>
         </head><body>
         <h1>Bluetech Display Agent</h1>

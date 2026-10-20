@@ -206,6 +206,11 @@ public sealed class CashFileSource : IDisposable
         _observed = read.Meta;
         _retryPending = !read.Missing && !read.Stable;
         Interlocked.Exchange(ref _retryAfter, 0);
+        if (read.Missing)
+        {
+            _doNotDeliver = null;   // tolto da altri: la prossima versione, anche uguale, si mostra
+            _doNotDeliverMeta = null;
+        }
         if (read.Missing || !read.Stable || read.Bytes == null)
         {
             if (read.Locked)
