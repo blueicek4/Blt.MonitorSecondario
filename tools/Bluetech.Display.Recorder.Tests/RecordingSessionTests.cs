@@ -57,6 +57,25 @@ public sealed class RecordingSessionTests : IDisposable
         }
     }
 
+    /// <summary>
+    /// Apertura in scrittura che riprova, come fa Passepartout: per capire se una scrittura è finita il registratore apre
+    /// il file per un istante negando la scrittura, e uno scrittore che arriva proprio allora trova il file occupato.
+    /// </summary>
+    FileStream OpenForWriting()
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                return new FileStream(_target, FileMode.Create, FileAccess.Write, FileShare.Read);
+            }
+            catch (IOException) when (attempt < 50)
+            {
+                Thread.Sleep(10);
+            }
+        }
+    }
+
     static void WaitUntil(Func<bool> condition, string what)
     {
         var watch = Stopwatch.StartNew();
@@ -212,7 +231,7 @@ public sealed class RecordingSessionTests : IDisposable
             partials.Add(full.Take(cut).ToArray());
             // Scrittore lento: metà conto, una pausa, il resto (lascia leggere gli altri, come fa .NET di default).
             // Flush senza fsync: la pausa deve essere di 5 ms, non quanto ci mette il disco.
-            using (var stream = new FileStream(_target, FileMode.Create, FileAccess.Write, FileShare.Read))
+            using (var stream = OpenForWriting())
             {
                 stream.Write(full, 0, cut);
                 stream.Flush();
@@ -248,7 +267,7 @@ public sealed class RecordingSessionTests : IDisposable
             full = Receipt($" ARTICOLO {i,2}            1,00");
             var cut = full.Length / 2;
             partials.Add(full.Take(cut).ToArray());
-            using (var stream = new FileStream(_target, FileMode.Create, FileAccess.Write, FileShare.Read))
+            using (var stream = OpenForWriting())
             {
                 Thread.Sleep(80);                       // file vuoto e aperto in scrittura
                 stream.Write(full, 0, cut);
