@@ -211,11 +211,16 @@ Un nome non riconosciuto diventa bianco.
   file e lo ricrea** 0,25 s dopo (vuoto, poi lo riempie). E **mai prima di 3,06 s** dalla scrittura precedente: 20
   intervalli su 41 sono tra 3,06 e 3,14 s (articoli battuti di fila, e contenuti rimandati uguali).
 
-Ipotesi coerente con entrambe, **da verificare** (prova A/B/A del [registratore](../tools/README.md)): con
-`SovrascriviSeEsistente=false` Passepartout aspetta fino a `NumeroTentativi` × `SecondiAttesa` = 3 s che il file venga
-tolto (i valori 3 e 1 vengono dal modello a 30 colonne in `docs/reference`: quello a 48 provato il 20/10 non l'abbiamo ancora). Poi lo toglie da sé (20/10), oppure in certe condizioni rinuncia (19/10: cosa è cambiato tra le due prove?).
-Il vecchio monitor non toglie mai il file: se l'ipotesi regge, **oggi ogni battuta arriva al display circa 3 s dopo**,
-e quando si battono articoli di fila si accodano (5 articoli → l'ultimo dopo 16 s).
+- **20/10 alle 6:48**, [prova A/B/A](../samples/registrazioni/2026-10-20_064854/README.md) con lo stesso modello: senza `/consuma` 12 scritture su 12 arrivano 3,31–4,08 s dopo
+  la precedente, ognuna preceduta da Passepartout che elimina il file; con `/consuma` (il registratore toglie il file
+  appena letto) 10 su 10 arrivano dopo 0,23–0,85 s, cioè col ritmo di chi batte, e Passepartout non elimina niente.
+  Tre cambi di modalità nella stessa registrazione, tutti coerenti.
+
+**Confermato**: se il file c'è ancora, Passepartout aspetta circa 3 s (`NumeroTentativi` × `SecondiAttesa`; i valori 3 e
+1 vengono dal modello a 30 colonne in `docs/reference`, quello a 48 in uso non l'abbiamo visto), poi lo elimina da sé
+e scrive. Il vecchio monitor non toglie mai il file, quindi **oggi ogni battuta arriva al display circa 3 s dopo**; se
+in cassa si batte più in fretta, le versioni escono comunque una ogni 3,3 s e alcuni stati intermedi si perdono (due
+righe nuove nella stessa versione). Il 19/10 resta da spiegare: Passepartout non ha nemmeno eliminato il file.
 
 **Opportunità**: essendo un template, possiamo definire noi l'output dei comandi (es. `StampaRigaArticolo` →
 `ART|{0}|{1}|{2}|{5}`) e ottenere dati **strutturati** (quantità, prezzo unitario, reparto, sconti, metodo di

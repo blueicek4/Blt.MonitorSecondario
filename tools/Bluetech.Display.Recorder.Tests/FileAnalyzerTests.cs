@@ -58,6 +58,18 @@ public class FileAnalyzerTests
     }
 
     [Fact]
+    public void Paid_bill_with_three_digit_amounts_from_the_ab_test()
+    {
+        var file = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "samples", "registrazioni", "2026-10-20_064854"), "0028_*.txt").Single();
+        var a = FileAnalyzer.Analyze(File.ReadAllBytes(file));
+        Assert.Equal("339,50", a.Total);
+        Assert.Equal("339,50", a.Subtotal);
+        Assert.Contains("PAGATO CONTANTI:  450,00", a.ReceiptLines);
+        Assert.Contains("Resto:            110,50", a.ReceiptLines);
+        Assert.Contains(" Caesar salad con salsa Vecchia Malga      22,00", a.ReceiptLines);
+    }
+
+    [Fact]
     public void Discount_on_the_subtotal_lowers_the_total()
     {
         var a = FileAnalyzer.Analyze(Recorded("0031"));
