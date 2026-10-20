@@ -143,6 +143,18 @@ la partita IVA).
   display quindi a `sale.close` **non svuota** le righe: le tiene per tutto lo stato Grazie e le toglie al passaggio
   all'attesa o al primo messaggio del conto successivo. Una riga viene sempre battuta prima del pagamento, quindi le
   righe a video ci sono sempre.
+- **Finito Grazie si va all'attesa, con le slide del locale, senza il conto vecchio** (immagini e video di `cfg.ads`, testo
+  scorrevole). Nessuno scontrino resta a video quando il cliente se n'è andato:
+
+  | Come finisce il conto | Cosa manda l'Agent | Cosa fa il display |
+  |---|---|---|
+  | Riga `PAGATO …` | `sale.close` con `paid` | Grazie con le righe per 8 s (30 s con il QR di ringraziamento), poi l'attesa |
+  | Nessun `PAGATO` e nessun file per 2 minuti (conto visto e lasciato, tavolo parcheggiato) | `sale.close` senza `paid` | Subito l'attesa: senza pagamento non si ringrazia |
+  | Conto nuovo prima della fine di Grazie | `sale.open` | Il conto nuovo |
+
+  I 2 minuti (`ChiusuraVenditaDopoSecondi` dell'Agent, configurabile) vengono dalle registrazioni del 20/10: tra l'ultimo
+  file e la riga `PAGATO` sono passati 9–67 s con contanti e POS e 80 s con il QR Satispay a video. Con i 20 s del vecchio
+  monitor il totale sarebbe sparito mentre il cliente pagava in 6 conti su 9.
 - **QR di ringraziamento impostabile dal pannello** (Fase 4): recensioni Google, registrazione cliente/fidelity, menu
   digitale o un indirizzo qualunque, con la didascalia. La SPEC §2.5 lo prevedeva già ("QR opzionale a destra"), ma
   nessun campo del protocollo lo portava. Proposta:
@@ -150,7 +162,7 @@ la partita IVA).
     l'**Agent genera il PNG** (un pixel per modulo, senza quiet zone, come quello di Satispay): il display lo mostra con
     lo stesso `QrStage` e resta senza librerie QR;
   - **durata**: con il QR, 8 s non bastano per tirare fuori il telefono e inquadrare. Grazie resta finché non arriva il
-    conto successivo, al massimo `seconds` (default 30 s); senza QR resta 8 s come da SPEC;
+    conto successivo, al massimo `seconds` (default 30 s); senza QR resta 8 s come da SPEC. Poi sempre l'attesa;
   - un solo QR alla volta, non due a rotazione: il cliente ha pochi secondi e una sola scelta funziona meglio;
   - per misurare se funziona conviene un indirizzo con `?utm_source=monitor-cassa` (dove la pagina lo permette; il
     link alle recensioni di Google no);
