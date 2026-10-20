@@ -10,7 +10,8 @@ Il servizio che gira sul PC cassa:
    WebSocket, solo con quello che cambia.
 
 La lettura e la cancellazione sono quelle del [registratore](../tools/README.md), già provate in cassa: il file si
-toglie solo se contiene ancora la versione letta.
+toglie solo se contiene ancora la versione letta. Si toglie **sempre**, anche con il QR a video: è il nostro modo di
+lavorare (il vecchio monitor, anche nella versione 6.0, lascia il file dov'è).
 
 ## Installazione
 

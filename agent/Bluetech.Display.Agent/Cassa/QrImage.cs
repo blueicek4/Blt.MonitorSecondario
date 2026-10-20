@@ -21,9 +21,9 @@ static class QrImage
             var image = Decode(png);
             return image == null ? null : Reduce(image);
         }
-        catch (Exception e) when (e is InvalidDataException or EndOfStreamException or ArgumentException or IndexOutOfRangeException)
+        catch (Exception e) when (e is not OutOfMemoryException)
         {
-            return null;
+            return null;   // qualunque immagine strana passa com'è: il QR non si deve mai perdere qui
         }
     }
 
@@ -197,7 +197,7 @@ static class QrImage
         var run = 0;
         while (left + run <= right && image.Dark[top * image.Width + left + run])
             run++;
-        if (run % 7 != 0 || size % (run / 7) != 0)
+        if (run == 0 || run % 7 != 0 || size % (run / 7) != 0)
             return null;
         var module = run / 7;
         var n = size / module;
@@ -226,7 +226,7 @@ static class QrImage
     }
 
     /// <summary>PNG in scala di grigi a 8 bit, un pixel per modulo: nero 0, bianco 255.</summary>
-    static byte[] Encode(bool[] modules, int n)
+    internal static byte[] Encode(bool[] modules, int n)
     {
         var raw = new byte[n * (n + 1)];
         for (var y = 0; y < n; y++)

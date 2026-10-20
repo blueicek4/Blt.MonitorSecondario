@@ -116,7 +116,10 @@ function apply(m) {
       state.payment = null;
       if (state.phase !== "sale") { state.phase = "thanks"; thanksFor(THANKS_WITH_QR_MS); }
       break;
-    case "pay.clear": state.payment = null; if (state.phase === "payment") state.phase = "sale"; break;
+    case "pay.clear":
+      state.payment = null;
+      if (state.phase === "payment") state.phase = state.lines.length ? "sale" : "idle";   // QR senza conto: l'attesa
+      break;
   }
 }
 

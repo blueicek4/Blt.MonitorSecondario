@@ -336,3 +336,8 @@ dell'interfaccia (bug 4 e 5), solo l'evento Changed, file letto dalla cartella d
 | `Currency` | **Serve poco**: l'Agent salta già `EURO`; ora salta qualunque riga di una sola parola subito dopo i trattini | Agent |
 | `ReceiptFontSize`, `TimeoutClearDisplay`, `HideHeader` | Da importare dal vecchio `.config` quando si migra un cliente (Fase 1, importazione): `TimeoutClearDisplay` → `ChiusuraVenditaDopoSecondi` solo se più lungo di 60 s | Importazione |
 
+**Il nostro modo di lavorare resta togliere sempre il file di interscambio appena letto** (decisione del 20/10,
+confermata dopo aver visto la 6.0). La 6.0 lascia il file dov'è e, con il QR a video, ignora i file nuovi: l'Agent invece
+legge e toglie ogni versione anche durante il QR, così Passepartout scrive subito la successiva e niente va perso. La
+regola dei 20 s decide solo cosa mostrare al cliente.
+

@@ -103,7 +103,8 @@ public sealed class SaleTracker
             if (_qr == null)
                 return [];
             _qr = null;
-            return [new PayClear()];
+            _lastHash = null;   // lo stesso QR rimandato dopo deve tornare a video
+            return [new PayClear(), new SaleClose(null)];   // senza conto: il display torna all'attesa
         }
         Reset();
         _lastHash = null;   // se la cassa rimanda lo stesso conto (tavolo riaperto), deve tornare a video
@@ -198,10 +199,6 @@ public sealed class SaleTracker
         return messages;
     }
 
-    /// <summary>
-    /// Nessuna riga in comune con il conto a video. Il coperto non conta: c'è su quasi ogni tavolo, e un tavolo nuovo
-    /// che parte dal coperto mostrerebbe come storni i piatti del tavolo prima.
-    /// </summary>
     /// <summary>Il conto letto è quello a video, riga per riga, con lo stesso totale.</summary>
     bool SameBill(CashFile receipt) =>
         _open
@@ -210,10 +207,20 @@ public sealed class SaleTracker
         && receipt.Entries.Zip(_visible).All(p => Key(p.First) == Key(p.Second)
             && (p.First is not ItemEntry item || (item.Qty == p.Second.Qty && item.Amount == p.Second.Amount)));
 
+    /// <summary>
+    /// Nessun piatto in comune con il conto a video: il coperto non conta, c'è su quasi ogni tavolo e un tavolo nuovo che
+    /// parte dal coperto mostrerebbe come storni i piatti del tavolo prima. Unica eccezione: restano solo i coperti, uguali,
+    /// ed è sparito un piatto solo. È lo stesso tavolo che storna l'ultimo piatto (uno storno toglie una riga per volta).
+    /// </summary>
     bool StartsNewSale(List<ItemEntry> items)
     {
-        var current = _visible.Where(l => l.Kind == LineKind.Item && !IsCover(l.Desc)).Select(l => Key(l.Desc)).ToHashSet();
-        return current.Count > 0 && items.Count > 0 && !items.Any(i => current.Contains(Key(i.Desc)));
+        var dishes = _visible.Where(l => l.Kind == LineKind.Item && !IsCover(l.Desc)).ToList();
+        var dishKeys = dishes.Select(l => Key(l.Desc)).ToHashSet();
+        if (dishKeys.Count == 0 || items.Count == 0 || items.Any(i => dishKeys.Contains(Key(i.Desc))))
+            return false;
+        var covers = _visible.Where(l => l.Kind == LineKind.Item && IsCover(l.Desc)).Select(l => (Key(l.Desc), l.Qty, l.Amount)).ToHashSet();
+        var lastDishVoided = dishes.Count == 1 && items.All(i => IsCover(i.Desc) && covers.Contains((Key(i.Desc), i.Qty, i.Amount)));
+        return !lastDishVoided;
     }
 
     static bool IsCover(string desc) => Normalize(desc).StartsWith("COPERT", StringComparison.Ordinal);

@@ -244,4 +244,15 @@ public class MoneyAndParserTests
         var note = Receipt("INTESTAZIONE", "------------------------------", "                          EURO", "ASPORTO", " CAFFE                     1,20");
         Assert.Equal(new NoteEntry("ASPORTO"), note.Entries[0]);   // solo la prima riga dopo i trattini
     }
+
+    [Fact]
+    public void A_qr_like_image_with_a_light_corner_passes_as_it_is()
+    {
+        // Bordo scuro solo in alto a destra e in basso a sinistra: l'angolo in alto a sinistra è chiaro.
+        var modules = new bool[21 * 21];
+        modules[20] = modules[20 * 21] = true;
+        var png = QrImage.Encode(modules, 21);
+        Assert.NotNull(QrImage.Decode(png));
+        Assert.Null(QrImage.ToModules(png));
+    }
 }

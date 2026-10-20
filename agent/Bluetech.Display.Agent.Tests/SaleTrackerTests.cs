@@ -225,6 +225,15 @@ public class SaleTrackerTests
         Assert.Equal(0, (long)paid["change"]!);
     }
 
+    /// <summary>Un conto con il coperto ("2 X 2,00 Euro" + "Coperto 4,00") e i piatti da 1,00.</summary>
+    static CashFile Covers(int covers, params string[] dishes)
+    {
+        var lines = new List<string> { "SNF", " ", $"   {covers} X 2,00 Euro", $" {"Coperto",-22}{$"{covers * 2},00",7}" };
+        lines.AddRange(dishes.Select(d => $" {d,-22}{"1,00",7}"));
+        lines.Add($"TOT. DA PAGARE{$"{covers * 2 + dishes.Length},00",16}");
+        return ReceiptParser.Parse(Encoding.ASCII.GetBytes(string.Join("\r\n", lines) + "\r\n"));
+    }
+
     static CashFile Bill(params string[] items)
     {
         var lines = new List<string> { "SNF", " " };
@@ -273,16 +282,31 @@ public class SaleTrackerTests
     [Fact]
     public void A_new_table_that_shares_only_the_cover_is_a_new_sale()
     {
-        // Tavolo 5 non pagato (nessuna riga PAGATO, come il terzo conto del 20/10), poi il tavolo 7 parte dal coperto.
+        // Tavolo 5 (2 coperti) non pagato, come il terzo conto del 20/10; poi il tavolo 7 parte dai suoi 4 coperti.
         var tracker = new SaleTracker();
-        tracker.Apply(Bill("Coperto", "Tagliatelle", "Acqua"), T0);
-        var next = tracker.Apply(Bill("Coperto"), T0.AddSeconds(40));
+        tracker.Apply(Covers(2, "Tagliatelle", "Acqua"), T0);
+        var next = tracker.Apply(Covers(4), T0.AddSeconds(40));
         Assert.Equal(["sale.close", "sale.open", "sale.line", "sale.total"], next.Select(m => m.Type));
         Assert.DoesNotContain(next, m => m is SaleLineMessage { Line.Kind: LineKind.Void });
 
-        // Lo stesso tavolo che toglie un piatto resta la stessa vendita.
-        var same = tracker.Apply(Bill("Coperto", "Lasagne"), T0.AddSeconds(50));
-        Assert.DoesNotContain(same, m => m.Type == "sale.open");
+        // Lo stesso tavolo che aggiunge un piatto resta la stessa vendita.
+        Assert.DoesNotContain(tracker.Apply(Covers(4, "Lasagne"), T0.AddSeconds(50)), m => m.Type == "sale.open");
+
+        // Anche con lo stesso numero di coperti: il tavolo prima aveva due piatti, uno storno ne toglie uno solo.
+        tracker.Apply(Covers(2, "Tagliatelle", "Acqua"), T0.AddSeconds(60));
+        Assert.Contains(tracker.Apply(Covers(2), T0.AddSeconds(70)), m => m.Type == "sale.open");
+        tracker.Apply(Covers(2, "Tagliatelle"), T0.AddSeconds(80));
+        Assert.Contains(tracker.Apply(Covers(2, "Lasagne"), T0.AddSeconds(90)), m => m.Type == "sale.open");
+    }
+
+    [Fact]
+    public void Voiding_the_last_dish_of_a_table_is_a_void_not_a_new_sale()
+    {
+        var tracker = new SaleTracker();
+        tracker.Apply(Covers(2, "Tagliatelle"), T0);
+        var voided = tracker.Apply(Covers(2), T0.AddSeconds(10));
+        Assert.DoesNotContain(voided, m => m.Type == "sale.open");
+        Assert.Contains(voided, m => m is SaleLineMessage { Line.Kind: LineKind.Void, Line.Desc: "Tagliatelle" });
     }
 
     [Fact]
@@ -296,8 +320,9 @@ public class SaleTrackerTests
         var qr = Assert.IsType<PayQr>(Assert.Single(tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddSeconds(70))));
         Assert.Equal(1030, qr.Amount);   // il conto chiuso per inattività, non 0
         Assert.Empty(tracker.CheckIdle(T0.AddSeconds(70) + SaleTracker.MinimumWithQr - TimeSpan.FromSeconds(1), timeout));
-        Assert.Equal("pay.clear", Assert.Single(tracker.CheckIdle(T0.AddSeconds(70) + SaleTracker.MinimumWithQr, timeout)).Type);
+        Assert.Equal(["pay.clear", "sale.close"], tracker.CheckIdle(T0.AddSeconds(70) + SaleTracker.MinimumWithQr, timeout).Select(m => m.Type));
         Assert.Equal("idle", tracker.Phase);
+        Assert.NotEmpty(tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddMinutes(10)));   // rimandato: torna
     }
 
     [Fact]
