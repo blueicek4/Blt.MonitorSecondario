@@ -57,6 +57,7 @@
   label { display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 13px; font-weight: 600; min-width: 0; }
   label.check { flex-direction: row; align-items: center; gap: 10px; color: var(--text); font-size: 15px; font-weight: 500; }
   label .hint { font-weight: 400; color: var(--faint); }
+  .wide > .hint { display: block; margin-top: 6px; color: var(--faint); font-size: 13px; }
   input, select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; min-width: 0; width: 100%; }
   input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
   input:focus, select:focus, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
@@ -117,14 +118,43 @@
   .previewcontrols { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
   .problems { margin-top: 8px; }
   .problems div { color: var(--warn); font-size: 13px; margin-top: 4px; }
-  .promoitem { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
-  .promoitem:last-child { border-bottom: 0; }
-  .promoitem .thumb { width: 112px; aspect-ratio: 16 / 9; border-radius: 8px; background: #000 center / cover no-repeat; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: 12px; overflow: hidden; }
-  .promoitem .thumb video { width: 100%; height: 100%; object-fit: cover; }
-  .promoitem .what { color: var(--muted); font-size: 13px; }
-  .promoitem.off { opacity: .55; }
-  @media (max-width: 700px) { .promoitem { grid-template-columns: 80px minmax(0, 1fr); } .promoitem .thumb { width: 80px; } .promoitem .actions { grid-column: 1 / -1; text-align: left; } }
   .mediagrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-top: 12px; }
+  .promogrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 12px; }
+  .promocard { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+  .promocard .face { aspect-ratio: 16 / 9; position: relative; background: radial-gradient(ellipse 70% 70% at 20% 25%, rgba(31,111,235,.45), transparent 65%), #080b11 center / cover no-repeat; display: flex; align-items: flex-end; gap: 8px; padding: 10px; color: #f4f6fa; }
+  .promocard .face.pic::before { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(5,7,9,.85), rgba(5,7,9,.15)); }
+  .promocard .face > * { position: relative; }
+  .promocard .face b { font-size: 15px; line-height: 1.15; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .promocard .face .qrmark { flex-shrink: 0; width: 34px; height: 34px; border-radius: 6px; background: #fff; color: #000; font: 700 11px/34px ui-monospace, monospace; text-align: center; }
+  .promocard .info { padding: 8px 10px; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .promocard .info .name { color: var(--text); font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
+  .onair { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); margin: 4px 0 6px; font-size: 13px; }
+  .onair .lbl { margin: 0 0 2px; }
+  .onairrow { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  .setitem { display: grid; grid-template-columns: 152px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .setitem:last-child { border-bottom: 0; }
+  .setitem.off { opacity: .55; }
+  .strip { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; width: 152px; }
+  .strip > div { aspect-ratio: 16 / 9; border-radius: 4px; background: #000 center / cover no-repeat; border: 1px solid var(--line); overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--faint); }
+  .strip video { width: 100%; height: 100%; object-fit: cover; }
+  .setitem .what { color: var(--muted); font-size: 13px; }
+  .setitem .badge { margin-left: 4px; }
+  @media (max-width: 700px) { .setitem { grid-template-columns: 1fr; } .setitem .actions { text-align: left; } }
+  .setitems { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  .setrow { display: grid; grid-template-columns: 72px minmax(0, 1fr) 92px auto; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 9px; background: var(--bg); border: 1px solid var(--line); }
+  .setrow .thumb { width: 72px; aspect-ratio: 16 / 9; border-radius: 5px; background: #000 center / cover no-repeat; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--faint); }
+  .setrow .thumb video { width: 100%; height: 100%; object-fit: cover; }
+  .setrow input { padding: 6px 8px; }
+  .setrow .kind { color: var(--muted); font-size: 12px; }
+  @media (max-width: 700px) { .setrow { grid-template-columns: 60px minmax(0, 1fr); } .setrow .thumb { width: 60px; } }
+  .picker { margin-top: 10px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card2); }
+  .pickergrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 10px; max-height: 360px; overflow: auto; }
+  .pickergrid button { font: inherit; color: var(--text); text-align: left; padding: 0; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; overflow: hidden; display: flex; flex-direction: column; }
+  .pickergrid button:hover { border-color: var(--accent); }
+  .pickergrid .thumb { aspect-ratio: 16 / 9; background: #000 center / cover no-repeat; display: flex; align-items: flex-end; padding: 4px 6px; font-size: 11px; color: #f4f6fa; }
+  .pickergrid .thumb video { width: 100%; height: 100%; object-fit: cover; }
+  .pickergrid span.name { padding: 5px 7px; font-size: 12px; overflow-wrap: anywhere; }
+  .pickergrid .count { font-size: 11px; color: var(--accent); padding: 0 7px 5px; }
   .mediaitem { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
   .mediaitem .thumb { aspect-ratio: 16 / 9; background: #000 center / contain no-repeat; }
   .mediaitem .thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -393,18 +423,8 @@
               <label>Benvenuto<input data-look="Benvenuto" maxlength="80" placeholder="Benvenuti"><span class="hint">nell'attesa, quando non ci sono slide</span></label>
               <label>Titolo del conto<input data-look="TitoloConto" maxlength="30" placeholder="Il tuo conto"></label>
               <label>Saluto dopo il pagamento<input data-look="Grazie" maxlength="60" placeholder="Grazie e arrivederci"></label>
+              <label>Con un QR il Grazie resta al massimo (secondi)<input type="number" min="10" max="120" data-look="SecondiGrazie"><span class="hint">fino al conto dopo; senza QR 8 secondi. Il QR si mette con una promozione nel set del Grazie (scheda Promozioni)</span></label>
               <label class="wide">Testo che scorre in basso nell'attesa<textarea data-look="Scorrevole" maxlength="500" placeholder="Aperitivo dalle 18 alle 20 · Chiuso il lunedì · Seguici per le serate a tema"></textarea><span class="hint">vuoto = niente testo</span></label>
-            </div>
-          </div>
-          <div class="card">
-            <h2>QR dopo il pagamento</h2>
-            <p class="muted">Nel Grazie, accanto al saluto: le recensioni di Google, la fidelity, il menu digitale o un indirizzo qualunque. L'Agent fa il QR; il Grazie resta finché il cliente lo inquadra, fino al conto dopo. Se la cassa manda il QR dello scontrino digitale, al suo posto c'è quello.</p>
-            <div class="fields2">
-              <label class="check wide"><input type="checkbox" data-look="QrGrazie.Attivo"> Mostra il QR</label>
-              <label class="wide">Indirizzo<input data-look="QrGrazie.Indirizzo" class="mono" maxlength="400" placeholder="https://g.page/r/…/review"><span class="hint">per contare chi lo usa, dove si può: ?utm_source=monitor-cassa in fondo (il link delle recensioni di Google no)</span></label>
-              <label>Titolo<input data-look="QrGrazie.Titolo" maxlength="40" placeholder="Com'è andata?"></label>
-              <label>Didascalia<input data-look="QrGrazie.Didascalia" maxlength="120"></label>
-              <label>Resta al massimo (secondi)<input type="number" min="10" max="120" data-look="QrGrazie.Secondi"></label>
             </div>
           </div>
           <div class="savebar">
@@ -421,31 +441,68 @@
       <div class="looklayout">
         <div>
           <div class="card">
+            <div class="row"><h2 class="grow" style="margin:0">Set di reclame</h2><button class="btn small primary" type="button" id="newset">Nuovo set</button></div>
+            <p class="muted" style="margin-top:10px">Un set mette in fila foto, video e promozioni delle gallerie qui sotto e dice dove vanno: nelle slide dell'<b>attesa</b>, <b>accanto al conto</b> o nel <b>Grazie</b> dopo il pagamento; in che ordine; per quali casse, giorni e orari. Per ogni posto va in onda il <b>primo set dell'elenco</b> che vale in quel momento: in alto quelli con l'orario più stretto (l'aperitivo, il venerdì sera), in fondo quello di sempre.</p>
+            <div id="onair" class="onair"></div>
+            <div id="setlist"></div>
+            <p class="message" id="setmsg"></p>
+          </div>
+          <div class="card" id="setformcard" hidden>
+            <h2 id="setformtitle">Nuovo set</h2>
+            <form id="setform" class="fields">
+              <label>Nome<input name="Nome" required maxlength="40" placeholder="Aperitivo"><span class="hint">per te, non si vede sullo schermo</span></label>
+              <label class="check"><input type="checkbox" name="Attivo" checked> Acceso</label>
+              <div class="wide"><span class="lbl">Dove va</span><div class="chips" id="setplaces"></div>
+                <span class="hint">accanto al conto non c'è sugli schermi 4:3 e sul palmare: lì il conto prende tutto lo spazio</span></div>
+              <label>Ordine
+                <select name="Ordine"><option value="elenco">Come nell'elenco qui sotto</option><option value="casuale">A caso</option><option value="alfabetico">Per nome</option></select>
+              </label>
+              <label>Una promozione con il QR dopo ogni<input type="number" name="QrDopo" min="0" max="20"><span class="hint">elementi senza QR; 0 = come gli altri. A caso con 2: due slide, un QR, due slide, un altro QR</span></label>
+              <label>Ogni foto e promozione resta (secondi)<input type="number" name="Secondi" min="3" max="120"><span class="hint">un video dura quanto dura; per un QR ne servono 12-15, il cliente deve prendere il telefono</span></label>
+              <div class="wide">
+                <span class="lbl">Elementi <span class="hint" id="setcount"></span></span>
+                <div id="setitems" class="setitems"></div>
+                <div class="row" style="margin-top:10px"><button class="btn small" type="button" id="setadd">Aggiungi dalle gallerie…</button></div>
+                <div id="setpicker" class="picker" hidden>
+                  <div class="row"><div class="chips grow" id="pickertabs"></div><button class="btn small" type="button" id="pickerclose">Chiudi</button></div>
+                  <div id="pickergrid" class="pickergrid"></div>
+                </div>
+              </div>
+              <div class="wide"><span class="lbl">Casse <span class="hint">· nessuna scelta = tutte</span></span><div class="chips" id="setcasse"></div></div>
+              <div class="wide"><span class="lbl">Giorni <span class="hint">· nessuno scelto = tutti</span></span><div class="chips" id="setgiorni"></div></div>
+              <label>Dalle<input type="time" name="Dalle"></label>
+              <label>Alle<input type="time" name="Alle"><span class="hint">prima di "dalle" = fino al giorno dopo (22:00-02:00)</span></label>
+              <label>Dal giorno<input type="date" name="DalGiorno"></label>
+              <label>All'ultimo giorno<input type="date" name="AlGiorno"></label>
+              <div class="actionsbar">
+                <button class="btn primary" type="submit">Salva il set</button>
+                <button class="btn" type="button" data-cancel>Annulla</button>
+              </div>
+            </form>
+            <p class="message" id="setformmsg"></p>
+          </div>
+
+          <div class="card">
             <div class="row"><h2 class="grow" style="margin:0">Promozioni</h2><button class="btn small primary" type="button" id="newpromo">Nuova promozione</button></div>
-            <p class="muted" style="margin-top:10px">Nelle <b>slide dell'attesa</b> a tutto schermo, in quest'ordine: le immagini per i secondi scelti, i video per la loro durata. <b>Accanto al conto</b> una scheda per conto, a rotazione (non sugli schermi 4:3: lì vanno nelle slide). Ognuna può valere solo per alcune casse, giorni, orari e date.</p>
-            <div id="promolist"></div>
+            <p class="muted" style="margin-top:10px">Un titolo, un testo, un'immagine e un QR (registrazione cliente, fidelity, recensioni, menu digitale), tutti facoltativi ma almeno uno. Si mettono nei set: la stessa promozione può stare nell'attesa, accanto al conto e nel Grazie.</p>
+            <div id="promolist" class="promogrid"></div>
             <p class="message" id="promomsg"></p>
           </div>
           <div class="card" id="promoformcard" hidden>
             <h2 id="promoformtitle">Nuova promozione</h2>
             <form id="promoform" class="fields">
-              <label>Nome<input name="Nome" required maxlength="40" placeholder="Aperitivo"><span class="hint">per te, non si vede sullo schermo</span></label>
-              <label class="check"><input type="checkbox" name="Attiva" checked> Attiva</label>
+              <label>Nome<input name="Nome" required maxlength="40" placeholder="Registrati"><span class="hint">per te, non si vede sullo schermo</span></label>
+              <label class="wide">Titolo<input name="Titolo" maxlength="60" placeholder="Diventa cliente"></label>
+              <label class="wide">Testo<textarea name="Testo" maxlength="200" placeholder="Punti a ogni visita e un dolce in regalo al compleanno."></textarea></label>
               <div class="wide">
-                <span class="lbl">Immagine o video</span>
-                <div class="row"><select id="promomedia" style="width:auto;max-width:320px"></select><button class="btn small" type="button" data-upload="promo">Carica…</button></div>
+                <span class="lbl">Immagine <span class="hint">· facoltativa: una foto 16:9, meglio senza scritte se c'è il titolo</span></span>
+                <div class="row"><select id="promoimage" style="width:auto;max-width:320px"></select><button class="btn small" type="button" data-upload="promo">Carica…</button></div>
               </div>
-              <label class="check"><input type="checkbox" name="NelleSlide" checked> Nelle slide dell'attesa</label>
-              <label>Un'immagine resta (secondi)<input type="number" name="SecondiImmagine" min="3" max="60" value="7"></label>
-              <label class="check wide"><input type="checkbox" name="NelConto"> Accanto al conto, come scheda</label>
-              <label class="wide" data-card>Titolo della scheda<input name="Titolo" maxlength="60" placeholder="Il secondo caffè lo offriamo noi"></label>
-              <label class="wide" data-card>Testo della scheda<input name="Testo" maxlength="200" placeholder="Valida tutti i giorni dopo il dolce. Chiedila alla cassa."></label>
-              <div class="wide"><span class="lbl">Casse <span class="hint">· nessuna scelta = tutte</span></span><div class="chips" id="promocasse"></div></div>
-              <div class="wide"><span class="lbl">Giorni <span class="hint">· nessuno scelto = tutti</span></span><div class="chips" id="promogiorni"></div></div>
-              <label>Dalle<input type="time" name="Dalle"></label>
-              <label>Alle<input type="time" name="Alle"><span class="hint">prima di "dalle" = fino al giorno dopo (22:00-02:00)</span></label>
-              <label>Dal giorno<input type="date" name="DalGiorno"></label>
-              <label>All'ultimo giorno<input type="date" name="AlGiorno"></label>
+              <label class="check wide"><input type="checkbox" name="ConQr"> Con un QR</label>
+              <label class="wide" data-qr>Indirizzo del QR<input name="Qr" class="mono" maxlength="400" placeholder="https://…"><span class="hint">la registrazione cliente, la fidelity, le recensioni, il menu digitale. Per contare chi lo usa, dove si può: ?utm_source=monitor-cassa in fondo</span></label>
+              <label class="wide" data-qr>Sotto il QR<input name="QrDidascalia" maxlength="120" placeholder="Inquadra e registrati"></label>
+              <label>Valida dal<input type="date" name="DalGiorno"></label>
+              <label>al<input type="date" name="AlGiorno"><span class="hint">fuori da queste date non va in onda, in nessun set</span></label>
               <div class="actionsbar">
                 <button class="btn primary" type="submit">Salva la promozione</button>
                 <button class="btn" type="button" data-cancel>Annulla</button>
@@ -453,14 +510,20 @@
             </form>
             <p class="message" id="promoformmsg"></p>
           </div>
+
           <div class="card">
-            <div class="row"><h2 class="grow" style="margin:0">Immagini e video</h2><button class="btn small" type="button" data-upload="library">Carica…</button></div>
-            <p class="muted" style="margin-top:10px">Immagini 16:9 (1920×1080) in JPEG, PNG o WebP fino a 15 MB; video MP4 (H.264) o WebM fino a 200 MB, senza audio. Restano su questo PC, in dati\media: i display li prendono da qui, anche con internet staccato.</p>
-            <div id="mediagrid" class="mediagrid"></div>
+            <div class="row"><h2 class="grow" style="margin:0">Foto</h2><button class="btn small" type="button" data-upload="foto">Carica…</button></div>
+            <p class="muted" style="margin-top:10px">16:9 (1920×1080) in JPEG, PNG o WebP, fino a <span data-limit="Immagine">15</span> MB. Qui ci sono anche il logo e lo sfondo.</p>
+            <div id="photogrid" class="mediagrid"></div>
+          </div>
+          <div class="card">
+            <div class="row"><h2 class="grow" style="margin:0">Video</h2><button class="btn small" type="button" data-upload="video">Carica…</button></div>
+            <p class="muted" style="margin-top:10px">MP4 (H.264) o WebM fino a <span data-limit="Video">200</span> MB, senza audio: lo schermo li fa partire muti. Foto e video restano su questo PC, in dati\media: i display li prendono da qui, anche con internet staccato.</p>
+            <div id="videogrid" class="mediagrid"></div>
             <p class="message" id="mediamsg"></p>
           </div>
-          <div class="savebar">
-            <button class="btn primary" type="button" data-save>Salva</button>
+          <div class="savebar" hidden>
+            <button class="btn primary" type="button" data-save>Salva l'aspetto</button>
             <button class="btn" type="button" data-revert>Annulla le modifiche</button>
             <span class="message" data-savemsg></span>
           </div>
@@ -474,10 +537,11 @@
       <div class="previewcontrols">
         <div class="chips" id="previewformat"></div>
         <div class="chips" id="previewphase"></div>
-        <select id="previewsource" style="width:auto"></select>
+        <div class="row"><select id="previewsource" style="width:auto"></select><select id="previewtry" style="width:auto;max-width:280px" aria-label="Cosa provare"></select></div>
       </div>
       <div class="screenframe" id="screenframe"><iframe id="previewframe" title="Anteprima dello schermo del cliente" tabindex="-1"></iframe></div>
-      <p class="faint" style="margin:0">La bozza si vede qui subito; i display la ricevono quando salvi. Nell'anteprima ci sono tutte le promozioni attive, anche fuori dal loro orario.</p>
+      <p class="faint" style="margin:0" id="previewonair"></p>
+      <p class="faint" style="margin:4px 0 0">La bozza si vede qui subito; i display la ricevono quando salvi. Un set fuori orario o spento si prova scegliendolo qui sopra.</p>
       <div class="problems" id="previewproblems"></div>
     </div>
 
@@ -725,6 +789,7 @@ function select(tab) {
   document.querySelector("main").classList.toggle("widemain", tab === "aspetto" || tab === "promozioni");
   clearInterval(state.timer);
   if (tab === "aspetto" || tab === "promozioni") openLook(tab);
+  if (tab === "promozioni") state.timer = setInterval(refreshOnAir, 60000);   // un set che entra o esce dal suo orario
   if (tab === "stato") { renderStatus(); state.timer = setInterval(refreshStatus, 3000); }
   if (tab === "casse") { renderCash(); state.timer = setInterval(refreshStatus, 5000); }
   if (tab === "dispositivi") { renderDevices(); state.timer = setInterval(refreshStatus, 3000); }
@@ -1146,12 +1211,12 @@ $("loglevel").addEventListener("change", renderLog);
 $("logsearch").addEventListener("input", renderLog);
 
 /* ---------- Aspetto e promozioni ---------- */
-// Una bozza sola per le due schede: l'aspetto si salva con il pulsante, le promozioni a ogni modifica. L'anteprima mostra
-// la bozza com'è, con il messaggio cfg composto dall'Agent.
+// Una bozza sola per le due schede: l'aspetto si salva con il pulsante, set e promozioni a ogni modifica (da soli).
+// L'anteprima mostra la bozza com'è, con il messaggio cfg composto dall'Agent.
 const look = {
   draft: null, saved: "", temi: [], font: [], casse: [], timer: 0, demoQr: null, frameReady: false, demoStarted: false,
-  preview: { formato: "1920x1080", fase: "auto", fonte: "demo" }, editingPromo: -1, promoMedia: null, promoCasse: new Set(), promoGiorni: new Set(),
-  uploadTarget: null, fontsFilled: false,
+  preview: { formato: "1920x1080", fase: "auto", fonte: "demo", prova: "" }, editingSet: null, editingPromo: null, pickerTab: "foto",
+  inOnda: null, statoSet: null, limits: null, busy: false, uploadTarget: null, fontsFilled: false,
 };
 const DAYS = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"];
 const FRAMES = { "1920x1080": [1920, 1080, "16:9"], "1024x768": [1024, 768, "4:3"], "1080x1920": [1080, 1920, "Verticale"], "palmare": [390, 844, "Palmare"] };
@@ -1178,6 +1243,9 @@ async function loadLook(force) {
   look.saved = JSON.stringify(data.Aspetto);
   look.temi = data.Temi;
   look.font = data.Font;
+  look.inOnda = data.InOnda;
+  look.statoSet = data.StatoSet;
+  look.limits = data.LimitiMb;
 }
 
 function isDirty() { return !!look.draft && JSON.stringify(look.draft) !== look.saved; }
@@ -1185,6 +1253,8 @@ function isDirty() { return !!look.draft && JSON.stringify(look.draft) !== look.
 function sayAll(text, kind) {
   document.querySelectorAll("[data-savemsg]").forEach((m) => { m.textContent = text || ""; m.className = "message " + (kind || ""); });
   $("previewdirty").hidden = !isDirty();
+  // Set e promozioni si salvano da soli: tra loro la barra serve solo per l'aspetto rimasto da salvare.
+  document.querySelector('section[data-panel="promozioni"] .savebar').hidden = !isDirty() && kind !== "err";
 }
 
 function lookChanged() {
@@ -1216,7 +1286,7 @@ async function openLook(tab) {
 function renderLookTab() {
   if (!look.draft) return;
   if (state.tab === "aspetto") renderLook();
-  if (state.tab === "promozioni") { renderPromos(); renderMedia(); }
+  if (state.tab === "promozioni") renderPromotionsTab();
   $("previewdirty").hidden = !isDirty();
 }
 
@@ -1260,6 +1330,8 @@ function fillMediaSelect(select, kind, value, emptyText) {
 async function refreshMediaList() {
   const data = await api("GET", "/api/bo/aspetto");
   look.draft.Media = data.Aspetto.Media;
+  look.inOnda = data.InOnda;
+  look.statoSet = data.StatoSet;
   const saved = JSON.parse(look.saved);
   saved.Media = data.Aspetto.Media;
   look.saved = JSON.stringify(saved);
@@ -1268,8 +1340,8 @@ async function refreshMediaList() {
 function pickFiles(target) {
   look.uploadTarget = target;
   const picker = $("filepicker");
-  picker.multiple = target === "library";
-  picker.accept = target === "logo" || target === "logochiaro" ? "image/png,image/jpeg,image/webp,image/gif" : "image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm";
+  picker.multiple = target === "foto" || target === "video";
+  picker.accept = target === "video" ? "video/mp4,video/webm" : "image/png,image/jpeg,image/webp,image/gif";
   picker.value = "";
   picker.click();
 }
@@ -1312,9 +1384,8 @@ $("filepicker").addEventListener("change", async (event) => {
   await refreshMediaList();
   if (target === "logo") { look.draft.Logo = last.Id; lookChanged(); }
   if (target === "logochiaro") { look.draft.LogoChiaro = last.Id; lookChanged(); }
-  if (target === "promo") look.promoMedia = last.Id;
+  if (target === "promo" && look.editingPromo && !isVideo(last)) { look.editingPromo.value.Immagine = last.Id; schedulePreview(); }
   renderLookTab();
-  if (target === "promo") renderPromoForm();
 });
 
 /* Aspetto */
@@ -1507,38 +1578,40 @@ function renderLogo() {
 $("logoselect").addEventListener("change", (event) => { look.draft.Logo = event.target.value || null; renderLogo(); lookChanged(); });
 $("logolightselect").addEventListener("change", (event) => { look.draft.LogoChiaro = event.target.value || null; renderLogo(); lookChanged(); });
 
-/* Promozioni */
-function promoActiveNow(p, now) {
-  now = now || new Date();
-  if (!p.Attiva) return false;
-  let day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const minutes = now.getHours() * 60 + now.getMinutes();
-  const toMinutes = (t) => { const m = /^(\d\d):(\d\d)$/.exec(t || ""); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
-  const from = toMinutes(p.Dalle), to = toMinutes(p.Alle);
-  if (from !== null && to !== null) {
-    if (from < to) { if (minutes < from || minutes >= to) return false; }
-    else if (minutes < to) day = new Date(day.getFullYear(), day.getMonth(), day.getDate() - 1);   // la sera prima
-    else if (minutes < from) return false;
-  }
-  const iso = day.getFullYear() + "-" + String(day.getMonth() + 1).padStart(2, "0") + "-" + String(day.getDate()).padStart(2, "0");
-  if (p.DalGiorno && iso < p.DalGiorno) return false;
-  if (p.AlGiorno && iso > p.AlGiorno) return false;
-  const weekday = day.getDay() === 0 ? 7 : day.getDay();
-  return !p.Giorni || !p.Giorni.length || p.Giorni.includes(weekday);
-}
+/* Promozioni: i set di reclame, la galleria delle promozioni, le foto e i video. Set e promozioni si salvano subito, da
+   soli: l'aspetto non ancora salvato resta in bozza. Cosa va in onda lo dice l'Agent (InOnda, StatoSet): qui non si
+   rifanno i conti degli orari. */
+const PLACES = [["attesa", "Attesa"], ["conto", "Accanto al conto"], ["grazie", "Grazie"]];
+const ORDERS = { elenco: "in ordine", casuale: "a caso", alfabetico: "per nome" };
+const STATE_BADGE = { "in onda": " on", "coperto": " warn", "vuoto": " warn" };
 
 function scheduleText(p) {
   const parts = [];
   if (p.Giorni && p.Giorni.length && p.Giorni.length < 7) parts.push(p.Giorni.map((d) => DAYS[d - 1]).join(", "));
   if (p.Dalle && p.Alle) parts.push("dalle " + p.Dalle + " alle " + p.Alle);
-  const date = (iso) => iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4);
-  if (p.DalGiorno && p.AlGiorno) parts.push("dal " + date(p.DalGiorno) + " al " + date(p.AlGiorno));
-  else if (p.DalGiorno) parts.push("dal " + date(p.DalGiorno));
-  else if (p.AlGiorno) parts.push("fino al " + date(p.AlGiorno));
+  if (p.DalGiorno && p.AlGiorno) parts.push("dal " + dateText(p.DalGiorno) + " al " + dateText(p.AlGiorno));
+  else if (p.DalGiorno) parts.push("dal " + dateText(p.DalGiorno));
+  else if (p.AlGiorno) parts.push("fino al " + dateText(p.AlGiorno));
   if (!parts.length) parts.push("sempre");
   parts.push(p.Casse && p.Casse.length ? p.Casse.map(cashName).join(", ") : "tutte le casse");
   return parts.join(" · ");
 }
+const dateText = (iso) => iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4);
+function isoToday() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function newId(prefix, list) {
+  let max = 0;
+  for (const item of list) {
+    const m = new RegExp("^" + prefix + "(\\d+)$").exec(item.Id || "");
+    if (m) max = Math.max(max, Number(m[1]));
+  }
+  return prefix + (max + 1);
+}
+function promoById(id) { return (look.draft.Promozioni || []).find((p) => p.Id === id); }
+function setsWith(id) { return (look.draft.Set || []).filter((x) => x.Elementi.some((e) => e.Id === id)); }
 
 function mediaThumb(media, className) {
   const thumb = el("div", { class: className || "thumb" });
@@ -1548,138 +1621,411 @@ function mediaThumb(media, className) {
   return thumb;
 }
 
-function renderPromos() {
-  const promos = look.draft.Promozioni || [];
-  $("promolist").replaceChildren(...(promos.length ? promos.map((p, i) => {
-    const media = mediaById(p.Media);
-    const where = [
-      p.NelleSlide ? "nelle slide" + (media && !isVideo(media) ? " per " + p.SecondiImmagine + " s" : "") : null,
-      p.NelConto ? "accanto al conto" : null,
-    ].filter(Boolean).join(" e ");
-    const now = !p.Attiva ? ["spenta", ""] : promoActiveNow(p) ? ["in onda", " on"] : ["fuori orario", " warn"];
-    return el("div", { class: "promoitem" + (p.Attiva ? "" : " off") },
-      mediaThumb(media),
-      el("div", { style: "min-width:0" },
-        el("div", { class: "row" }, el("b", {}, p.Nome), el("span", { class: "badge" + now[1] }, now[0])),
-        el("div", { class: "what" }, where || "—"),
-        el("div", { class: "what" }, scheduleText(p)),
-        p.NelConto && (p.Titolo || p.Testo) ? el("div", { class: "what faint" }, "«" + [p.Titolo, p.Testo].filter(Boolean).join(" — ") + "»") : null),
-      el("div", { class: "actions" },
-        el("button", { class: "btn small", type: "button", title: "Prima nella playlist", "aria-label": "Sposta prima", disabled: i === 0, onclick: () => movePromo(i, -1) }, "↑"), " ",
-        el("button", { class: "btn small", type: "button", title: "Dopo nella playlist", "aria-label": "Sposta dopo", disabled: i === promos.length - 1, onclick: () => movePromo(i, 1) }, "↓"), " ",
-        el("button", { class: "btn small", type: "button", onclick: () => togglePromo(i) }, p.Attiva ? "Spegni" : "Accendi"), " ",
-        el("button", { class: "btn small", type: "button", onclick: () => editPromo(i) }, "Modifica"), " ",
-        el("button", { class: "btn small danger", type: "button", onclick: () => deletePromo(i) }, "Elimina")));
-  }) : [el("p", { class: "faint", style: "margin:12px 0 0" }, "Nessuna promozione: nell'attesa lo schermo mostra il logo e il benvenuto.")]));
+/** La miniatura di un elemento di un set: la foto, il video, o la promozione (la sua immagine, o "QR", o le scritte). */
+function itemThumb(id, className) {
+  const media = mediaById(id);
+  if (media) return mediaThumb(media, className);
+  const promo = promoById(id);
+  const thumb = el("div", { class: className === undefined ? "thumb" : className });
+  if (!promo) { thumb.textContent = "?"; return thumb; }
+  if (promo.Immagine) thumb.style.backgroundImage = "url(\"" + mediaUrl(promo.Immagine) + "\")";
+  else thumb.style.background = "radial-gradient(ellipse 70% 70% at 20% 25%, rgba(31,111,235,.5), transparent 65%), #080b11";
+  thumb.textContent = promo.Qr ? "QR" : promo.Immagine ? "" : "Aa";
+  return thumb;
 }
 
-/** Cambia le promozioni e salva subito; se l'Agent rifiuta, la lista torna com'era. */
-async function changePromos(change, done) {
-  const before = JSON.stringify(look.draft.Promozioni);
-  change(look.draft.Promozioni);
-  const error = await saveLook();
-  if (error) { look.draft.Promozioni = JSON.parse(before); say("promomsg", error, "err"); renderPromos(); return false; }
-  say("promomsg", done, "ok");
-  renderLookTab();
+function kindText(id) {
+  const media = mediaById(id);
+  if (media) return isVideo(media) ? "video" : "foto";
+  const promo = promoById(id);
+  return promo ? (promo.Qr ? "promozione con QR" : "promozione") : "non c'è più";
+}
+function itemName(id) { const m = mediaById(id) || promoById(id); return m ? m.Nome : id; }
+
+/** Salva promozioni e set come sono in bozza, con l'aspetto salvato: le altre modifiche restano da salvare. */
+async function saveCollections() {
+  const body = JSON.parse(look.saved);
+  body.Promozioni = look.draft.Promozioni;
+  body.Set = look.draft.Set;
+  delete body.Media;
+  try { await api("PUT", "/api/bo/aspetto", body); }
+  catch (error) { return error.message; }
+  const data = await api("GET", "/api/bo/aspetto");
+  look.saved = JSON.stringify(data.Aspetto);
+  for (const key of ["Promozioni", "Set", "Media"]) look.draft[key] = data.Aspetto[key];
+  look.inOnda = data.InOnda;
+  look.statoSet = data.StatoSet;
+  return null;
+}
+
+/** Cambia set e promozioni e salva; se l'Agent rifiuta, tornano come prima e il motivo va in errorBox. */
+async function changeCollections(change, errorBox) {
+  const before = JSON.stringify([look.draft.Promozioni, look.draft.Set]);
+  change();
+  const error = await saveCollections();
+  if (error) {
+    [look.draft.Promozioni, look.draft.Set] = JSON.parse(before);
+    say(errorBox, error, "err");
+    renderPromotionsTab();
+    return false;
+  }
+  renderPromotionsTab();
   sayAll(isDirty() ? "Modifiche non salvate" : "", isDirty() ? "warn" : "");
   schedulePreview();
   return true;
 }
-function movePromo(i, delta) { changePromos((list) => { const [item] = list.splice(i, 1); list.splice(i + delta, 0, item); }, "Ordine salvato."); }
-function togglePromo(i) {
-  const p = look.draft.Promozioni[i];
-  changePromos((list) => { list[i].Attiva = !list[i].Attiva; }, p.Nome + (p.Attiva ? " spenta." : " accesa."));
+
+async function refreshOnAir() {
+  if (!look.draft || look.busy) return;
+  try {
+    const data = await api("GET", "/api/bo/aspetto");
+    look.inOnda = data.InOnda;
+    look.statoSet = data.StatoSet;
+    renderOnAir();
+    renderSets();
+  } catch (error) { /* riprova al giro dopo */ }
 }
-function deletePromo(i) {
-  const p = look.draft.Promozioni[i];
-  if (!confirm("Eliminare la promozione " + p.Nome + "? L'immagine resta tra i file.")) return;
-  changePromos((list) => { list.splice(i, 1); }, p.Nome + " eliminata.");
+
+function renderPromotionsTab() {
+  renderOnAir();
+  renderSets();
+  renderPromos();
+  renderGalleries();
+  if (look.editingSet) { renderSetItems(); if (!$("setpicker").hidden) renderPicker(); }
+  if (look.editingPromo) renderPromoForm();
+}
+
+function renderOnAir() {
+  const setName = (id) => { const x = (look.draft.Set || []).find((set) => set.Id === id); return x ? x.Nome : null; };
+  const rows = look.casse.map((c) => {
+    const on = (look.inOnda || {})[c.Id] || {};
+    return el("div", { class: "onairrow" }, look.casse.length > 1 ? el("b", {}, c.Nome) : null,
+      ...PLACES.map(([key, label]) => el("span", {}, el("span", { class: "faint" }, label + ": "),
+        setName(on[key]) || el("span", { class: "faint" }, key === "attesa" ? "il logo e il benvenuto" : key === "conto" ? "il locale" : "solo il saluto"))));
+  });
+  $("onair").replaceChildren(el("span", { class: "lbl" }, "In onda adesso"), ...rows);
+}
+
+function renderSets() {
+  const sets = look.draft.Set || [];
+  $("setlist").replaceChildren(...(sets.length ? sets.map((x, i) => {
+    const stateText = (look.statoSet || {})[x.Id] || (x.Attivo ? "" : "spento");
+    const places = PLACES.filter(([key]) => x.Dove.includes(key)).map(([, label]) => label);
+    const count = x.Elementi.length === 1 ? "1 elemento" : x.Elementi.length + " elementi";
+    const summary = [ORDERS[x.Ordine] || x.Ordine, x.QrDopo > 0 ? "un QR dopo ogni " + x.QrDopo : null, count, x.Secondi + " s"].filter(Boolean).join(" · ");
+    const strip = x.Elementi.slice(0, 4).map((e) => itemThumb(e.Id, ""));
+    return el("div", { class: "setitem" + (x.Attivo ? "" : " off") },
+      el("div", { class: "strip" }, ...(strip.length ? strip : [el("div", {}, "vuoto")])),
+      el("div", { style: "min-width:0" },
+        el("div", { class: "row" }, el("b", {}, x.Nome), stateText ? el("span", { class: "badge" + (STATE_BADGE[stateText] || "") }, stateText) : null),
+        el("div", { class: "what" }, places.join(", ") || "nessun posto"),
+        el("div", { class: "what" }, summary),
+        el("div", { class: "what faint" }, scheduleText(x))),
+      el("div", { class: "actions" },
+        el("button", { class: "btn small", type: "button", title: "Più in alto: vince sui set sotto", "aria-label": "Sposta su", disabled: i === 0, onclick: () => moveSet(i, -1) }, "↑"), " ",
+        el("button", { class: "btn small", type: "button", title: "Più in basso", "aria-label": "Sposta giù", disabled: i === sets.length - 1, onclick: () => moveSet(i, 1) }, "↓"), " ",
+        el("button", { class: "btn small", type: "button", onclick: () => toggleSet(i) }, x.Attivo ? "Spegni" : "Accendi"), " ",
+        el("button", { class: "btn small", type: "button", onclick: () => editSet(i) }, "Modifica"), " ",
+        el("button", { class: "btn small", type: "button", title: "Una copia da cambiare: lo stesso set per un altro giorno o orario", onclick: () => editSet(-1, x) }, "Duplica"), " ",
+        el("button", { class: "btn small danger", type: "button", onclick: () => deleteSet(i) }, "Elimina")));
+  }) : [el("p", { class: "faint", style: "margin:12px 0 0" }, "Nessun set: nell'attesa lo schermo mostra il logo e il benvenuto, accanto al conto il locale, nel Grazie solo il saluto.")]));
+}
+
+function moveSet(i, delta) {
+  changeCollections(() => { const [x] = look.draft.Set.splice(i, 1); look.draft.Set.splice(i + delta, 0, x); }, "setmsg").then((ok) => { if (ok) say("setmsg", "Ordine salvato: in alto vince.", "ok"); });
+}
+function toggleSet(i) {
+  const x = look.draft.Set[i];
+  changeCollections(() => { x.Attivo = !x.Attivo; }, "setmsg").then((ok) => { if (ok) say("setmsg", x.Nome + (x.Attivo ? " acceso." : " spento."), "ok"); });
+}
+function deleteSet(i) {
+  const x = look.draft.Set[i];
+  if (!confirm("Eliminare il set " + x.Nome + "? Foto, video e promozioni restano nelle gallerie.")) return;
+  changeCollections(() => { look.draft.Set.splice(i, 1); }, "setmsg").then((ok) => { if (ok) { say("setmsg", x.Nome + " eliminato.", "ok"); if (look.editingSet && look.editingSet.value.Id === x.Id) closeSetEditor(); } });
 }
 
 function chip(text, on, onclick) { return el("button", { type: "button", "aria-pressed": String(on), onclick }, text); }
-function toggleIn(set, value) { if (set.has(value)) set.delete(value); else set.add(value); }
+function toggleIn(list, value) { const i = list.indexOf(value); if (i >= 0) list.splice(i, 1); else list.push(value); }
+
+/** Apre il set (o uno nuovo, o la copia di copyFrom) su una copia: si salva con il pulsante, l'anteprima lo prova subito. */
+function editSet(index, copyFrom) {
+  closePromoEditor(true);
+  const base = index >= 0 ? look.draft.Set[index] : copyFrom;
+  const value = JSON.parse(JSON.stringify(base || {
+    Nome: "", Attivo: true, Dove: ["attesa"], Ordine: "elenco", QrDopo: 0, Secondi: 8, Elementi: [], Casse: [], Giorni: [],
+    Dalle: null, Alle: null, DalGiorno: null, AlGiorno: null,
+  }));
+  if (index < 0) {
+    value.Id = newId("set", look.draft.Set);
+    if (copyFrom) value.Nome = (copyFrom.Nome + " (copia)").slice(0, 40);
+  }
+  look.editingSet = { index, value };
+  const form = $("setform");
+  form.Nome.value = value.Nome;
+  form.Attivo.checked = value.Attivo;
+  form.Ordine.value = value.Ordine;
+  form.QrDopo.value = value.QrDopo;
+  form.Secondi.value = value.Secondi;
+  for (const key of ["Dalle", "Alle", "DalGiorno", "AlGiorno"]) form[key].value = value[key] || "";
+  $("setpicker").hidden = !!value.Elementi.length;
+  look.pickerTab = look.pickerTab || "foto";
+  renderSetForm();
+  $("setformtitle").textContent = index >= 0 ? "Modifica " + value.Nome : copyFrom ? "Copia di " + copyFrom.Nome : "Nuovo set";
+  $("setformcard").hidden = false;
+  say("setformmsg", "");
+  $("setformcard").scrollIntoView({ behavior: "smooth", block: "start" });
+  form.Nome.focus({ preventScroll: true });
+  // L'anteprima prova questo set, in uno dei suoi posti.
+  look.preview.prova = "set:" + value.Id;
+  renderPreviewControls();
+  schedulePreview(0);
+  followPlaces(value);
+}
+
+/** Se l'anteprima mostra un posto che non è del set, passa al primo dei suoi: si vede subito quello che si cambia. */
+function followPlaces(set) {
+  if (!set.Dove.length || set.Dove.includes(look.preview.fase)) return;
+  look.preview.fase = set.Dove[0];
+  renderPreviewControls();
+  sendDemo();
+}
+
+function closeSetEditor(quiet) {
+  if (!look.editingSet) return;
+  look.editingSet = null;
+  $("setformcard").hidden = true;
+  if (quiet) return;
+  look.preview.prova = "";
+  renderPreviewControls();
+  schedulePreview(0);
+}
+
+function renderSetForm() {
+  const v = look.editingSet.value;
+  $("setplaces").replaceChildren(...PLACES.map(([key, label]) => chip(label, v.Dove.includes(key), () => { toggleIn(v.Dove, key); renderSetForm(); schedulePreview(); followPlaces(v); })));
+  $("setcasse").replaceChildren(...look.casse.map((c) => chip(c.Nome, v.Casse.includes(c.Id), () => { toggleIn(v.Casse, c.Id); renderSetForm(); })));
+  $("setgiorni").replaceChildren(...DAYS.map((d, i) => chip(d, v.Giorni.includes(i + 1), () => { toggleIn(v.Giorni, i + 1); v.Giorni.sort((a, b) => a - b); renderSetForm(); })));
+  renderSetItems();
+  if (!$("setpicker").hidden) renderPicker();
+}
+
+function renderSetItems() {
+  const v = look.editingSet.value;
+  $("setcount").textContent = v.Elementi.length ? "· " + v.Elementi.length : "";
+  $("setitems").replaceChildren(...(v.Elementi.length ? v.Elementi.map((item, i) => {
+    const media = mediaById(item.Id);
+    let timing;
+    if (media && isVideo(media)) {
+      timing = el("span", { class: "kind" }, "dura quanto dura");
+    } else {
+      timing = el("input", { type: "number", min: "3", max: "120", placeholder: (v.Secondi || 8) + " s", value: item.Secondi == null ? "" : String(item.Secondi), title: "Secondi a video; vuoto = quelli del set", "aria-label": "Secondi a video" });
+      timing.addEventListener("input", () => { item.Secondi = timing.value === "" ? null : Number(timing.value); schedulePreview(); });
+    }
+    return el("div", { class: "setrow" },
+      itemThumb(item.Id),
+      el("div", { style: "min-width:0" }, el("div", {}, itemName(item.Id)), el("div", { class: "kind" }, kindText(item.Id))),
+      timing,
+      el("div", { class: "actions" },
+        el("button", { class: "btn small", type: "button", "aria-label": "Prima", disabled: i === 0, onclick: () => moveItem(i, -1) }, "↑"), " ",
+        el("button", { class: "btn small", type: "button", "aria-label": "Dopo", disabled: i === v.Elementi.length - 1, onclick: () => moveItem(i, 1) }, "↓"), " ",
+        el("button", { class: "btn small danger", type: "button", "aria-label": "Togli dal set", title: "Togli dal set", onclick: () => removeItem(i) }, "✕")));
+  }) : [el("p", { class: "faint", style: "margin:0" }, "Ancora niente: aggiungi foto, video e promozioni dalle gallerie.")]));
+}
+
+function moveItem(i, delta) {
+  const list = look.editingSet.value.Elementi;
+  const [item] = list.splice(i, 1);
+  list.splice(i + delta, 0, item);
+  renderSetItems();
+  schedulePreview();
+}
+function removeItem(i) {
+  look.editingSet.value.Elementi.splice(i, 1);
+  renderSetItems();
+  if (!$("setpicker").hidden) renderPicker();
+  schedulePreview();
+}
+
+function renderPicker() {
+  const tab = look.pickerTab || "foto";
+  const counts = new Map();
+  for (const e of look.editingSet.value.Elementi) counts.set(e.Id, (counts.get(e.Id) || 0) + 1);
+  $("pickertabs").replaceChildren(...[["foto", "Foto"], ["video", "Video"], ["promo", "Promozioni"]].map(([key, label]) => chip(label, tab === key, () => { look.pickerTab = key; renderPicker(); })));
+  const items = tab === "promo"
+    ? look.draft.Promozioni.map((p) => p.Id)
+    : (look.draft.Media || []).filter((m) => (tab === "video") === isVideo(m)).map((m) => m.Id);
+  $("pickergrid").replaceChildren(...(items.length ? items.map((id) => {
+    const n = counts.get(id) || 0;
+    return el("button", { type: "button", title: "Aggiungi in fondo al set", onclick: () => addItem(id) },
+      itemThumb(id), el("span", { class: "name" }, itemName(id)), n ? el("span", { class: "count" }, n === 1 ? "nel set" : "nel set " + n + " volte") : null);
+  }) : [el("p", { class: "faint", style: "margin:0" }, tab === "promo" ? "Nessuna promozione: si crea qui sotto, nella galleria." : "Niente da aggiungere: si carica qui sotto.")]));
+}
+
+function addItem(id) {
+  const v = look.editingSet.value;
+  const promo = promoById(id);
+  // Un QR ha bisogno di tempo: il cliente deve prendere il telefono e inquadrarlo.
+  v.Elementi.push({ Id: id, Secondi: promo && promo.Qr && (v.Secondi || 8) < 15 ? 15 : null });
+  renderSetItems();
+  renderPicker();
+  schedulePreview();
+}
+
+$("newset").addEventListener("click", () => editSet(-1));
+$("setadd").addEventListener("click", () => { $("setpicker").hidden = false; renderPicker(); });
+$("pickerclose").addEventListener("click", () => { $("setpicker").hidden = true; });
+$("setform").querySelector("[data-cancel]").addEventListener("click", () => closeSetEditor());
+for (const input of $("setform").querySelectorAll("input[name], select[name]")) {
+  input.addEventListener(input.type === "checkbox" || input.tagName === "SELECT" ? "change" : "input", () => {
+    if (!look.editingSet) return;
+    const v = look.editingSet.value;
+    if (input.type === "checkbox") v[input.name] = input.checked;
+    else if (input.type === "number") v[input.name] = input.value === "" ? 0 : Number(input.value);
+    else if (["Dalle", "Alle", "DalGiorno", "AlGiorno"].includes(input.name)) v[input.name] = input.value || null;
+    else v[input.name] = input.value;
+    if (input.name === "Secondi") renderSetItems();
+    schedulePreview();
+  });
+}
+$("setform").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const { index, value } = look.editingSet;
+  const set = JSON.parse(JSON.stringify(value));
+  set.Nome = set.Nome.trim();
+  if (!set.Dove.length) { say("setformmsg", "Scegli dove va: nell'attesa, accanto al conto o nel Grazie.", "err"); return; }
+  look.busy = true;
+  const ok = await changeCollections(() => { if (index >= 0) look.draft.Set[index] = set; else look.draft.Set.push(set); }, "setformmsg");
+  look.busy = false;
+  if (!ok) return;
+  closeSetEditor();
+  const stateText = (look.statoSet || {})[set.Id];
+  say("setmsg", set.Nome + " salvato" + (stateText === "in onda" ? ": è in onda, i display lo ricevono subito." : stateText ? " (" + stateText + ")." : "."), "ok");
+});
+
+/* La galleria delle promozioni */
+function renderPromos() {
+  const promos = look.draft.Promozioni || [];
+  const today = isoToday();
+  $("promolist").replaceChildren(...(promos.length ? promos.map((p, i) => {
+    const sets = setsWith(p.Id);
+    const face = el("div", { class: "face" + (p.Immagine ? " pic" : "") }, el("b", {}, p.Titolo || p.Testo || p.Nome), p.Qr ? el("span", { class: "qrmark" }, "QR") : null);
+    if (p.Immagine) face.style.backgroundImage = "url(\"" + mediaUrl(p.Immagine) + "\")";
+    const validity = p.AlGiorno && p.AlGiorno < today ? el("span", { class: "warn" }, "scaduta il " + dateText(p.AlGiorno))
+      : p.DalGiorno && p.DalGiorno > today ? el("span", {}, "dal " + dateText(p.DalGiorno) + (p.AlGiorno ? " al " + dateText(p.AlGiorno) : ""))
+      : p.AlGiorno ? el("span", {}, "fino al " + dateText(p.AlGiorno)) : null;
+    return el("div", { class: "promocard" }, face,
+      el("div", { class: "info" },
+        el("span", { class: "name" }, p.Nome),
+        p.Qr ? el("span", { class: "mono", title: p.Qr }, p.Qr.replace(/^https?:\/\//, "").slice(0, 48)) : null,
+        validity,
+        el("span", {}, sets.length ? "nei set: " + sets.map((x) => x.Nome).join(", ") : "in nessun set"),
+        el("div", { style: "margin-top:auto;padding-top:6px" },
+          el("button", { class: "btn small", type: "button", onclick: () => editPromo(i) }, "Modifica"), " ",
+          el("button", { class: "btn small danger", type: "button", onclick: () => deletePromo(i) }, "Elimina"))));
+  }) : [el("p", { class: "faint", style: "margin:0" }, "Nessuna promozione.")]));
+}
+
+function deletePromo(i) {
+  const p = look.draft.Promozioni[i];
+  const sets = setsWith(p.Id);
+  if (!confirm("Eliminare la promozione " + p.Nome + "?" + (sets.length ? " Esce anche dai set " + sets.map((x) => x.Nome).join(", ") + "." : "") + " L'immagine resta tra le foto.")) return;
+  changeCollections(() => {
+    look.draft.Promozioni.splice(i, 1);
+    for (const x of look.draft.Set) x.Elementi = x.Elementi.filter((e) => e.Id !== p.Id);
+  }, "promomsg").then((ok) => { if (ok) { say("promomsg", p.Nome + " eliminata.", "ok"); if (look.editingPromo && look.editingPromo.value.Id === p.Id) closePromoEditor(); } });
+}
 
 function editPromo(index) {
-  look.editingPromo = index;
-  const p = index >= 0 ? look.draft.Promozioni[index] : null;
-  const v = p || { Nome: "", Attiva: true, NelleSlide: true, NelConto: false, Media: null, SecondiImmagine: 7, Titolo: "", Testo: "", Casse: [], Giorni: [] };
+  closeSetEditor(true);
+  const base = index >= 0 ? look.draft.Promozioni[index] : null;
+  const value = JSON.parse(JSON.stringify(base || { Nome: "", Titolo: "", Testo: "", Immagine: null, Qr: null, QrDidascalia: "", DalGiorno: null, AlGiorno: null }));
+  if (index < 0) value.Id = newId("promo", look.draft.Promozioni);
+  look.editingPromo = { index, value };
   const form = $("promoform");
-  form.Nome.value = v.Nome;
-  form.Attiva.checked = v.Attiva;
-  form.NelleSlide.checked = v.NelleSlide;
-  form.NelConto.checked = v.NelConto;
-  form.SecondiImmagine.value = v.SecondiImmagine;
-  form.Titolo.value = v.Titolo || "";
-  form.Testo.value = v.Testo || "";
-  form.Dalle.value = v.Dalle || "";
-  form.Alle.value = v.Alle || "";
-  form.DalGiorno.value = v.DalGiorno || "";
-  form.AlGiorno.value = v.AlGiorno || "";
-  look.promoMedia = v.Media || null;
-  look.promoCasse = new Set(v.Casse || []);
-  look.promoGiorni = new Set(v.Giorni || []);
+  for (const key of ["Nome", "Titolo", "Testo", "QrDidascalia"]) form[key].value = value[key] || "";
+  form.Qr.value = value.Qr || "";
+  form.ConQr.checked = !!value.Qr;
+  form.DalGiorno.value = value.DalGiorno || "";
+  form.AlGiorno.value = value.AlGiorno || "";
   renderPromoForm();
-  $("promoformtitle").textContent = p ? "Modifica " + p.Nome : "Nuova promozione";
+  $("promoformtitle").textContent = base ? "Modifica " + base.Nome : "Nuova promozione";
   $("promoformcard").hidden = false;
   say("promoformmsg", "");
   $("promoformcard").scrollIntoView({ behavior: "smooth", block: "start" });
   form.Nome.focus({ preventScroll: true });
+  look.preview.prova = "promo:" + value.Id;
+  renderPreviewControls();
+  schedulePreview(0);
+}
+
+function closePromoEditor(quiet) {
+  if (!look.editingPromo) return;
+  look.editingPromo = null;
+  $("promoformcard").hidden = true;
+  if (quiet) return;
+  look.preview.prova = "";
+  renderPreviewControls();
+  schedulePreview(0);
 }
 
 function renderPromoForm() {
-  fillMediaSelect($("promomedia"), null, look.promoMedia, "Nessuna (solo la scheda accanto al conto)");
-  $("promocasse").replaceChildren(...look.casse.map((c) => chip(c.Nome, look.promoCasse.has(c.Id), () => { toggleIn(look.promoCasse, c.Id); renderPromoForm(); })));
-  $("promogiorni").replaceChildren(...DAYS.map((d, i) => chip(d, look.promoGiorni.has(i + 1), () => { toggleIn(look.promoGiorni, i + 1); renderPromoForm(); })));
-  document.querySelectorAll("[data-card]").forEach((n) => { n.hidden = !$("promoform").NelConto.checked; });
+  fillMediaSelect($("promoimage"), "image", look.editingPromo.value.Immagine, "Nessuna immagine");
+  const withQr = $("promoform").ConQr.checked;
+  document.querySelectorAll("[data-qr]").forEach((n) => { n.hidden = !withQr; });
 }
 
-$("promomedia").addEventListener("change", (event) => { look.promoMedia = event.target.value || null; });
-$("promoform").NelConto.addEventListener("change", renderPromoForm);
 $("newpromo").addEventListener("click", () => editPromo(-1));
-$("promoform").querySelector("[data-cancel]").addEventListener("click", () => { $("promoformcard").hidden = true; });
+$("promoform").querySelector("[data-cancel]").addEventListener("click", () => closePromoEditor());
+$("promoimage").addEventListener("change", (event) => { if (!look.editingPromo) return; look.editingPromo.value.Immagine = event.target.value || null; schedulePreview(); });
+for (const input of $("promoform").querySelectorAll("input[name], textarea[name]")) {
+  input.addEventListener(input.type === "checkbox" ? "change" : "input", () => {
+    if (!look.editingPromo) return;
+    const v = look.editingPromo.value;
+    const form = $("promoform");
+    if (input.name === "ConQr" || input.name === "Qr") { v.Qr = form.ConQr.checked ? form.Qr.value.trim() || null : null; renderPromoForm(); }
+    else if (input.name === "DalGiorno" || input.name === "AlGiorno") v[input.name] = input.value || null;
+    else v[input.name] = input.value;
+    schedulePreview();
+  });
+}
 $("promoform").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const form = event.target;
-  const index = look.editingPromo;
-  const promo = {
-    Id: index >= 0 ? look.draft.Promozioni[index].Id : "",
-    Nome: form.Nome.value.trim(), Attiva: form.Attiva.checked, NelleSlide: form.NelleSlide.checked, NelConto: form.NelConto.checked,
-    Media: look.promoMedia, SecondiImmagine: Number(form.SecondiImmagine.value) || 7, Titolo: form.Titolo.value, Testo: form.Testo.value,
-    Casse: [...look.promoCasse], Giorni: [...look.promoGiorni].sort((a, b) => a - b),
-    Dalle: form.Dalle.value || null, Alle: form.Alle.value || null, DalGiorno: form.DalGiorno.value || null, AlGiorno: form.AlGiorno.value || null,
-  };
-  const before = JSON.stringify(look.draft.Promozioni);
-  if (index >= 0) look.draft.Promozioni[index] = promo; else look.draft.Promozioni.push(promo);
-  const error = await saveLook();
-  if (error) { look.draft.Promozioni = JSON.parse(before); say("promoformmsg", error, "err"); return; }
-  $("promoformcard").hidden = true;
-  say("promomsg", promo.Nome + " salvata: i display la ricevono subito.", "ok");
-  renderLookTab();
-  sayAll(isDirty() ? "Modifiche non salvate" : "", isDirty() ? "warn" : "");
-  schedulePreview();
+  const { index, value } = look.editingPromo;
+  if (event.target.ConQr.checked && !value.Qr) { say("promoformmsg", "Scrivi l'indirizzo del QR, o togli il segno a «Con un QR».", "err"); return; }
+  const promo = JSON.parse(JSON.stringify(value));
+  look.busy = true;
+  const ok = await changeCollections(() => { if (index >= 0) look.draft.Promozioni[index] = promo; else look.draft.Promozioni.push(promo); }, "promoformmsg");
+  look.busy = false;
+  if (!ok) return;
+  closePromoEditor();
+  say("promomsg", promo.Nome + " salvata" + (setsWith(promo.Id).length ? ": i display la ricevono subito." : ". Ora mettila in un set, qui sopra."), "ok");
 });
 
+/* Le gallerie delle foto e dei video */
 function usedBy(id) {
   const used = [];
   if (look.draft.Logo === id) used.push("il logo");
   if (look.draft.LogoChiaro === id) used.push("il logo chiaro");
   if (look.draft.FondoMedia === id) used.push("lo sfondo");
-  for (const p of look.draft.Promozioni) if (p.Media === id) used.push(p.Nome);
+  for (const p of look.draft.Promozioni) if (p.Immagine === id) used.push(p.Nome);
+  for (const x of setsWith(id)) used.push("set " + x.Nome);
   return used;
 }
 
-function renderMedia() {
-  const items = look.draft.Media || [];
-  $("mediagrid").replaceChildren(...(items.length ? items.map((m) => {
-    const used = usedBy(m.Id);
-    const thumb = mediaThumb(m, "thumb");
-    return el("div", { class: "mediaitem" }, thumb,
-      el("div", { class: "info" },
-        el("b", {}, m.Nome),
-        el("span", {}, (isVideo(m) ? "video" : "immagine") + " · " + sizeText(m.Byte)),
-        el("span", {}, used.length ? "usato da: " + used.join(", ") : "non usato"),
-        el("div", { style: "margin-top:auto;padding-top:6px" }, el("button", { class: "btn small danger", type: "button", onclick: () => deleteMedia(m) }, "Elimina"))));
-  }) : [el("p", { class: "faint" }, "Ancora niente: carica le immagini e i video delle promozioni, il logo e, se vuoi, uno sfondo.")]));
+function renderGalleries() {
+  for (const [grid, video] of [["photogrid", false], ["videogrid", true]]) {
+    const items = (look.draft.Media || []).filter((m) => isVideo(m) === video);
+    $(grid).replaceChildren(...(items.length ? items.map((m) => {
+      const used = usedBy(m.Id);
+      return el("div", { class: "mediaitem" }, mediaThumb(m, "thumb"),
+        el("div", { class: "info" },
+          el("b", {}, m.Nome),
+          el("span", {}, sizeText(m.Byte)),
+          el("span", {}, used.length ? "usato da: " + used.join(", ") : "non usato"),
+          el("div", { style: "margin-top:auto;padding-top:6px" }, el("button", { class: "btn small danger", type: "button", onclick: () => deleteMedia(m) }, "Elimina"))));
+    }) : [el("p", { class: "faint", style: "margin:0" }, video ? "Nessun video." : "Nessuna foto: carica le foto delle slide e delle promozioni, il logo e, se vuoi, uno sfondo.")]));
+  }
+  for (const span of document.querySelectorAll("[data-limit]")) if (look.limits) span.textContent = look.limits[span.dataset.limit];
 }
 
 async function deleteMedia(m) {
@@ -1687,7 +2033,7 @@ async function deleteMedia(m) {
   try {
     await api("DELETE", "/api/bo/media/" + encodeURIComponent(m.Id));
     await refreshMediaList();
-    renderMedia();
+    renderGalleries();
     say("mediamsg", m.Nome + " eliminato.", "ok");
   } catch (error) { say("mediamsg", error.message, "err"); }
 }
@@ -1710,7 +2056,17 @@ function renderPreviewControls() {
   const source = $("previewsource");
   source.replaceChildren(el("option", { value: "demo" }, "Un conto di prova"), ...look.casse.map((c) => el("option", { value: c.Id }, "Dal vivo: " + c.Nome)));
   source.value = look.preview.fonte;
+  // Cosa provare: quello in onda adesso, un set qualunque (anche spento o fuori orario), quello che si sta modificando.
+  const options = [el("option", { value: "" }, "Quello in onda adesso")];
+  if (look.editingPromo) options.push(el("option", { value: "promo:" + look.editingPromo.value.Id }, "La promozione che stai modificando"));
+  if (look.editingSet && look.editingSet.index < 0) options.push(el("option", { value: "set:" + look.editingSet.value.Id }, "Il set che stai creando"));
+  for (const x of look.draft.Set || []) options.push(el("option", { value: "set:" + x.Id }, "Il set " + x.Nome + (look.editingSet && look.editingSet.value.Id === x.Id ? " (in modifica)" : "")));
+  const prova = $("previewtry");
+  prova.replaceChildren(...options);
+  if (!options.some((o) => o.value === look.preview.prova)) look.preview.prova = "";
+  prova.value = look.preview.prova;
 }
+$("previewtry").addEventListener("change", (event) => { look.preview.prova = event.target.value; schedulePreview(0); });
 
 $("previewsource").addEventListener("change", (event) => { look.preview.fonte = event.target.value; renderPreviewControls(); loadPreviewFrame(); });
 
@@ -1746,14 +2102,27 @@ function schedulePreview(delay) {
   look.timer = setTimeout(sendPreview, delay === undefined ? 250 : delay);
 }
 
-async function sendPreview() {
-  if (!look.frameReady) return;
+/** La bozza dell'anteprima: com'è, più il set o la promozione aperti nel modulo, anche non salvati. */
+function previewDraft() {
   const body = JSON.parse(JSON.stringify(look.draft));
   delete body.Media;
+  const put = (list, value) => { const i = list.findIndex((x) => x.Id === value.Id); if (i >= 0) list[i] = value; else list.push(value); };
+  if (look.editingSet) put(body.Set, look.editingSet.value);
+  if (look.editingPromo) put(body.Promozioni, look.editingPromo.value);
+  return body;
+}
+
+async function sendPreview() {
+  if (!look.frameReady) return;
   const cash = look.preview.fonte !== "demo" ? look.preview.fonte : ((look.casse[0] || {}).Id || "");
+  const [kind, id] = (look.preview.prova || ":").split(":");
+  const query = "?cassa=" + encodeURIComponent(cash) + (kind === "set" ? "&set=" + encodeURIComponent(id) : kind === "promo" ? "&promo=" + encodeURIComponent(id) : "");
   let data;
-  try { data = await api("POST", "/api/bo/aspetto/anteprima?tutte=1&cassa=" + encodeURIComponent(cash), body); }
+  try { data = await api("POST", "/api/bo/aspetto/anteprima" + query, previewDraft()); }
   catch (error) { $("previewproblems").replaceChildren(el("div", {}, error.message)); return; }
+  const onAir = data.inOnda || {};
+  $("previewonair").textContent = kind === "promo" ? "La promozione da sola: nell'attesa, accanto al conto e nel Grazie."
+    : "In onda: " + PLACES.map(([key, label]) => label.toLowerCase() + " " + (onAir[key] ? "«" + onAir[key] + "»" : "niente")).join(" · ") + ".";
   look.demoQr = data.anteprimaQr;
   $("previewframe").contentWindow.postMessage(data.cfg, location.origin);
   if (!look.demoStarted) { look.demoStarted = true; sendDemo(); }

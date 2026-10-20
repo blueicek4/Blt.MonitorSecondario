@@ -170,19 +170,21 @@ dell'Agent c'è `"AltreOrigini": ["http://localhost:5173"]` e se il browser è s
 
 **Il messaggio `cfg` (aspetto dal back office, dal 20/10).** Il pannello del locale è nel back office dell'Agent
 (schede Aspetto e Promozioni, [agent/README.md](../agent/README.md#aspetto-e-promozioni)). L'Agent manda `cfg` a ogni
-display **al collegamento, prima del `sync`**, a ogni modifica salvata e quando una promozione entra o esce dal suo
-orario: già scelto per la cassa del display, il giorno e l'ora. Oltre a `theme`, `ads` e `ticker` di `protocol.ts`:
+display **al collegamento, prima del `sync`**, a ogni modifica salvata e quando un set di reclame entra o esce dal suo
+orario: già scelto per la cassa del display, il giorno e l'ora. Oltre a `theme`, `ads` e `ticker` di `protocol.ts`
+(i nomi e le playlist dal 20/10 sera: le gallerie e i set di reclame, [agent/README.md](../agent/README.md#aspetto-e-promozioni)):
 
 | Campo | Cosa porta | Cosa fa il display |
 |---|---|---|
 | `theme` | `ThemeTokens` sempre completi. Con `mode: 'auto'` i colori sono quelli della notte del tema (`presetConfig`), con giorno o notte fissi quelli del locale, già controllati dal back office con `contrastProblems` | `ThemeConfig = { preset, tokens: theme }` e `resolveTheme` come ora (§7) |
 | `preset` | Il tema di partenza, `ThemeId`: è la decisione M1 del §7, che i soli token non dicevano | Vedi sopra |
 | `dayHours` | `{ start, end }` in ore con i decimali (7,5 = 07:30) | `modeAt(date, dayHours)` |
-| `ads` | Le `AdSlide` della cassa, nell'ordine del back office: immagini con `durationMs`, video senza. `src` è `/media/<impronta>.<ext>` dell'Agent: solo ai dispositivi autorizzati (il cookie della stessa origine), contenuto che non cambia mai a parità di nome | La playlist dell'attesa (SPEC §2.1) |
+| `playlists` | `{ idle, sale, thanks }`: le tre playlist dei set di reclame, già scelte (per ogni posto il primo set dell'elenco che vale per la cassa adesso) e già in fila (in ordine, per nome o a caso con un seme fisso, con le promozioni con il QR a intervalli). Ogni elemento è `{ id, kind: 'image' \| 'video' \| 'promo', src?, durationMs? }`: `src` per foto e video (`/media/<impronta>.<ext>` dell'Agent: solo ai dispositivi autorizzati, contenuto che non cambia mai a parità di nome), `durationMs` per foto e promozioni; i video durano quanto durano. Una playlist casuale arriva a 300 elementi | `idle`: le slide dell'attesa a tutto schermo, ripetute (SPEC §2.1); una promozione è una slide composta: foto velata o fondo scuro, titolo, testo, il QR a destra. `sale`: la scheda accanto al conto, a rotazione con i suoi tempi, che al conto dopo riparte da dove era (niente colonna su `narrow` e sul palmare). `thanks`: un elemento per cliente, sotto il saluto e il totale, che salgono |
+| `promoCards` | `{ [id]: { title, text, image?, qr?: { png, caption } } }`: le promozioni delle playlist, una volta sola anche se tornano tante volte. Il PNG del QR come quello di Satispay: un pixel per modulo, senza quiet zone | Le schede dei `kind: 'promo'`. Dove la colonna è stretta (`narrow`, verticale, palmare) con il QR la foto resta fuori |
+| `ads` | Le sole foto e video di `playlists.idle`, come `AdSlide` di `protocol.ts` | Per un display che non conosce ancora `playlists` |
 | `venue` | `{ name, tagline, logo?, logoLight? }`: `logo` per i fondi scuri e sopra le slide, `logoLight` (facoltativo) per i fondi chiari dei temi di giorno, dove un logo chiaro non si vedrebbe. `name` vuoto se il logo ha già il nome | Il logo del locale in alto (SPEC §2.1) e nella testata del conto |
 | `texts` | `{ welcome, receipt, thanks }`: il benvenuto (attesa senza slide), l'etichetta del conto ("Il tuo conto"), il saluto del Grazie | Al posto dei testi fissi |
-| `promos` | `[{ id, title, text, image? }]`: le schede della colonna laterale durante il conto (SPEC §2.2, "promozione del locale"); `image` è un'immagine 16:9 | Una per conto, a rotazione. Sui formati `narrow` e sul palmare niente colonna: le promozioni stanno nelle slide |
-| `thanks` | `{ png, title, caption, seconds }`, solo se il locale l'ha attivato: la proposta del §9, fatta, con `title` in più (il prototipo S5 ha "Com'è andata?" sopra la didascalia) | `QrStage` nel Grazie; Grazie fino al conto dopo, al massimo `seconds` |
+| `thanksSeconds` | Quanto resta al massimo il Grazie con una promozione con il QR: 10-120, default 30 | Grazie fino al conto dopo, al massimo così; senza QR 8 s. Il QR dello scontrino digitale (`receipt.qr`) ha la precedenza sulla reclame |
 | `pricesOnlyOnBill` | L'opzione "prezzi solo sul conto" (`ShowPricesDuringOrder=false` della 6.0) | Niente importi né totale finché `bill` è falso, come detto per `sale.total.bill` |
 
 I font del design sono anche dentro l'Agent, a `/fonts/` (con `/fonts/fonts.css`): se la build del display ha i suoi
@@ -221,7 +223,8 @@ la partita IVA).
   resta almeno 3 minuti, perché il cliente lo sta usando. Con i 20 s del vecchio monitor il totale sarebbe sparito mentre
   il cliente pagava in 6 conti su 9.
 - **QR di ringraziamento impostabile dal pannello** (Fase 4): recensioni Google, registrazione cliente/fidelity, menu
-  digitale o un indirizzo qualunque, con la didascalia. La SPEC §2.5 lo prevedeva già ("QR opzionale a destra"), ma
+  digitale o un indirizzo qualunque, con la didascalia. **Dal 20/10 sera** è una promozione con il QR nel set del
+  Grazie (§8, `playlists.thanks` e `thanksSeconds`): il Grazie può anche mostrare a rotazione promozioni e foto. La SPEC §2.5 lo prevedeva già ("QR opzionale a destra"), ma
   nessun campo del protocollo lo portava. Proposta (**fatta il 20/10** nell'Agent, con `title` in più: §8):
   - nel messaggio `cfg`: `thanks?: { png: string; caption: string; seconds?: number }`. Il pannello salva l'indirizzo,
     l'**Agent genera il PNG** (un pixel per modulo, senza quiet zone, come quello di Satispay): il display lo mostra con

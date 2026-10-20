@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Bluetech.Display.Agent.Aspetto;
 
@@ -6,41 +8,62 @@ namespace Bluetech.Display.Agent.Impostazioni;
 
 public sealed partial class AgentSettings
 {
-    /// <summary>Come appare lo schermo del cliente: logo, tema, scritte, QR del Grazie, promozioni.</summary>
+    /// <summary>Come appare lo schermo del cliente: logo, tema, scritte, le gallerie e i set di reclame.</summary>
     public AppearanceSettings Aspetto { get; set; } = new();
 
     public MediaItem? Media(string? id) => id == null ? null : Aspetto.Media.Find(m => m.Id == id);
+    public PromoConfig? Promo(string? id) => id == null ? null : Aspetto.Promozioni.Find(p => p.Id == id);
 
     void RepairAppearance(List<string> notes)
     {
         Aspetto ??= new AppearanceSettings();
         var a = Aspetto;
-        a.QrGrazie ??= new ThanksQrSettings();
         a.Promozioni ??= [];
+        a.Set ??= [];
         a.Media ??= [];
         a.Promozioni.RemoveAll(p => p == null);
+        a.Set.RemoveAll(s => s == null);
         a.Media.RemoveAll(m => m == null);
-        var seen = new HashSet<string>();
+        FixIds(a.Promozioni, "promo", p => p.Id, (p, id) => p.Id = id, notes);
+        MigrateFirstVersion(notes);
+        FixIds(a.Set, "set", s => s.Id, (s, id) => s.Id = id, notes);
         foreach (var promo in a.Promozioni)
         {
-            if (string.IsNullOrWhiteSpace(promo.Id) || !IdPattern().IsMatch(promo.Id) || !seen.Add(promo.Id))
+            promo.Vecchio = null;
+            promo.Nome ??= "";
+            promo.Titolo ??= "";
+            promo.Testo ??= "";
+            promo.QrDidascalia ??= "";
+            if (promo.Immagine != null && Media(promo.Immagine) == null)
             {
-                var fresh = NextId("promo", a.Promozioni.Select(p => p.Id).Where(i => i != null).Concat(seen));
-                notes.Add($"id \"{promo.Id}\" sostituito con {fresh}");
-                promo.Id = fresh;
-                seen.Add(fresh);
+                notes.Add($"{promo.Nome}: l'immagine {promo.Immagine} non c'è più");
+                promo.Immagine = null;
             }
-            promo.Casse ??= [];
-            promo.Giorni ??= [];
-            foreach (var missing in promo.Casse.Where(c => CashPoint(c) == null).ToList())
+        }
+        foreach (var set in a.Set)
+        {
+            set.Nome ??= "";
+            set.Ordine ??= "elenco";
+            set.Dove ??= [];
+            set.Elementi ??= [];
+            set.Casse ??= [];
+            set.Giorni ??= [];
+            set.Elementi.RemoveAll(e => e == null);
+            var stale = set.Casse.Where(c => CashPoint(c) == null).ToList();
+            foreach (var missing in stale)
             {
-                notes.Add($"{promo.Nome}: la cassa {missing} non c'è più");
-                promo.Casse.Remove(missing);
+                notes.Add($"{set.Nome}: la cassa {missing} non c'è più");
+                set.Casse.Remove(missing);
             }
-            if (promo.Media != null && Media(promo.Media) == null)
+            if (stale.Count > 0 && set.Casse.Count == 0 && set.Attivo)
             {
-                notes.Add($"{promo.Nome}: l'immagine {promo.Media} non c'è più");
-                promo.Media = null;
+                set.Attivo = false;   // era solo per casse che non ci sono più: non deve passare a tutte
+                notes.Add($"{set.Nome}: spento, le sue casse non ci sono più");
+            }
+            foreach (var gone in set.Elementi.Where(e => Media(e.Id) == null && Promo(e.Id) == null).ToList())
+            {
+                notes.Add($"{set.Nome}: {gone.Id} non c'è più");
+                set.Elementi.Remove(gone);
             }
         }
         if (a.Logo != null && Media(a.Logo) == null)
@@ -58,6 +81,74 @@ public sealed partial class AgentSettings
             notes.Add($"lo sfondo {a.FondoMedia} non c'è più");
             a.FondoMedia = null;
         }
+    }
+
+    static readonly string[] FirstVersionKeys = ["NelleSlide", "NelConto", "SecondiImmagine", "Media"];
+
+    /// <summary>
+    /// La prima versione aveva promozioni con i loro posti (nelle slide, accanto al conto), l'immagine o il video e
+    /// l'orario, e il QR del Grazie a parte. Diventano la galleria delle promozioni e i set Attesa, Accanto al conto e
+    /// Grazie, nello stesso ordine. Casse, giorni e orari di ogni promozione non si portano: ora sono del set.
+    /// </summary>
+    void MigrateFirstVersion(List<string> notes)
+    {
+        var a = Aspetto;
+        var thanks = a.QrGrazie;
+        a.QrGrazie = null;
+        var old = a.Promozioni.Where(p => p.Vecchio is { } v && v.Keys.Any(k => FirstVersionKeys.Contains(k, StringComparer.OrdinalIgnoreCase))).ToList();
+        var thanksUrl = thanks?.Indirizzo?.Trim();
+        if (old.Count == 0 && string.IsNullOrEmpty(thanksUrl))
+            return;
+
+        var idle = new AdSetConfig { Nome = "Attesa", Dove = ["attesa"] };
+        var sale = new AdSetConfig { Nome = "Accanto al conto", Dove = ["conto"] };
+        var scheduled = false;
+        foreach (var promo in old)
+        {
+            var v = new Dictionary<string, JsonElement>(promo.Vecchio!, StringComparer.OrdinalIgnoreCase);
+            bool Flag(string key, bool fallback) => v.TryGetValue(key, out var e) && e.ValueKind is JsonValueKind.True or JsonValueKind.False ? e.GetBoolean() : fallback;
+            var media = v.TryGetValue("Media", out var m) && m.ValueKind == JsonValueKind.String ? Media(m.GetString()) : null;
+            var seconds = v.TryGetValue("SecondiImmagine", out var s) && s.ValueKind == JsonValueKind.Number && s.TryGetInt32(out var n) ? n : 7;
+            scheduled |= new[] { "Casse", "Giorni" }.Any(k => v.TryGetValue(k, out var list) && list.ValueKind == JsonValueKind.Array && list.GetArrayLength() > 0)
+                || new[] { "Dalle", "Alle" }.Any(k => v.TryGetValue(k, out var time) && time.ValueKind == JsonValueKind.String);
+            if (media is { IsVideo: false })
+                promo.Immagine = media.Id;
+            var words = !string.IsNullOrWhiteSpace(promo.Titolo) || !string.IsNullOrWhiteSpace(promo.Testo);
+            if (!Flag("Attiva", true))
+                continue;
+            if (Flag("NelleSlide", true) && media != null)
+                idle.Elementi.Add(new AdItemConfig { Id = media.Id, Secondi = media.IsVideo ? null : Math.Clamp(seconds, 3, 120) });
+            if (Flag("NelConto", false) && (words || promo.Immagine != null))
+                sale.Elementi.Add(new AdItemConfig { Id = words ? promo.Id : promo.Immagine! });
+        }
+        // Senza titolo né testo una promozione era solo la sua slide: ora è la foto o il video nel set.
+        a.Promozioni.RemoveAll(p => old.Contains(p) && string.IsNullOrWhiteSpace(p.Titolo) && string.IsNullOrWhiteSpace(p.Testo));
+
+        var sets = new List<AdSetConfig> { idle, sale };
+        if (!string.IsNullOrEmpty(thanksUrl))
+        {
+            var qr = new PromoConfig
+            {
+                Id = NextId("promo", a.Promozioni.Select(p => p.Id)),
+                Nome = "QR dopo il pagamento",
+                Titolo = thanks!.Titolo?.Trim() ?? "",
+                Qr = thanksUrl,
+                QrDidascalia = thanks.Didascalia?.Trim() ?? "",
+            };
+            a.Promozioni.Add(qr);
+            sets.Add(new AdSetConfig { Nome = "Grazie", Dove = ["grazie"], Attivo = thanks.Attivo, Elementi = [new AdItemConfig { Id = qr.Id }] });
+            a.SecondiGrazie = Math.Clamp(thanks.Secondi, 10, 120);
+        }
+        var made = new List<string>();
+        foreach (var set in sets.Where(x => x.Elementi.Count > 0))
+        {
+            set.Id = NextId("set", a.Set.Select(x => x.Id));
+            a.Set.Add(set);
+            made.Add(set.Nome);
+        }
+        notes.Add("le promozioni della prima versione sono nella galleria"
+            + (made.Count > 0 ? $" e nei set {string.Join(", ", made)}" : "")
+            + (scheduled ? "; casse, giorni e orari ora si scelgono sul set: controllali dal back office" : ""));
     }
 
     /// <summary>I colori del locale, se ci sono e se valgono (con l'automatico valgono quelli del tema, come nel design).</summary>
@@ -132,44 +223,61 @@ public sealed partial class AgentSettings
                 yield return $"Aspetto: {label} è troppo lungo (al massimo {max} caratteri).";
         }
 
-        var thanks = a.QrGrazie;
-        if (thanks.Attivo && !(Uri.TryCreate(thanks.Indirizzo?.Trim(), UriKind.Absolute, out var url) && url.Scheme is "https" or "http"))
-            yield return "Aspetto, Grazie: l'indirizzo del QR è come https://… (recensioni, fidelity, menu digitale).";
-        if ((thanks.Indirizzo?.Length ?? 0) > 400)
-            yield return "Aspetto, Grazie: l'indirizzo del QR è troppo lungo (al massimo 400 caratteri).";
-        if ((thanks.Titolo?.Length ?? 0) > 40 || (thanks.Didascalia?.Length ?? 0) > 120)
-            yield return "Aspetto, Grazie: il titolo del QR arriva a 40 caratteri, la didascalia a 120.";
-        if (thanks.Secondi is < 10 or > 120)
-            yield return "Aspetto, Grazie: con il QR il Grazie resta tra 10 e 120 secondi.";
+        if (a.SecondiGrazie is < 10 or > 120)
+            yield return "Aspetto: con un QR il Grazie resta tra 10 e 120 secondi.";
 
-        if (a.Promozioni.Count > 50)
-            yield return "Al massimo 50 promozioni.";
+        if (a.Promozioni.Count > 200)
+            yield return "Al massimo 200 promozioni.";
         foreach (var promo in a.Promozioni)
         {
             if (Name(promo.Nome, "La promozione") is { } error)
                 yield return error;
-            var media = Media(promo.Media);
-            if (promo.Media != null && media == null)
-                yield return $"{promo.Nome}: l'immagine o il video non c'è più.";
-            if (!promo.NelleSlide && !promo.NelConto)
-                yield return $"{promo.Nome}: scegli dove mostrarla, nelle slide dell'attesa o accanto al conto.";
-            if (promo.NelleSlide && media == null)
-                yield return $"{promo.Nome}: nelle slide dell'attesa serve un'immagine o un video.";
-            if (promo.NelConto && string.IsNullOrWhiteSpace(promo.Titolo) && string.IsNullOrWhiteSpace(promo.Testo) && media is not { IsVideo: false })
-                yield return $"{promo.Nome}: accanto al conto servono un titolo, un testo o un'immagine.";
-            if (promo.SecondiImmagine is < 3 or > 60)
-                yield return $"{promo.Nome}: un'immagine resta tra 3 e 60 secondi.";
-            if ((promo.Titolo?.Length ?? 0) > 60 || (promo.Testo?.Length ?? 0) > 200)
-                yield return $"{promo.Nome}: il titolo arriva a 60 caratteri, il testo a 200.";
-            foreach (var cash in promo.Casse.Where(c => CashPoint(c) == null))
-                yield return $"{promo.Nome}: la cassa {cash} non c'è.";
-            if (promo.Giorni.Any(d => d is < 1 or > 7))
-                yield return $"{promo.Nome}: i giorni vanno da 1 (lunedì) a 7 (domenica).";
-            if ((promo.Dalle == null) != (promo.Alle == null)
-                || (promo.Dalle != null && !(ParseTime(promo.Dalle) is { } from && ParseTime(promo.Alle) is { } to && from != to)))
-                yield return $"{promo.Nome}: gli orari sono come 18:00 e 20:00 (anche 22:00 e 02:00, a cavallo della mezzanotte).";
+            var what = $"La promozione {promo.Nome}";
+            var image = Media(promo.Immagine);
+            if (promo.Immagine != null && image == null)
+                yield return $"{what}: l'immagine non c'è più.";
+            else if (image is { IsVideo: true })
+                yield return $"{what}: ha un'immagine, non un video (il video si mette direttamente nel set).";
+            if (!promo.HasContent)
+                yield return $"{what}: scrivi un titolo o un testo, o scegli un'immagine o un QR.";
+            if (promo.HasQr && !(Uri.TryCreate(promo.Qr!.Trim(), UriKind.Absolute, out var url) && url.Scheme is "https" or "http"))
+                yield return $"{what}: l'indirizzo del QR è come https://… (registrazione, recensioni, menu digitale).";
+            if ((promo.Qr?.Length ?? 0) > 400)
+                yield return $"{what}: l'indirizzo del QR è troppo lungo (al massimo 400 caratteri).";
+            if ((promo.Titolo?.Length ?? 0) > 60 || (promo.Testo?.Length ?? 0) > 200 || (promo.QrDidascalia?.Length ?? 0) > 120)
+                yield return $"{what}: il titolo arriva a 60 caratteri, il testo a 200, la scritta del QR a 120.";
             if (promo.DalGiorno > promo.AlGiorno)
-                yield return $"{promo.Nome}: l'ultimo giorno viene prima del primo.";
+                yield return $"{what}: l'ultimo giorno viene prima del primo.";
+        }
+
+        if (a.Set.Count > 30)
+            yield return "Al massimo 30 set.";
+        foreach (var set in a.Set)
+        {
+            if (Name(set.Nome, "Il set") is { } error)
+                yield return error;
+            var what = $"Il set {set.Nome}";
+            if (set.Dove.Count == 0 || set.Dove.Any(d => !AdSetConfig.Places.Contains(d)))
+                yield return $"{what}: scegli dove va, nell'attesa, accanto al conto o nel Grazie.";
+            if (!AdSetConfig.Orders.Contains(set.Ordine))
+                yield return $"{what}: l'ordine è elenco, casuale o alfabetico.";
+            if (set.QrDopo is < 0 or > 20)
+                yield return $"{what}: una promozione con il QR dopo 1-20 elementi (0 = come le altre).";
+            if (set.Secondi is < 3 or > 120 || set.Elementi.Any(e => e.Secondi is < 3 or > 120))
+                yield return $"{what}: una foto o una promozione resta tra 3 e 120 secondi.";
+            if (set.Elementi.Count > 100)
+                yield return $"{what}: al massimo 100 elementi.";
+            foreach (var item in set.Elementi.Where(e => Media(e.Id) == null && Promo(e.Id) == null))
+                yield return $"{what}: un elemento non c'è più ({item.Id}).";
+            foreach (var cash in set.Casse.Where(c => CashPoint(c) == null))
+                yield return $"{what}: la cassa {cash} non c'è.";
+            if (set.Giorni.Any(d => d is < 1 or > 7))
+                yield return $"{what}: i giorni vanno da 1 (lunedì) a 7 (domenica).";
+            if ((set.Dalle == null) != (set.Alle == null)
+                || (set.Dalle != null && !(ParseTime(set.Dalle) is { } from && ParseTime(set.Alle) is { } to && from != to)))
+                yield return $"{what}: gli orari sono come 18:00 e 20:00 (anche 22:00 e 02:00, a cavallo della mezzanotte).";
+            if (set.DalGiorno > set.AlGiorno)
+                yield return $"{what}: l'ultimo giorno viene prima del primo.";
         }
 
         if (a.Media.Count > 500)
@@ -258,13 +366,21 @@ public sealed class AppearanceSettings
     public string TitoloConto { get; set; } = "Il tuo conto";
     public string Grazie { get; set; } = "Grazie e arrivederci";
 
-    public ThanksQrSettings QrGrazie { get; set; } = new();
+    /// <summary>Con una promozione con il QR nel Grazie, il Grazie resta fino al conto dopo, al massimo così (senza QR 8 s).</summary>
+    public int SecondiGrazie { get; set; } = 30;
 
-    /// <summary>In quest'ordine nelle slide dell'attesa.</summary>
-    public List<PromotionConfig> Promozioni { get; set; } = [];
+    /// <summary>La galleria delle promozioni: si mettono nei set.</summary>
+    public List<PromoConfig> Promozioni { get; set; } = [];
 
-    /// <summary>Immagini e video caricati dal back office, in dati\media.</summary>
+    /// <summary>I set di reclame, in ordine: per ogni posto va in onda il primo che vale in quel momento.</summary>
+    public List<AdSetConfig> Set { get; set; } = [];
+
+    /// <summary>Le foto e i video caricati dal back office (le due gallerie, il logo, lo sfondo), in dati\media.</summary>
     public List<MediaItem> Media { get; set; } = [];
+
+    /// <summary>Il QR del Grazie della prima versione: si legge solo per portarlo in una promozione e nel set Grazie.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ThanksQrSettings? QrGrazie { get; set; }
 }
 
 /// <summary>Gli otto colori dei token del design, con i nomi del back office.</summary>
@@ -282,32 +398,73 @@ public sealed class ThemeColorSettings
     public string Secondario { get; set; } = "";
 }
 
-/// <summary>Il QR dello stato Grazie: recensioni, fidelity, menu digitale. Il PNG lo fa l'Agent.</summary>
+/// <summary>Il QR del Grazie della prima versione, ora una promozione nel set Grazie.</summary>
 public sealed class ThanksQrSettings
 {
     public bool Attivo { get; set; }
     public string Indirizzo { get; set; } = "";
-    public string Titolo { get; set; } = "Com'è andata?";
-    public string Didascalia { get; set; } = "Lasciaci una recensione: inquadra il QR";
-    /// <summary>Con il QR il Grazie resta fino al conto dopo, al massimo così (senza QR 8 s).</summary>
+    public string Titolo { get; set; } = "";
+    public string Didascalia { get; set; } = "";
     public int Secondi { get; set; } = 30;
 }
 
-/// <summary>Una promozione: una slide dell'attesa, una scheda accanto al conto, o tutte e due.</summary>
-public sealed class PromotionConfig
+/// <summary>
+/// Una promozione della galleria: un titolo, un testo, un'immagine e un QR (registrazione cliente, recensioni, menu
+/// digitale), tutti facoltativi ma almeno uno. Va in onda nei set che la contengono.
+/// </summary>
+public sealed class PromoConfig
 {
     public string Id { get; set; } = "";
+    /// <summary>Per il back office, non si vede sullo schermo.</summary>
     public string Nome { get; set; } = "";
-    public bool Attiva { get; set; } = true;
-    public bool NelleSlide { get; set; } = true;
-    public bool NelConto { get; set; }
-    /// <summary>Immagine o video di <see cref="AppearanceSettings.Media"/>.</summary>
-    public string? Media { get; set; }
-    /// <summary>Quanto resta un'immagine nelle slide (un video dura quanto dura).</summary>
-    public int SecondiImmagine { get; set; } = 7;
-    /// <summary>La scheda accanto al conto.</summary>
     public string Titolo { get; set; } = "";
     public string Testo { get; set; } = "";
+    /// <summary>Un'immagine di <see cref="AppearanceSettings.Media"/>, 16:9 come le slide.</summary>
+    public string? Immagine { get; set; }
+    /// <summary>L'indirizzo del QR; il PNG lo fa l'Agent. Null = senza QR.</summary>
+    public string? Qr { get; set; }
+    /// <summary>Sotto il QR: "Inquadra e registrati".</summary>
+    public string QrDidascalia { get; set; } = "";
+    /// <summary>Fuori da queste date la promozione non va in onda, in nessun set.</summary>
+    public DateOnly? DalGiorno { get; set; }
+    public DateOnly? AlGiorno { get; set; }
+
+    /// <summary>I campi della prima versione (posti, immagine o video, orari), solo per portarli nei set.</summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? Vecchio { get; set; }
+
+    [JsonIgnore]
+    public bool HasQr => !string.IsNullOrWhiteSpace(Qr);
+
+    [JsonIgnore]
+    public bool HasContent => !string.IsNullOrWhiteSpace(Titolo) || !string.IsNullOrWhiteSpace(Testo) || Immagine != null || HasQr;
+}
+
+/// <summary>
+/// Un set di reclame: foto, video e promozioni delle gallerie, in un ordine, per l'attesa (le slide a tutto schermo),
+/// accanto al conto o nel Grazie, per alcune casse, giorni, orari e date. Per ogni posto va in onda il primo set
+/// dell'elenco che vale in quel momento: in alto quelli con l'orario più stretto, in fondo quello di sempre.
+/// </summary>
+public sealed class AdSetConfig
+{
+    public static readonly string[] Places = ["attesa", "conto", "grazie"];
+    public static readonly string[] Orders = ["elenco", "casuale", "alfabetico"];
+
+    public string Id { get; set; } = "";
+    public string Nome { get; set; } = "";
+    public bool Attivo { get; set; } = true;
+    /// <summary>"attesa", "conto", "grazie": uno o più.</summary>
+    public List<string> Dove { get; set; } = [];
+    /// <summary>"elenco" (come in <see cref="Elementi"/>), "casuale" o "alfabetico" (per nome).</summary>
+    public string Ordine { get; set; } = "elenco";
+    /// <summary>
+    /// Con un numero: dopo tanti elementi senza QR, una promozione con il QR (2 = due slide, un QR, due slide, un altro
+    /// QR). 0 = le promozioni con il QR sono come le altre.
+    /// </summary>
+    public int QrDopo { get; set; }
+    /// <summary>Quanto resta una foto o una promozione, se l'elemento non dice altro. Un video dura quanto dura.</summary>
+    public int Secondi { get; set; } = 8;
+    public List<AdItemConfig> Elementi { get; set; } = [];
     /// <summary>Vuoto = tutte le casse.</summary>
     public List<string> Casse { get; set; } = [];
     /// <summary>1 = lunedì … 7 = domenica; vuoto = tutti i giorni.</summary>
@@ -317,6 +474,14 @@ public sealed class PromotionConfig
     public string? Alle { get; set; }
     public DateOnly? DalGiorno { get; set; }
     public DateOnly? AlGiorno { get; set; }
+}
+
+public sealed class AdItemConfig
+{
+    /// <summary>Una foto o un video di <see cref="AppearanceSettings.Media"/>, o una promozione.</summary>
+    public string Id { get; set; } = "";
+    /// <summary>Null = quelli del set.</summary>
+    public int? Secondi { get; set; }
 }
 
 public sealed class MediaItem

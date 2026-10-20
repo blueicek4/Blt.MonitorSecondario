@@ -163,12 +163,15 @@ finestra normale.
 l'anteprima dal vivo dello schermo del cliente (un conto di prova o una cassa vera, in 16:9, 4:3, verticale e palmare):
 i quattro temi del design di giorno, di notte o automatici, i colori del locale con il controllo del contrasto (sotto
 4,5:1 non salva e propone la correzione più vicina), font, angoli, vetro, sfondo (anche un'immagine o un video),
-animazioni, logo per i fondi scuri e per quelli chiari, scritte, testo scorrevole, QR dopo il pagamento (recensioni,
-fidelity, menu) e "prezzi solo sul conto". Le promozioni: immagini e video nelle slide dell'attesa e schede accanto al
-conto, ognuna per casse, giorni, ore e date. I file in `dati\media`, i font dentro l'exe: niente internet. L'Agent manda
-il messaggio `cfg` del design (con le aggiunte di ALLINEAMENTO §8) e lo rimanda quando cambia qualcosa; `/cliente` ora
-è lo schermo a tema, con le misure del design. Il "simulatore" della fase è l'anteprima con il conto di prova. Mancano
-un aspetto per cassa (locali con due marchi) e il conteggio delle promozioni viste.
+animazioni, logo per i fondi scuri e per quelli chiari, scritte, testo scorrevole e "prezzi solo sul conto". Le
+reclame: tre gallerie (foto, video, promozioni con titolo, testo, immagine e QR) e i **set di reclame**, che le mettono
+in fila per l'attesa, accanto al conto e nel Grazie (sotto il saluto e il totale), in ordine, a caso o per nome, con
+"una promozione con il QR dopo ogni N elementi", per casse, giorni, ore e date; per ogni posto va in onda il primo set
+dell'elenco che vale in quel momento. I file in `dati\media`, i font dentro l'exe: niente internet. L'Agent manda il
+messaggio `cfg` del design (con le aggiunte di ALLINEAMENTO §8), con le playlist già in fila, e lo rimanda quando
+cambia qualcosa; `/cliente` ora è lo schermo a tema, con le misure del design. Il "simulatore" della fase è l'anteprima
+con il conto di prova. Mancano un aspetto per cassa (locali con due marchi), il conteggio delle reclame viste e i buoni
+sconto (un codice per cliente nel QR), rimandati.
 
 ### Fase 5 — Pacchetto e pilota (1 settimana + 2 settimane di pilota)
 - Installer unico (Agent come servizio + Player in avvio automatico + WebView2 Runtime se manca).

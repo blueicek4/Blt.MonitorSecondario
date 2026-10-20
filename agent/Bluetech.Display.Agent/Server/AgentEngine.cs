@@ -28,7 +28,7 @@ public sealed partial class AgentEngine(
     static readonly TimeSpan HeartbeatEvery = TimeSpan.FromSeconds(3);
     static readonly TimeSpan StartRetry = TimeSpan.FromSeconds(10);
     static readonly TimeSpan SaveStatsEvery = TimeSpan.FromMinutes(1);
-    /// <summary>Ogni quanto si guarda se una promozione entra o esce dal suo orario.</summary>
+    /// <summary>Ogni quanto si guarda se un set di reclame entra o esce dal suo orario.</summary>
     static readonly TimeSpan ScheduleEvery = TimeSpan.FromSeconds(30);
     const int RecentLimit = 50;
     const int PrintsLimit = 30;
@@ -49,7 +49,7 @@ public sealed partial class AgentEngine(
         public bool Replay;
         public CancellationTokenSource? Starting;
         public readonly Queue<JsonObject> Recent = new();
-        /// <summary>L'aspetto mandato ai display della cassa (tema, slide, promozioni): a chi si collega subito, agli altri quando cambia.</summary>
+        /// <summary>L'aspetto mandato ai display della cassa (tema, set di reclame): a chi si collega subito, agli altri quando cambia.</summary>
         public ConfigMessage? Config;
         public string? ConfigJson;
 
@@ -78,7 +78,7 @@ public sealed partial class AgentEngine(
     readonly long _startedTicks = Stopwatch.GetTimestamp();
     CancellationToken _stop;
     string[] _oldMonitors = [];
-    readonly Dictionary<string, string?> _thanksQr = [];
+    readonly Dictionary<string, string?> _qr = [];
 
     AgentOptions Options => options.Value;
     string LogFolder => Path.Combine(AppContext.BaseDirectory, Options.CartellaLog);
@@ -494,15 +494,16 @@ public sealed partial class AgentEngine(
     }
 
     /// <summary>
-    /// Ricompone l'aspetto della cassa (impostazioni cambiate, o una promozione che entra o esce dal suo orario) e lo
+    /// Ricompone l'aspetto della cassa (impostazioni cambiate, o un set che entra o esce dal suo orario) e lo
     /// manda ai suoi display solo se è cambiato. Dentro il lucchetto.
     /// </summary>
     void RefreshConfig(CashPoint point, AgentSettings now)
     {
         JsonObject body;
+        var clock = DateTime.Now;   // lo stesso istante per il messaggio e per il log
         try
         {
-            body = DisplayConfig.Build(now, point.Id, DateTime.Now, ThanksPng);
+            body = DisplayConfig.Build(now, point.Id, clock, CachedQr);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
@@ -518,17 +519,19 @@ public sealed partial class AgentEngine(
         if (!first)
         {
             hub.Broadcast(point.Id, [point.Config]);
-            log.LogInformation("{Name}: aspetto aggiornato sui display ({Slides} slide, {Promos} promozioni accanto al conto)",
-                point.Name, body["ads"]!.AsArray().Count, body["promos"]!.AsArray().Count);
+            var onAir = DisplayConfig.OnAir(now, point.Id, clock);
+            string Set(string place) => onAir[place]?.Nome ?? "niente";
+            log.LogInformation("{Name}: aspetto aggiornato sui display (attesa: {Idle}, accanto al conto: {Sale}, Grazie: {Thanks})",
+                point.Name, Set("attesa"), Set("conto"), Set("grazie"));
         }
     }
 
-    /// <summary>Il PNG del QR del Grazie, fatto una volta per indirizzo. Null se l'indirizzo non entra in un QR.</summary>
-    public string? ThanksPng(string url)
+    /// <summary>Il PNG del QR di una promozione, fatto una volta per indirizzo. Null se l'indirizzo non entra in un QR.</summary>
+    public string? CachedQr(string url)
     {
-        lock (_thanksQr)
+        lock (_qr)
         {
-            if (_thanksQr.TryGetValue(url, out var png))
+            if (_qr.TryGetValue(url, out var png))
                 return png;
             try
             {
@@ -536,12 +539,12 @@ public sealed partial class AgentEngine(
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
-                log.LogWarning("QR del Grazie non creato per {Url}: {Problem}", url, ex.Message);
+                log.LogWarning("QR non creato per {Url}: {Problem}", url, ex.Message);
                 png = null;
             }
-            if (_thanksQr.Count > 20)
-                _thanksQr.Clear();
-            return _thanksQr[url] = png;
+            if (_qr.Count >= 250)   // 200 promozioni al massimo, più l'anteprima
+                _qr.Clear();
+            return _qr[url] = png;
         }
     }
 
