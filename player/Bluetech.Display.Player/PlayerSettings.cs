@@ -19,11 +19,23 @@ public sealed class PlayerSettings
 {
     public string Url { get; set; } = "";
 
-    /// <summary>DeviceName dello schermo (es. \\.\DISPLAY2). Vuoto = primo schermo secondario.</summary>
+    /// <summary>
+    /// DeviceName dello schermo (es. \\.\DISPLAY2). Vuoto = primo schermo secondario; <see cref="PrimaryScreen"/> = lo
+    /// schermo principale di Windows, qualunque sia il suo nome (PC o tablet con un solo schermo).
+    /// </summary>
     public string Screen { get; set; } = "";
+
+    public const string PrimaryScreen = "principale";
 
     public MissingScreenBehavior WhenScreenMissing { get; set; } = MissingScreenBehavior.Hide;
     public bool FullScreen { get; set; } = true;
+
+    /// <summary>
+    /// Senza schermo intero: la finestra di Windows com'era all'ultima chiusura, "x;y;larghezza;altezza" (vuoto = al
+    /// centro dello schermo scelto) e se era ingrandita.
+    /// </summary>
+    public string WindowBounds { get; set; } = "";
+    public bool WindowMaximized { get; set; }
     public bool TopMost { get; set; } = true;
     public bool HideCursor { get; set; } = true;
     public bool PreventSleep { get; set; } = true;

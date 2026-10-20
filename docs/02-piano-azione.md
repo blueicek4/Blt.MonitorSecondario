@@ -155,8 +155,10 @@ scontrino digitale, stato dal vivo, statistiche per giorno e per cassa, log e ri
 JSON, niente database. **Più casse con un solo Agent**: ogni cassa ha il suo file e i suoi display, ogni dispositivo ha
 la sua cassa e la sua stampante per la copia cartacea. I dispositivi si autorizzano con un codice: lo schermo nuovo apre
 `/auth`, il codice si scrive nel back office; a chi non è autorizzato `/cliente` risponde solo con un errore. HTTPS
-opzionale, con un certificato dato o generato dall'Agent. Mancano l'editor del tema, i media, il testo scorrevole e il
-simulatore: hanno senso con il display del design (M5).
+opzionale, con un certificato dato o generato dall'Agent. `/cliente` si installa come app (PWA) su Android e iOS, a
+schermo intero; il Player Windows sceglie lo schermo (automatico, principale o uno preciso) e funziona anche in una
+finestra normale. Mancano l'editor del tema, i media, il testo scorrevole e il simulatore: hanno senso con il display
+del design (M5).
 
 ### Fase 5 — Pacchetto e pilota (1 settimana + 2 settimane di pilota)
 - Installer unico (Agent come servizio + Player in avvio automatico + WebView2 Runtime se manca).

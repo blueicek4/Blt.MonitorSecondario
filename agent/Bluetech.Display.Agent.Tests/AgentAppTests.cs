@@ -60,6 +60,37 @@ public sealed class AgentAppTests
     }
 
     [Fact]
+    public async Task The_customer_page_can_be_installed_as_an_app()
+    {
+        await using var agent = await TestAgent.Start();
+        var stranger = agent.NewBrowser();
+        var manifest = JsonNode.Parse(await stranger.Http.GetStringAsync("/manifest.webmanifest"))!;
+        Assert.Equal("/auth", (string)manifest["start_url"]!);   // installata: autorizzata va su /cliente, altrimenti il codice
+        Assert.Equal("fullscreen", (string)manifest["display"]!);
+        var icons = manifest["icons"]!.AsArray();
+        Assert.Contains(icons, i => (string)i!["sizes"]! == "192x192");
+        Assert.Contains(icons, i => (string)i!["sizes"]! == "512x512" && (string)i["purpose"]! == "maskable");
+        foreach (var icon in icons)
+        {
+            var png = await stranger.Http.GetByteArrayAsync((string)icon!["src"]!);
+            var size = int.Parse(((string)icon["sizes"]!).Split('x')[0]);
+            Assert.Equal(size, System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(16, 4)));   // la larghezza nell'IHDR
+        }
+        Assert.Equal(HttpStatusCode.OK, (await stranger.Http.GetAsync("/pwa/icona-180.png")).StatusCode);
+        Assert.Contains("offline.html", await stranger.Http.GetStringAsync("/sw.js"));
+        Assert.Contains("Mi ricollego", await stranger.Http.GetStringAsync("/pwa/offline.html"));
+        Assert.Equal(HttpStatusCode.NotFound, (await stranger.Http.GetAsync("/pwa/altro.js")).StatusCode);
+        Assert.DoesNotContain("manifest", await (await stranger.Http.GetAsync("/cliente")).Content.ReadAsStringAsync());   // l'errore resta muto
+
+        var device = await agent.Pair("Palmare");
+        var page = await device.Http.GetStringAsync("/cliente");
+        Assert.Contains("<link rel=\"manifest\" href=\"/manifest.webmanifest\">", page);
+        Assert.Contains("/pwa/pwa.js", page);
+        Assert.True(page.IndexOf("rel=\"manifest\"", StringComparison.Ordinal) < page.IndexOf("</head>", StringComparison.Ordinal));
+        Assert.DoesNotContain("rel=\"manifest\"", await agent.Admin.GetStringAsync("/diagnostica"));
+    }
+
+    [Fact]
     public async Task A_device_is_authorized_with_the_code_typed_in_the_back_office()
     {
         await using var agent = await TestAgent.Start();
@@ -477,7 +508,9 @@ public sealed class AgentAppTests
 
         var device = await agent.Pair("Player");
         var page = await device.Http.GetAsync("/cliente");
-        Assert.Contains("display v2", await page.Content.ReadAsStringAsync());
+        var html = await page.Content.ReadAsStringAsync();
+        Assert.Contains("display v2", html);
+        Assert.Contains("/pwa/pwa.js", html);   // anche il display del design si installa come app
         Assert.True(page.Headers.CacheControl!.NoCache);
         var script = await device.Http.GetAsync("/assets/index-abc123.js");
         Assert.Equal(TimeSpan.FromDays(365), script.Headers.CacheControl!.MaxAge);

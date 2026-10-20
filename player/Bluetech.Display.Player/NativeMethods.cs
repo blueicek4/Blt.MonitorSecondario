@@ -16,6 +16,7 @@ static class NativeMethods
 
     public const int GWL_EXSTYLE = -20;
     public const int WS_EX_NOACTIVATE = 0x08000000;
+    public const int WS_EX_APPWINDOW = 0x00040000;
 
     public const int WM_HOTKEY = 0x0312;
     public const uint MOD_ALT = 0x0001;

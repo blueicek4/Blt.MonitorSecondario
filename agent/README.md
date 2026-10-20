@@ -54,13 +54,34 @@ Il **Player** del monitor cliente apre `http://localhost:5080/auth` (sullo stess
 
 | Indirizzo | Per chi | Cosa |
 |---|---|---|
-| `/cliente` | i dispositivi autorizzati | Lo schermo del cliente per la cassa del dispositivo: il conto, il QR di pagamento, lo scontrino digitale con il pulsante della copia. A un dispositivo non autorizzato solo "Dispositivo non autorizzato", senza indicazioni su come entrare. Quando nella cartella `display` ci sarà il display del design (M5), `/cliente` servirà quello |
+| `/cliente` | i dispositivi autorizzati | Lo schermo del cliente per la cassa del dispositivo: il conto, il QR di pagamento, lo scontrino digitale con il pulsante della copia. Si installa come app (sotto). A un dispositivo non autorizzato solo "Dispositivo non autorizzato", senza indicazioni su come entrare. Quando nella cartella `display` ci sarà il display del design (M5), `/cliente` servirà quello |
 | `/auth` | uno schermo nuovo | Il codice di abbinamento: vale 10 minuti, poi ne compare un altro. Scritto il codice nel back office, lo schermo va su `/cliente`; su un dispositivo già autorizzato `/auth` porta subito lì |
 | `/backoffice` | chi ha la password | Stato di casse e display, casse, dispositivi, stampanti (con la stampa di prova), opzioni, statistiche, log, riavvio |
 
 Poi `/ws` (il WebSocket del protocollo: solo i dispositivi autorizzati, ognuno con la sua cassa, e l'anteprima del back
 office), `/diagnostica?cassa=…` (una cassa dal vivo con gli ultimi messaggi, dal back office) e `/api/stato` (lo stato
-completo in JSON, con la password). `/` e `/display` rimandano a `/cliente`.
+completo in JSON, con la password). `/` e `/display` rimandano a `/cliente`. Pubblici e senza dati: il manifest
+(`/manifest.webmanifest`), il service worker (`/sw.js`) e i file in `/pwa/` (icone, script dell'invito, pagina di attesa).
+
+## Il monitor come app su telefoni e tablet (PWA)
+
+`/cliente` si installa come app, così su Android e iOS si apre a schermo intero, senza le barre del browser, dalla
+schermata Home. Sul dispositivo autorizzato, in attesa, compare in basso un invito:
+
+| Dispositivo | Cosa succede |
+|---|---|
+| Android con Chrome, Edge o Samsung Internet, **con HTTPS** | "Installa": l'app finisce nella schermata Home e si apre a schermo intero |
+| Android **senza HTTPS** | Il browser non installa app da indirizzi `http://` della rete (è una sua regola): l'invito lo dice e offre "Schermo intero", che però si perde se la pagina si ricarica |
+| iPhone e iPad (Safari) | Le istruzioni: Condividi → «Aggiungi alla schermata Home». Funziona anche senza HTTPS |
+| Player Windows | Niente invito: il Player è già a schermo intero |
+
+- L'app parte da `/auth`: su un dispositivo autorizzato porta subito a `/cliente`, altrimenti mostra il codice.
+  **Su iPhone e iPad l'app installata non vede i cookie di Safari**: alla prima apertura mostra un codice nuovo da
+  autorizzare nel back office (poi il dispositivo "Safari" si può revocare).
+- Con HTTPS anche: lo **schermo resta acceso** finché l'app è aperta, e se l'Agent non risponde (riavvio, Wi-Fi caduto)
+  compare "Mi ricollego…" e la pagina torna da sola, al posto dell'errore del browser.
+- "Non ora" o "Ok" sull'invito: su quel dispositivo non ricompare.
+- Quando ci sarà il display del design (M5), l'Agent aggiunge le stesse cose alla sua pagina.
 
 ## Più casse con un solo Agent
 
@@ -219,6 +240,8 @@ Le regole vengono dalle [registrazioni](../samples/registrazioni) (30 e 48 colon
   controllo della carta prima di stampare non c'è ancora.
 - Le impostazioni del display (tema, slide, QR di ringraziamento) non sono ancora nel back office: arriveranno con il
   display (Fase 4).
+- La PWA è provata in Chrome (installabile, service worker, pagina di attesa) e con l'aspetto di un iPhone e di un
+  Android: va provata su dispositivi veri, soprattutto iPhone e iPad.
 - Annullo, reso e pagamento Satispay vero non sono nelle registrazioni: se Passepartout scrive righe che l'Agent non
   riconosce, arrivano al display come note e finiscono nel log.
 - L'installer (Fase 5) e la firma digitale dell'exe.

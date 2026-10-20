@@ -1,6 +1,8 @@
 using System;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
@@ -11,6 +13,8 @@ namespace Bluetech.Display.Player;
 /// <summary>
 /// Finestra del monitor cliente: WebView2 a tutto schermo sullo schermo secondario.
 /// Non prende mai il focus (la tastiera resta alla cassa) e non copre mai lo schermo principale in automatico.
+/// Senza schermo intero è una finestra normale di Windows: bordi, barra delle applicazioni, si sposta e si ingrandisce,
+/// e alla volta dopo si riapre dov'era.
 /// </summary>
 sealed class PlayerForm : Form
 {
@@ -27,6 +31,7 @@ sealed class PlayerForm : Form
     readonly Timer _reloadTimer = new();
     readonly Timer _displayChangeTimer = new() { Interval = 2000 };
     readonly Timer _restartTimer = new() { Interval = 15000 };
+    readonly Timer _saveWindowTimer = new() { Interval = 1000 };
 
     PlayerSettings _settings;
     WebView2 _web;
@@ -34,6 +39,9 @@ sealed class PlayerForm : Form
     string _hideCursorScriptId;
     bool _browserReady;
     bool _noActivate;
+    bool _taskbarButton;
+    bool _windowed;
+    FormWindowState _lastState;
     bool _allowClose;
     int _retrySeconds = 5;
 
@@ -42,6 +50,7 @@ sealed class PlayerForm : Form
         _settings = settings;
         _forceWindowed = forceWindowed;
         _noActivate = settings.FullScreen && !forceWindowed;
+        _taskbarButton = !_noActivate;
 
         Text = "Bluetech Display Player";
         Icon = AppIcon.Get();
@@ -98,6 +107,18 @@ sealed class PlayerForm : Form
             _restartTimer.Stop();
             await StartBrowserAsync();
         };
+        _saveWindowTimer.Tick += (_, _) =>
+        {
+            _saveWindowTimer.Stop();
+            try
+            {
+                _settings.Save();
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Posizione della finestra non salvata", ex);
+            }
+        };
 
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         Microsoft.Win32.SystemEvents.PowerModeChanged += OnPowerModeChanged;
@@ -112,21 +133,87 @@ sealed class PlayerForm : Form
             var cp = base.CreateParams;
             if (_noActivate)
                 cp.ExStyle |= NativeMethods.WS_EX_NOACTIVATE;
+            // La finestra appartiene a una finestra nascosta (ShowInTaskbar = false): in modalità finestra
+            // WS_EX_APPWINDOW le dà comunque il pulsante nella barra delle applicazioni e il posto in Alt+Tab.
+            if (_taskbarButton)
+                cp.ExStyle |= NativeMethods.WS_EX_APPWINDOW;
             return cp;
         }
     }
 
     public void AllowClose() => _allowClose = true;
 
+    /// <summary>La X della finestra o Alt+F4: si esce come dal menu, con il codice.</summary>
+    public event Action CloseRequested;
+
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        // Alt+F4 e simili non chiudono il monitor cliente: si esce solo dal menu, con il codice.
         if (!_allowClose && e.CloseReason == CloseReason.UserClosing)
         {
             e.Cancel = true;
+            BeginInvoke((Action)(() => CloseRequested?.Invoke()));
             return;
         }
         base.OnFormClosing(e);
+    }
+
+    protected override void OnResizeEnd(EventArgs e)
+    {
+        base.OnResizeEnd(e);
+        RememberWindow();   // spostata o ridimensionata a mano
+    }
+
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        if (WindowState == _lastState)
+            return;
+        _lastState = WindowState;   // ingrandita o ripristinata
+        RememberWindow();
+    }
+
+    /// <summary>In modalità finestra: posizione, dimensione e "ingrandita" per la prossima volta (scritte dopo 1 s).</summary>
+    void RememberWindow()
+    {
+        if (!_windowed || !Visible || WindowState == FormWindowState.Minimized)
+            return;
+        var bounds = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
+        var text = string.Join(";", new[] { bounds.X, bounds.Y, bounds.Width, bounds.Height }.Select(n => n.ToString(CultureInfo.InvariantCulture)));
+        var maximized = WindowState == FormWindowState.Maximized;
+        if (text == _settings.WindowBounds && maximized == _settings.WindowMaximized)
+            return;
+        _settings.WindowBounds = text;
+        _settings.WindowMaximized = maximized;
+        _saveWindowTimer.Stop();
+        _saveWindowTimer.Start();
+    }
+
+    /// <summary>La finestra dell'ultima volta, se sta ancora (abbastanza) sullo schermo scelto.</summary>
+    Rectangle? SavedBounds(Screen screen)
+    {
+        var parts = (_settings.WindowBounds ?? "").Split(';');
+        var numbers = new int[4];
+        if (parts.Length != 4 || Enumerable.Range(0, 4).Any(i => !int.TryParse(parts[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out numbers[i])))
+            return null;
+        var bounds = new Rectangle(numbers[0], numbers[1], numbers[2], numbers[3]);
+        var visible = Rectangle.Intersect(bounds, screen.WorkingArea);
+        return bounds.Width >= 320 && bounds.Height >= 240 && visible.Width >= 200 && visible.Height >= 150 ? bounds : null;
+    }
+
+    void SetTaskbarButton(bool visible)
+    {
+        if (_taskbarButton == visible)
+            return;
+        _taskbarButton = visible;
+        if (!IsHandleCreated)
+            return;
+        // La barra delle applicazioni se ne accorge solo quando la finestra ricompare.
+        var shown = Visible;
+        if (shown)
+            Hide();
+        UpdateStyles();
+        if (shown)
+            Show();
     }
 
     protected override void Dispose(bool disposing)
@@ -139,6 +226,7 @@ sealed class PlayerForm : Form
             _reloadTimer.Dispose();
             _displayChangeTimer.Dispose();
             _restartTimer.Dispose();
+            _saveWindowTimer.Dispose();
         }
         base.Dispose(disposing);
     }
@@ -215,7 +303,9 @@ sealed class PlayerForm : Form
 
     void ShowFullScreen(Screen screen)
     {
+        _windowed = false;
         SetNoActivate(true);
+        SetTaskbarButton(false);
         FormBorderStyle = FormBorderStyle.None;
         WindowState = FormWindowState.Normal;
         var b = screen.Bounds;
@@ -229,17 +319,31 @@ sealed class PlayerForm : Form
             b.X, b.Y, b.Width, b.Height, NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_SHOWWINDOW);
     }
 
+    /// <summary>
+    /// Una finestra normale di Windows sullo schermo scelto: dov'era l'ultima volta (anche ingrandita) o al centro. Se è
+    /// già a finestra su quello schermo resta com'è: un cambio di schermi non la riporta indietro.
+    /// </summary>
     void ShowWindowed(Screen screen)
     {
+        var settled = _windowed && Visible
+            && screen.Bounds.IntersectsWith(WindowState == FormWindowState.Normal ? Bounds : RestoreBounds);
+        _windowed = true;
         SetNoActivate(false);
+        SetTaskbarButton(true);
         FormBorderStyle = FormBorderStyle.Sizable;
-        var area = screen.WorkingArea;
-        var size = new Size(area.Width * 2 / 3, area.Height * 2 / 3);
-        var bounds = new Rectangle(area.X + (area.Width - size.Width) / 2, area.Y + (area.Height - size.Height) / 2, size.Width, size.Height);
-        if (!Visible || !screen.Bounds.Contains(Bounds.Location))
-            Bounds = bounds;
-        if (!Visible)
-            Show();
+        if (!settled)
+        {
+            var area = screen.WorkingArea;
+            var size = new Size(area.Width * 2 / 3, area.Height * 2 / 3);
+            WindowState = FormWindowState.Normal;
+            Bounds = SavedBounds(screen)
+                ?? new Rectangle(area.X + (area.Width - size.Width) / 2, area.Y + (area.Height - size.Height) / 2, size.Width, size.Height);
+            if (!Visible)
+                Show();
+            if (_settings.WindowMaximized)
+                WindowState = FormWindowState.Maximized;
+            Log.Info($"Player in una finestra su {screen.DeviceName}{(_settings.WindowMaximized ? ", ingrandita" : "")}");
+        }
         NativeMethods.SetWindowPos(Handle, NativeMethods.HWND_NOTOPMOST, 0, 0, 0, 0,
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
     }
