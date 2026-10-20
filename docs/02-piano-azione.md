@@ -215,6 +215,7 @@ anche le chiavi nuove della 6.0 (`TimeoutClearDisplay`, `HideHeader`, `ShowPrice
   cliente (banco, fast food); al tavolo il conto arriva a cose fatte.
 - **QR nella schermata "Grazie"**: recensione Google, fidelity, menu digitale.
 - **Scontrino digitale a video e copia cartacea su richiesta** (opzionale, per palmare o schermo touch): lo scontrino
-  con il QR per scaricarlo e un pulsante che stampa una copia su una stampante non fiscale, composta con i dati già
-  passati dal file del monitor. Studio in [`docs/03`](03-studio-copia-cartacea.md).
+  con il QR per scaricarlo e un pulsante che stampa una copia, con il QR piccolo in fondo, composta con i dati già
+  passati dal file del monitor. La stampa la fa l'Agent in ESC/POS su una stampante comande, senza nessuna richiesta a
+  Passepartout. Studio in [`docs/03`](03-studio-copia-cartacea.md).
 - Testi fissi in più lingue a rotazione per le zone turistiche.
