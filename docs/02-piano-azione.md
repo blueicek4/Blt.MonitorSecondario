@@ -214,4 +214,8 @@ anche le chiavi nuove della 6.0 (`TimeoutClearDisplay`, `HideHeader`, `ShowPrice
 - **Promozioni contestuali** (es. pizza senza bevanda → promo birra): efficaci solo dove l'ordine si compone davanti al
   cliente (banco, fast food); al tavolo il conto arriva a cose fatte.
 - **QR nella schermata "Grazie"**: recensione Google, fidelity, menu digitale.
+- **Scontrino digitale a video e copia cartacea su richiesta** (opzionale): lo scontrino con il QR per scaricarlo e un
+  pulsante che chiede a Passepartout Menu di ristamparlo su una stampante non fiscale. Studio in
+  [`docs/03`](03-studio-copia-cartacea.md): richiede un monitor touch, il web service di ristampa e una prova sul
+  focus della cassa.
 - Testi fissi in più lingue a rotazione per le zone turistiche.
