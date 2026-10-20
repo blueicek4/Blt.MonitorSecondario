@@ -23,6 +23,12 @@ public sealed class AdminAccess(SettingsStore settings)
 
     public bool PasswordSet => settings.Current.Password != null;
 
+    public const string OnlyFromThisPc = "Il back office si apre dal PC dove gira l'Agent (anche in desktop remoto). " +
+        "Per aprirlo anche dagli altri PC e dai telefoni: Opzioni, \"Back office anche dalla rete\", da quel PC.";
+
+    /// <summary>Da qui si può entrare? Dal PC dell'Agent sempre; dalla rete solo con l'opzione accesa.</summary>
+    public bool Reachable(HttpContext context) => IsLocal(context) || settings.Current.BackOfficeDallaRete;
+
     public static PasswordHash Hash(string password)
     {
         var salt = RandomNumberGenerator.GetBytes(16);
@@ -79,7 +85,7 @@ public sealed class AdminAccess(SettingsStore settings)
 
     public bool IsAuthenticated(HttpContext context)
     {
-        if (!PasswordSet)
+        if (!PasswordSet || !Reachable(context))   // una sessione aperta dalla rete finisce quando l'opzione si spegne
             return false;
         var now = DateTimeOffset.UtcNow;
         foreach (var token in CookieValues(context, Cookie))
@@ -103,6 +109,8 @@ public sealed class AdminAccess(SettingsStore settings)
     {
         var who = context.Connection.RemoteIpAddress?.ToString() ?? "?";
         var now = DateTimeOffset.UtcNow;
+        if (!Reachable(context))
+            return OnlyFromThisPc;
         if (settings.Current.Password is not { } stored)
             return "La password non è ancora impostata.";
         // Tentativi in parallelo dallo stesso indirizzo: ognuno prende il suo posto nel conto prima di controllare la

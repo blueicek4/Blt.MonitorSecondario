@@ -172,6 +172,13 @@ un aspetto per cassa (locali con due marchi) e il conteggio delle promozioni vis
 
 ### Fase 5 — Pacchetto e pilota (1 settimana + 2 settimane di pilota)
 - Installer unico (Agent come servizio + Player in avvio automatico + WebView2 Runtime se manca).
+- **Password del back office** (deciso il 20/10): nessuna password uguale per tutti i locali. L'installer la chiede; se
+  il tecnico non la sceglie, la genera con `BluetechDisplayAgent.exe --genera-password` (sull'uscita solo la password:
+  l'installer la mostra e il tecnico la annota nella scheda del cliente). In entrambi i casi va in
+  `dati\nuova-password.txt` prima di avviare il servizio: l'Agent ne tiene l'hash e toglie il file. In un
+  aggiornamento non si rigenera. La cartella `dati` va creata con i permessi solo per Amministratori e SYSTEM: dentro
+  ci sono impostazioni, certificati e, per pochi secondi, la password nuova. Il back office si apre solo dal PC
+  dell'Agent finché il locale non accende "Back office anche dalla rete".
 - **Firma digitale** degli eseguibili: senza, SmartScreen e antivirus bloccano gli exe in avvio automatico.
 - Pilota su 2–3 locali con hardware diverso; raccolta log.
 

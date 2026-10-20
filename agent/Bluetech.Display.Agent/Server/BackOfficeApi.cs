@@ -39,6 +39,7 @@ public static class BackOfficeApi
             ["autenticato"] = admin.IsAuthenticated(context),
             ["passwordImpostata"] = admin.PasswordSet,
             ["locale"] = AdminAccess.IsLocal(context),
+            ["raggiungibile"] = admin.Reachable(context),
         }));
 
         app.MapPost("/api/bo/accesso", async (HttpContext context, AdminAccess admin, ILogger<AdminAccess> log) =>
@@ -48,7 +49,7 @@ public static class BackOfficeApi
             if (error == null)
                 return Ok();
             log.LogWarning("Back office: accesso rifiutato da {Remote} ({Error})", AgentApp.Remote(context), error);
-            return Error(error, error.StartsWith("Troppi", StringComparison.Ordinal) ? 429 : 401);
+            return Error(error, error == AdminAccess.OnlyFromThisPc ? 403 : error.StartsWith("Troppi", StringComparison.Ordinal) ? 429 : 401);
         });
 
         app.MapPost("/api/bo/esci", (HttpContext context, AdminAccess admin) =>
@@ -131,8 +132,11 @@ public static class BackOfficeApi
                 if (port != 0 && !bound.Contains(port) && !AgentApp.PortAvailable(port, network.ApertoInRete))
                     return Error($"La porta {name} {port} è già usata da un altro programma su questo PC.");
             }
+            var fromNetwork = update.BackOfficeDallaRete ?? settings.Current.BackOfficeDallaRete;
+            var opened = fromNetwork != settings.Current.BackOfficeDallaRete;
             var error = settings.Update(s =>
             {
+                s.BackOfficeDallaRete = fromNetwork;
                 s.ChiusuraVenditaDopoSecondi = update.ChiusuraVenditaDopoSecondi;
                 s.ScontrinoDigitale = update.ScontrinoDigitale;
                 s.ScontrinoDigitale.Dicitura = (s.ScontrinoDigitale.Dicitura ?? "").Trim();
@@ -145,6 +149,10 @@ public static class BackOfficeApi
             if (error != null)
                 return Error(error);
             log.LogInformation("Opzioni cambiate dal back office");
+            if (opened && fromNetwork)
+                log.LogWarning("Back office aperto anche alla rete da {Remote}", AgentApp.Remote(context));
+            else if (opened)
+                log.LogWarning("Back office di nuovo solo dal PC dell'Agent ({Remote})", AgentApp.Remote(context));
             return Ok();
         });
 
@@ -350,6 +358,8 @@ public static class BackOfficeApi
 
     sealed class OptionsUpdate
     {
+        /// <summary>Null = com'era.</summary>
+        public bool? BackOfficeDallaRete { get; set; }
         public int ChiusuraVenditaDopoSecondi { get; set; }
         public DigitalReceiptOptions? ScontrinoDigitale { get; set; }
         public NetworkSettings? Rete { get; set; }
