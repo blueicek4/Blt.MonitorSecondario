@@ -67,7 +67,8 @@ public static partial class ReceiptParser
     [GeneratedRegex(@"^ (?<desc>\S.*?)\s+(?<amount>-?[\d.]+,\d{2})$")]
     private static partial Regex ItemLine();
 
-    [GeneratedRegex(@"^\s+(?<qty>\d+(?:,\d+)?)\s+(?:pz\s+)?X\s+(?<unit>-?[\d.]+,\d{2})\s+Euro$", RegexOptions.IgnoreCase)]
+    // "pz" il 20/10; un'altra unità di misura dell'articolo (kg, bt, lt…) non è ancora stata vista ma costa niente.
+    [GeneratedRegex(@"^\s+(?<qty>\d+(?:,\d+)?)\s+(?:[A-Za-z]{1,5}\.?\s+)?X\s+(?<unit>-?[\d.]+,\d{2})\s+Euro$", RegexOptions.IgnoreCase)]
     private static partial Regex QuantityLine();
 
     [GeneratedRegex(@"^\s{2,}(?<label>\S.*?)\s+(?<amount>-?[\d.]+,\d{2})$")]
@@ -151,8 +152,11 @@ public static partial class ReceiptParser
             Match match;
             if ((match = PaidLine().Match(trimmed)).Success && Money.TryParseCents(match.Groups["amount"].Value, out var paid))
             {
-                paidMethod = match.Groups["method"].Value.Trim();
-                paidAmount = paid;
+                // Pagamento misto (buoni pasto + contanti): il modello XML ha un comando per metodo, quindi una riga
+                // per metodo. Si sommano.
+                var method = match.Groups["method"].Value.Trim();
+                paidMethod = paidMethod == null ? method : $"{paidMethod} + {method}";
+                paidAmount += paid;
                 continue;
             }
             if ((match = ChangeLine().Match(trimmed)).Success && Money.TryParseCents(match.Groups["amount"].Value, out var rest))
@@ -176,12 +180,17 @@ public static partial class ReceiptParser
                 }
                 else
                 {
-                    var (q, u) = pendingQuantity ?? (1m, amount);
+                    // Il dettaglio vale per questa riga solo se quantità × prezzo dà il suo importo (1 cent di
+                    // arrotondamento per i pesi): altrimenti era di una riga che non si è riconosciuta.
+                    var (q, u) = pendingQuantity is { } p && Math.Abs(Math.Round(p.Qty * p.Unit) - amount) <= 1
+                        ? p
+                        : (1m, amount);
                     entries.Add(new ItemEntry(desc, q, amount, u));
                 }
                 pendingQuantity = null;
                 continue;
             }
+            pendingQuantity = null;   // il dettaglio quantità precede sempre la sua riga articolo
             if ((match = UnderItemAdjustment().Match(line)).Success && Money.TryParseCents(match.Groups["amount"].Value, out var under))
             {
                 entries.Add(new AdjustmentEntry(match.Groups["label"].Value.Trim(), under, UnderItem: true));
@@ -214,7 +223,10 @@ public static partial class ReceiptParser
         return last != null && Money.TryParseCents(last, out var cents) ? cents : null;
     }
 
-    /// <summary>Il QR arriva come immagine in Base64 su una riga; il display la vuole come data URI.</summary>
+    /// <summary>
+    /// Il QR arriva come immagine in Base64 su una riga; il display la vuole come data URI. Un PNG riconosciuto come QR
+    /// viene ridotto a un pixel per modulo (<see cref="QrImage"/>); altrimenti passa com'è.
+    /// </summary>
     static string? ImageDataUri(string base64)
     {
         if (base64.Length == 0)
@@ -236,6 +248,10 @@ public static partial class ReceiptParser
             [0x42, 0x4D, ..] => "image/bmp",
             _ => null,
         };
-        return type == null ? null : $"data:{type};base64,{base64}";
+        if (type == null)
+            return null;
+        if (type == "image/png" && QrImage.ToModules(data) is { } modules)
+            return $"data:image/png;base64,{Convert.ToBase64String(modules)}";
+        return $"data:{type};base64,{base64}";
     }
 }

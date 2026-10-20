@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Bluetech.Display.Agent.Logging;
 using Bluetech.Display.Agent.Server;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 
 namespace Bluetech.Display.Agent;
@@ -48,6 +49,8 @@ public static class AgentApp
 
         var options = builder.Configuration.GetSection("Agent").Get<AgentOptions>() ?? new AgentOptions();
         builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection("Agent"));
+        if (!options.ApertoInRete && string.IsNullOrEmpty(builder.Configuration["AllowedHosts"]))
+            builder.Configuration["AllowedHosts"] = "localhost;127.0.0.1;[::1]";   // niente DNS rebinding su /api/stato
         builder.Logging.AddProvider(new FileLoggerProvider(Path.Combine(AppContext.BaseDirectory, options.CartellaLog), options.GiorniLog));
         builder.WebHost.UseUrls(options.Porta == 0
             ? "http://127.0.0.1:0"
@@ -60,7 +63,7 @@ public static class AgentApp
         var app = builder.Build();
         app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(20) });
 
-        app.Map("/ws", async (HttpContext context, AgentEngine engine, DisplayHub hub) =>
+        app.Map("/ws", async (HttpContext context, AgentEngine engine, DisplayHub hub, IHostApplicationLifetime lifetime) =>
         {
             if (!context.WebSockets.IsWebSocketRequest)
             {
@@ -68,9 +71,16 @@ public static class AgentApp
                 await context.Response.WriteAsync("Qui serve un collegamento WebSocket.");
                 return;
             }
+            if (!OriginAllowed(context, options.AltreOrigini))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return;
+            }
             using var socket = await context.WebSockets.AcceptWebSocketAsync();
             var client = engine.Connect(socket, context.Connection.RemoteIpAddress?.ToString() ?? "?");
-            await hub.RunAsync(client, context.RequestAborted);
+            // Anche l'arresto del servizio chiude il collegamento: altrimenti ogni stop aspetterebbe 30 s.
+            using var end = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted, lifetime.ApplicationStopping);
+            await hub.RunAsync(client, end.Token);
         });
         app.MapGet("/api/stato", (AgentEngine engine) =>
             Results.Text(engine.Status().ToJsonString(Indented), "application/json; charset=utf-8"));
@@ -79,17 +89,59 @@ public static class AgentApp
         app.MapGet("/display/{**rest}", () => Results.Redirect("/"));
 
         var displayFolder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, options.CartellaDisplay));
-        if (File.Exists(Path.Combine(displayFolder, "index.html")))
+        try
+        {
+            Directory.CreateDirectory(displayFolder);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+        if (Directory.Exists(displayFolder))
         {
             var files = new PhysicalFileProvider(displayFolder);
             app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
-            app.UseStaticFiles(new StaticFileOptions { FileProvider = files });
+            app.UseStaticFiles(new StaticFileOptions { FileProvider = files, OnPrepareResponse = CacheHeaders });
         }
-        else
+        // Finché nella cartella non c'è il display, "/" dice cosa manca. Si controlla a ogni richiesta: un display
+        // copiato con l'Agent acceso si vede subito.
+        app.Use(async (context, next) =>
         {
-            app.MapGet("/", () => Results.Text(Placeholder(displayFolder), "text/html; charset=utf-8"));
-        }
+            if (context.Request.Path == "/" && !File.Exists(Path.Combine(displayFolder, "index.html")))
+            {
+                context.Response.ContentType = "text/html; charset=utf-8";
+                await context.Response.WriteAsync(Placeholder(displayFolder));
+                return;
+            }
+            await next();
+        });
         return app;
+    }
+
+    /// <summary>
+    /// Le pagine si riconvalidano sempre: senza, WebView2 terrebbe per giorni il display vecchio dopo un aggiornamento.
+    /// I file di assets/ hanno l'impronta nel nome e non cambiano mai.
+    /// </summary>
+    static void CacheHeaders(StaticFileResponseContext context)
+    {
+        if (context.File.Name.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+            context.Context.Response.Headers.CacheControl = "no-cache";
+        else if (context.Context.Request.Path.StartsWithSegments("/assets"))
+            context.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+    }
+
+    /// <summary>
+    /// Un browser manda sempre l'origine della pagina: si accettano le pagine servite dall'Agent stesso (Player,
+    /// diagnostica, display in rete) e quelle in <see cref="AgentOptions.AltreOrigini"/>. Senza origine non è un browser.
+    /// </summary>
+    internal static bool OriginAllowed(HttpContext context, IEnumerable<string> extra)
+    {
+        var origin = context.Request.Headers.Origin.ToString();
+        if (origin.Length == 0)
+            return true;
+        if (Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+            && string.Equals(uri.Authority, context.Request.Host.Value, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return extra.Any(o => string.Equals(o.TrimEnd('/'), origin.TrimEnd('/'), StringComparison.OrdinalIgnoreCase));
     }
 
     static string Placeholder(string folder) => $$"""

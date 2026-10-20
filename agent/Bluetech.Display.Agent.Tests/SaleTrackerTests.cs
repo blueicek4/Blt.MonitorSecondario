@@ -270,6 +270,47 @@ public class SaleTrackerTests
     }
 
     [Fact]
+    public void A_new_table_that_shares_only_the_cover_is_a_new_sale()
+    {
+        // Tavolo 5 non pagato (nessuna riga PAGATO, come il terzo conto del 20/10), poi il tavolo 7 parte dal coperto.
+        var tracker = new SaleTracker();
+        tracker.Apply(Bill("Coperto", "Tagliatelle", "Acqua"), T0);
+        var next = tracker.Apply(Bill("Coperto"), T0.AddSeconds(40));
+        Assert.Equal(["sale.close", "sale.open", "sale.line", "sale.total"], next.Select(m => m.Type));
+        Assert.DoesNotContain(next, m => m is SaleLineMessage { Line.Kind: LineKind.Void });
+
+        // Lo stesso tavolo che toglie un piatto resta la stessa vendita.
+        var same = tracker.Apply(Bill("Coperto", "Lasagne"), T0.AddSeconds(50));
+        Assert.DoesNotContain(same, m => m.Type == "sale.open");
+    }
+
+    [Fact]
+    public void A_qr_after_the_idle_close_shows_the_last_bill_and_then_expires()
+    {
+        var tracker = new SaleTracker();
+        var timeout = TimeSpan.FromSeconds(60);
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007")), T0);
+        Assert.Equal("sale.close", Assert.Single(tracker.CheckIdle(T0.AddSeconds(60), timeout)).Type);
+
+        var qr = Assert.IsType<PayQr>(Assert.Single(tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddSeconds(70))));
+        Assert.Equal(1030, qr.Amount);   // il conto chiuso per inattività, non 0
+        Assert.Empty(tracker.CheckIdle(T0.AddSeconds(70) + SaleTracker.MinimumWithQr - TimeSpan.FromSeconds(1), timeout));
+        Assert.Equal("pay.clear", Assert.Single(tracker.CheckIdle(T0.AddSeconds(70) + SaleTracker.MinimumWithQr, timeout)).Type);
+        Assert.Equal("idle", tracker.Phase);
+    }
+
+    [Fact]
+    public void An_identical_rewrite_restarts_the_idle_time()
+    {
+        var tracker = new SaleTracker();
+        var timeout = TimeSpan.FromSeconds(60);
+        tracker.Apply(Bill("CAFFE"), T0);
+        Assert.Empty(tracker.Apply(Bill("CAFFE"), T0.AddSeconds(50)));   // stesso conto: niente al display…
+        Assert.Empty(tracker.CheckIdle(T0.AddSeconds(100), timeout));      // …ma la cassa ci sta lavorando
+        Assert.Single(tracker.CheckIdle(T0.AddSeconds(110), timeout));
+    }
+
+    [Fact]
     public void Snapshot_for_a_display_that_connects_mid_sale()
     {
         var tracker = new SaleTracker();

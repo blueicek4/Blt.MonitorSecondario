@@ -32,6 +32,9 @@ Serve Windows 10 o 11 a 64 bit. L'exe contiene già .NET: non si installa niente
 5. Nel modello XML del monitor di Passepartout conviene `SovrascriviSeEsistente=true`: se l'Agent si ferma, il
    display riceve gli aggiornamenti in ritardo invece di perderli.
 
+`FileCassa` deve stare su un disco del PC: da servizio i dischi di rete collegati con una lettera (`Z:`) non si vedono.
+Se il percorso non si raggiunge, l'Agent resta acceso, lo scrive in `/api/stato` e nel log e riprova ogni 10 s.
+
 Il Player apre `http://localhost:5080/display`, che rimanda al display.
 
 ## Configurazione (`appsettings.json`, sezione `Agent`)
@@ -41,6 +44,7 @@ Il Player apre `http://localhost:5080/display`, che rimanda al display.
 | `FileCassa` | `C:\MonitorSecondario\Scontrino.txt` | Il file del dispositivo monitor di Passepartout |
 | `Porta` | `5080` | |
 | `ApertoInRete` | `false` | `false`: risponde solo a questo PC. `true`: anche a tablet e TV della rete (serve una regola nel firewall). I conti viaggiano in chiaro |
+| `AltreOrigini` | vuoto | Pagine di altri indirizzi che possono collegarsi a `/ws`, per esempio il display in sviluppo (`["http://localhost:5173"]`). Le pagine servite dall'Agent possono sempre; una pagina qualunque aperta nel browser della cassa no, altrimenti leggerebbe i conti |
 | `CartellaDisplay` | `display` | La build del display (`display/dist`), accanto all'exe |
 | `ChiusuraVenditaDopoSecondi` | `60` | Conto aperto, senza `PAGATO`, e nessun file per un minuto: si chiude e il display torna alle slide. Con il QR Satispay a video almeno 3 minuti: il cliente sta pagando. Nelle registrazioni la riga `PAGATO` è arrivata 9–67 s dopo l'ultimo file con contanti e POS: oltre i 60 s il display va alle slide e torna con Grazie e le righe quando arriva `PAGATO`. All'avvio, un file più vecchio di così si toglie senza mostrarlo |
 | `CartellaLog`, `GiorniLog` | `log`, `14` | Un file al giorno |
@@ -51,7 +55,7 @@ Dalla riga di comando: `--file`, `--porta`, `--replay`, `--velocita`, `--ripeti`
 
 | | |
 |---|---|
-| `/` | Il display. Finché la cartella `display` non c'è, una pagina che lo dice |
+| `/` | Il display. Finché nella cartella `display` non c'è, una pagina che lo dice. Un display copiato ad Agent acceso si vede subito, e `index.html` si riconvalida sempre: dopo un aggiornamento il Player non tiene la versione vecchia |
 | `/display` | Rimanda a `/` (indirizzo predefinito del Player) |
 | `/ws` | WebSocket: alla connessione lo stato completo (`sync`), poi ogni cambiamento |
 | `/diagnostica` | Il conto come lo vedrà il cliente, il QR, gli ultimi messaggi: per le prove e l'assistenza |
@@ -77,9 +81,9 @@ Le regole vengono dalle [registrazioni](../samples/registrazioni) (30 e 48 colon
 | Riga sparita, le altre uguali invariate | storno: `sale.line` `void` con `voidsId` |
 | Righe uguali unite in "dettagli conto", sconti spostati sotto le righe, ordine cambiato | `sync`, lo stato completo: niente storni finti |
 | `TOT. DA PAGARE` | `sale.total`, in centesimi (il display non somma mai) |
-| `PAGATO …:` e `Resto:` | `sale.close` con `paid: { method, amount, change }`: Grazie con le righe, poi le slide |
-| Conto dopo un `PAGATO`, o senza nessuna riga in comune con quello a video | `sale.open`: vendita nuova |
-| QR in Base64 | `pay.qr` con l'ultimo totale; il conto successivo lo toglie (`pay.clear`) |
+| `PAGATO …:` e `Resto:` | `sale.close` con `paid: { method, amount, change }`: Grazie con le righe, poi le slide. Pagamento misto (una riga per metodo): metodi uniti, `BUONI PASTO + CONTANTI`, importi sommati |
+| Conto dopo un `PAGATO`, o senza nessuna riga in comune con quello a video (il coperto non conta: c'è su ogni tavolo) | `sale.open`: vendita nuova |
+| QR in Base64 | `pay.qr` con l'ultimo totale, ridotto a un pixel per modulo (il display lo ingrandisce di un multiplo intero e aggiunge la quiet zone); il conto successivo lo toglie (`pay.clear`), altrimenti scade dopo 3 minuti |
 | Intestazione del locale, `SUBTOT.`, `EURO` | niente |
 | Versione identica alla precedente | niente |
 | Accenti | UTF-8 o Windows-1252, riconosciuti da soli |

@@ -13,7 +13,7 @@ namespace Bluetech.Display.Agent.Vendita;
 /// - righe uguali unite in "dettagli conto" ("2 X 3,00 Euro"), sconti spostati sotto le righe, ordine cambiato: non
 ///   sono storni, si manda lo stato completo (<c>sync</c>);
 /// - "PAGATO …" chiude la vendita; il conto successivo ne apre una nuova. Senza PAGATO, un conto che non ha nessuna
-///   riga in comune con quello a video è una vendita nuova;
+///   riga in comune con quello a video è una vendita nuova (il coperto non conta: c'è su ogni tavolo);
 /// - un conto dopo il QR toglie il QR (come fa il vecchio monitor con qualunque file nuovo);
 /// - una versione identica alla precedente non produce niente.
 ///
@@ -25,6 +25,8 @@ public sealed class SaleTracker
     long _nextId;
     bool _open;
     long _total;
+    // L'ultimo totale di un conto non pagato, anche dopo la chiusura per inattività: un QR che arriva dopo è per quello.
+    long _lastBillTotal;
     int _cover;
     PayQr? _qr;
     string? _lastHash;
@@ -37,6 +39,9 @@ public sealed class SaleTracker
 
     public IReadOnlyList<CashIn> Apply(CashFile file, DateTimeOffset now)
     {
+        // Anche una riscrittura identica dice che la cassa sta lavorando su questo conto: il tempo riparte.
+        if (file.Kind != CashFileKind.Empty)
+            LastActivity = now;
         if (file.Hash == _lastHash)
             return [];
         _lastHash = file.Hash;
@@ -44,14 +49,11 @@ public sealed class SaleTracker
         switch (file.Kind)
         {
             case CashFileKind.Message:
-                LastActivity = now;
                 return [new DisplayMessage(file.MessageText ?? "")];
             case CashFileKind.Qr:
-                LastActivity = now;
-                _qr = new PayQr(file.QrDataUri!, _total);
+                _qr = new PayQr(file.QrDataUri!, _open ? _total : _lastBillTotal);
                 return [_qr];
             case CashFileKind.Receipt:
-                LastActivity = now;
                 return ApplyReceipt(file);
             default:
                 return [];
@@ -69,8 +71,16 @@ public sealed class SaleTracker
     {
         if (_qr != null && timeout > TimeSpan.Zero && timeout < MinimumWithQr)
             timeout = MinimumWithQr;
-        if (!_open || timeout <= TimeSpan.Zero || now - LastActivity < timeout)
+        if (timeout <= TimeSpan.Zero || now - LastActivity < timeout)
             return [];
+        if (!_open)
+        {
+            // Un QR arrivato senza conto aperto (dopo la chiusura per inattività) scade anche lui.
+            if (_qr == null)
+                return [];
+            _qr = null;
+            return [new PayClear()];
+        }
         Reset();
         _lastHash = null;   // se la cassa rimanda lo stesso conto (tavolo riaperto), deve tornare a video
         return [new SaleClose(null)];
@@ -129,6 +139,7 @@ public sealed class SaleTracker
         var cover = CountCover();
         var totalChanged = opening || total != _total || cover != _cover;
         _total = total;
+        _lastBillTotal = total;
         _cover = cover;
 
         if (needsSync && !opening)
@@ -146,15 +157,22 @@ public sealed class SaleTracker
         {
             messages.Add(new SaleClose(receipt.Payment));
             Reset();
+            _lastBillTotal = 0;
         }
         return messages;
     }
 
+    /// <summary>
+    /// Nessuna riga in comune con il conto a video. Il coperto non conta: c'è su quasi ogni tavolo, e un tavolo nuovo
+    /// che parte dal coperto mostrerebbe come storni i piatti del tavolo prima.
+    /// </summary>
     bool StartsNewSale(List<ItemEntry> items)
     {
-        var current = _visible.Where(l => l.Kind == LineKind.Item).Select(l => Key(l.Desc)).ToHashSet();
+        var current = _visible.Where(l => l.Kind == LineKind.Item && !IsCover(l.Desc)).Select(l => Key(l.Desc)).ToHashSet();
         return current.Count > 0 && items.Count > 0 && !items.Any(i => current.Contains(Key(i.Desc)));
     }
+
+    static bool IsCover(string desc) => Normalize(desc).StartsWith("COPERT", StringComparison.Ordinal);
 
     /// <summary>
     /// Allinea le righe a video al conto letto. Restituisce i messaggi incrementali, oppure needsSync se il risultato
@@ -245,7 +263,7 @@ public sealed class SaleTracker
 
     /// <summary>Coperti dalle righe "Coperto"/"Coperti" (il protocollo li vuole a parte).</summary>
     int CountCover() => (int)_visible
-        .Where(l => l.Kind == LineKind.Item && Normalize(l.Desc).StartsWith("COPERT", StringComparison.Ordinal))
+        .Where(l => l.Kind == LineKind.Item && IsCover(l.Desc))
         .Sum(l => l.Qty);
 
     void Reset()
