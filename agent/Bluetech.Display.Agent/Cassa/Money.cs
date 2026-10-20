@@ -26,6 +26,18 @@ public static partial class Money
         return true;
     }
 
+    /// <summary>123450 → "1.234,50", come la cassa.</summary>
+    public static string Format(long cents)
+    {
+        var abs = Math.Abs(cents);
+        var whole = (abs / 100).ToString("#,0", CultureInfo.InvariantCulture).Replace(',', '.');
+        return $"{(cents < 0 ? "-" : "")}{whole},{abs % 100:00}";
+    }
+
+    /// <summary>2 → "2", 0.45 → "0,45".</summary>
+    public static string FormatQuantity(decimal quantity) =>
+        quantity.ToString("0.###", CultureInfo.InvariantCulture).Replace('.', ',');
+
     /// <summary>"2" → 2, "1,5" → 1.5.</summary>
     public static bool TryParseQuantity(string text, out decimal quantity)
     {

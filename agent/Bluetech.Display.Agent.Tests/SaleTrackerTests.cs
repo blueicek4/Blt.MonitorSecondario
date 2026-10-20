@@ -401,6 +401,83 @@ public class SaleTrackerTests
         }
     }
 
+    // Scontrino digitale a video e copia cartacea (docs/03).
+
+    static readonly DigitalReceiptSettings Digital = new(Show: true, PaperCopy: true, OnScreen: TimeSpan.FromSeconds(45), Notice: "Copia di cortesia");
+
+    static CashFile PaidBill() => ReceiptParser.Parse(Samples.Receipt("scontrino-bar-pagato-carta.txt"));
+
+    static DigitalReceipt ShownReceipt(IEnumerable<CashIn> messages) =>
+        Assert.IsType<ReceiptDigital>(messages.Single(m => m.Type == "receipt.digital")).Receipt;
+
+    [Fact]
+    public void The_digital_receipt_after_payment_shows_the_paid_bill()
+    {
+        var tracker = new SaleTracker(Digital);
+        var wall = new DateTimeOffset(2026, 10, 20, 8, 41, 0, TimeSpan.FromHours(2));
+        tracker.Apply(PaidBill(), T0, wall);
+        var receipt = ShownReceipt(tracker.Apply(DigitalReceiptQr(), T0.AddSeconds(3)));
+
+        Assert.NotNull(receipt.Bill);
+        Assert.Equal(wall, receipt.IssuedAt);   // l'ora del pagamento, per la copia
+        var json = new ReceiptDigital(receipt).ToJson();
+        Assert.True((bool)json["paperCopy"]!);
+        Assert.Equal("none", (string)json["paper"]!);
+        Assert.Equal("Copia di cortesia", (string)json["notice"]!);
+        Assert.Equal(["Caffe'", "SCONTO"], json["receipt"]!["lines"]!.AsArray().Select(l => (string)l!["desc"]!));
+        Assert.Equal(120, (long)json["receipt"]!["total"]!);
+        Assert.Equal("C.CREDITO", (string)json["receipt"]!["paid"]!["method"]!);
+        Assert.Equal("receipt", tracker.Phase);
+        Assert.Equal(receipt.Id, (string)tracker.Snapshot()["receipt"]!["id"]!);   // chi si ricollega lo rivede
+    }
+
+    [Fact]
+    public void Without_a_sure_pairing_only_the_qr_is_shown()
+    {
+        // Nessun pagamento prima.
+        Assert.Null(ShownReceipt(new SaleTracker(Digital).Apply(DigitalReceiptQr(), T0)).Bill);
+
+        // Pagamento più vecchio della finestra.
+        var late = new SaleTracker(Digital);
+        late.Apply(PaidBill(), T0);
+        Assert.Null(ShownReceipt(late.Apply(DigitalReceiptQr(), T0 + SaleTracker.PairWindow + TimeSpan.FromSeconds(1))).Bill);
+
+        // Il cliente dopo ha già cominciato: il QR non può più essere abbinato al conto di prima.
+        var busy = new SaleTracker(Digital);
+        busy.Apply(PaidBill(), T0);
+        busy.Apply(Bill("SPRITZ"), T0.AddSeconds(2));
+        Assert.Null(ShownReceipt(busy.Apply(DigitalReceiptQr(), T0.AddSeconds(4))).Bill);
+    }
+
+    [Fact]
+    public void The_digital_receipt_goes_away_after_its_time_or_with_the_next_sale()
+    {
+        var tracker = new SaleTracker(Digital);
+        tracker.Apply(PaidBill(), T0);
+        tracker.Apply(DigitalReceiptQr(), T0.AddSeconds(2));
+        Assert.Empty(tracker.CheckIdle(T0.AddSeconds(46), TimeSpan.FromSeconds(60)));
+        Assert.Equal(["receipt.clear"], tracker.CheckIdle(T0.AddSeconds(47), TimeSpan.FromSeconds(60)).Select(m => m.Type));
+        Assert.Equal("idle", tracker.Phase);
+
+        tracker.Apply(Bill("CAFFE"), T0.AddSeconds(60));
+        tracker.Apply(PaidBill(), T0.AddSeconds(70));
+        tracker.Apply(DigitalReceiptQr(), T0.AddSeconds(72));
+        var next = tracker.Apply(Bill("SPRITZ"), T0.AddSeconds(80));
+        Assert.Equal(["receipt.clear", "sale.open", "sale.line", "sale.total"], next.Select(m => m.Type));
+        Assert.Null(tracker.Receipt);
+    }
+
+    [Fact]
+    public void The_paper_copy_state_goes_into_the_receipt()
+    {
+        var tracker = new SaleTracker(Digital);
+        tracker.Apply(PaidBill(), T0);
+        var receipt = ShownReceipt(tracker.Apply(DigitalReceiptQr(), T0.AddSeconds(2)));
+        Assert.True(tracker.SetPaper(receipt.Id, PaperState.Requested));
+        Assert.False(tracker.SetPaper("R-altro", PaperState.Requested));
+        Assert.Equal("requested", (string)tracker.Snapshot()["receipt"]!["paper"]!);
+    }
+
     [Fact]
     public void Snapshot_for_a_display_that_connects_mid_sale()
     {

@@ -16,13 +16,21 @@ namespace Bluetech.Display.Agent.Vendita;
 ///   riga in comune con quello a video è una vendita nuova (il coperto non conta: c'è su ogni tavolo);
 /// - un conto dopo il QR toglie il QR, tranne lo stesso conto rimandato entro 20 s (il vecchio monitor 6.0 ignora ogni
 ///   file per 20 s dopo il QR: la cassa rimanda il conto mentre il cliente paga);
-/// - "QRCODESD", il QR dello scontrino digitale, è un messaggio a parte (<c>receipt.qr</c>);
+/// - "QRCODESD", il QR dello scontrino digitale, è un messaggio a parte: <c>receipt.qr</c>, oppure, con lo scontrino
+///   digitale attivo (docs/03), <c>receipt.digital</c> con il conto pagato abbinato, se l'abbinamento è sicuro;
 /// - una versione identica alla precedente non produce niente.
 ///
 /// Non è thread-safe: lo usa un solo chiamante alla volta (vedi <see cref="Server.AgentEngine"/>).
 /// </summary>
-public sealed class SaleTracker
+public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
 {
+    /// <summary>
+    /// Il QR dello scontrino digitale si abbina all'ultimo conto pagato solo se arriva entro questo tempo e nel frattempo
+    /// non è partita un'altra vendita. Altrimenti resta il solo QR: meglio niente righe che le righe di un altro cliente.
+    /// </summary>
+    public static readonly TimeSpan PairWindow = TimeSpan.FromSeconds(30);
+
+    readonly DigitalReceiptSettings _digital = digital ?? DigitalReceiptSettings.Off;
     readonly List<SaleLine> _visible = [];
     long _nextId;
     bool _open;
@@ -35,14 +43,21 @@ public sealed class SaleTracker
     DateTimeOffset _qrAt;
     string? _qrHash;
     string? _lastHash;
+    // L'ultimo conto pagato, con l'ora del tracker e l'ora vera: il QR dello scontrino digitale che arriva dopo è suo.
+    (CashFile Bill, DateTimeOffset At, DateTimeOffset Wall)? _lastPaid;
+    DigitalReceipt? _receipt;
+    long _nextReceipt;
 
     public DateTimeOffset LastActivity { get; private set; }
     public bool IsOpen => _open;
     public long Total => _total;
-    public string Phase => _qr != null ? "payment" : _open ? "sale" : "idle";
+    public string Phase => _qr != null ? "payment" : _open ? "sale" : _receipt != null ? "receipt" : "idle";
     public IReadOnlyList<SaleLine> Lines => _visible;
+    /// <summary>Lo scontrino digitale a video, se c'è.</summary>
+    public DigitalReceipt? Receipt => _receipt;
 
-    public IReadOnlyList<CashIn> Apply(CashFile file, DateTimeOffset now)
+    /// <param name="wallNow">L'ora vera, per la data sulla copia; senza, quella di <paramref name="now"/>.</param>
+    public IReadOnlyList<CashIn> Apply(CashFile file, DateTimeOffset now, DateTimeOffset? wallNow = null)
     {
         // Anche una riscrittura identica dice che la cassa sta lavorando su questo conto: il tempo riparte.
         if (file.Kind != CashFileKind.Empty)
@@ -63,7 +78,24 @@ public sealed class SaleTracker
                     _qr = null;   // lo scontrino digitale arriva a pagamento fatto
                     messages.Add(new PayClear());
                 }
-                messages.Add(new ReceiptQr(file.QrDataUri!, file.QrCaption));
+                if (!_digital.Show)
+                {
+                    messages.Add(new ReceiptQr(file.QrDataUri!, file.QrCaption));
+                    return messages;
+                }
+                var paid = _lastPaid is { } last && now - last.At <= PairWindow ? last : ((CashFile, DateTimeOffset, DateTimeOffset)?)null;
+                _receipt = new DigitalReceipt
+                {
+                    Id = "R" + ++_nextReceipt + "-" + Convert.ToHexString(Guid.NewGuid().ToByteArray(), 0, 4),
+                    Png = file.QrDataUri!,
+                    Caption = file.QrCaption,
+                    Bill = paid?.Item1,
+                    ShownAt = now,
+                    IssuedAt = paid?.Item3 ?? wallNow ?? now,
+                    PaperCopy = _digital.PaperCopy,
+                    Notice = _digital.Notice,
+                };
+                messages.Add(new ReceiptDigital(_receipt));
                 return messages;
             }
             case CashFileKind.Qr:
@@ -72,7 +104,7 @@ public sealed class SaleTracker
                 _qrHash = file.Hash;
                 return [_qr];
             case CashFileKind.Receipt:
-                return ApplyReceipt(file, now);
+                return ApplyReceipt(file, now, wallNow ?? now);
             default:
                 return [];
         }
@@ -92,6 +124,26 @@ public sealed class SaleTracker
     /// vecchio monitor. Con il QR di pagamento a video si aspetta almeno <see cref="MinimumWithQr"/>.
     /// </summary>
     public IReadOnlyList<CashIn> CheckIdle(DateTimeOffset now, TimeSpan timeout)
+    {
+        if (_receipt != null && now - _receipt.ShownAt >= _digital.OnScreen)
+        {
+            var expired = _receipt;
+            _receipt = null;
+            return [new ReceiptClear(expired.Id), .. CheckSaleIdle(now, timeout)];
+        }
+        return CheckSaleIdle(now, timeout);
+    }
+
+    /// <summary>La copia cartacea dello scontrino digitale <paramref name="id"/> cambia stato; falso se non è più a video.</summary>
+    public bool SetPaper(string id, PaperState state)
+    {
+        if (_receipt?.Id != id)
+            return false;
+        _receipt.Paper = state;
+        return true;
+    }
+
+    IReadOnlyList<CashIn> CheckSaleIdle(DateTimeOffset now, TimeSpan timeout)
     {
         if (_qr != null && timeout > TimeSpan.Zero && timeout < MinimumWithQr)
             timeout = MinimumWithQr;
@@ -115,10 +167,18 @@ public sealed class SaleTracker
     public IReadOnlyList<CashIn> CloseNow()
     {
         _lastHash = null;
-        if (!_open)
-            return [];
-        Reset();
-        return [new SaleClose(null)];
+        var messages = new List<CashIn>();
+        if (_receipt != null)
+        {
+            messages.Add(new ReceiptClear(_receipt.Id));
+            _receipt = null;
+        }
+        if (_open)
+        {
+            Reset();
+            messages.Add(new SaleClose(null));
+        }
+        return messages;
     }
 
     /// <summary>Lo stato completo per <c>sync</c> (Partial&lt;DisplayState&gt; del protocollo).</summary>
@@ -139,10 +199,12 @@ public sealed class SaleTracker
                 payment["caption"] = _qr.Caption;
             state["payment"] = payment;
         }
+        if (_receipt != null)
+            state["receipt"] = _receipt.ToJson();   // chi si ricollega (un palmare uscito dallo standby) lo rivede
         return state;
     }
 
-    List<CashIn> ApplyReceipt(CashFile receipt, DateTimeOffset now)
+    List<CashIn> ApplyReceipt(CashFile receipt, DateTimeOffset now, DateTimeOffset wallNow)
     {
         var messages = new List<CashIn>();
         if (_qr != null)
@@ -166,6 +228,14 @@ public sealed class SaleTracker
         var opening = !_open;
         if (opening)
         {
+            // Il cliente dopo: lo scontrino digitale del precedente non resta a video, e un QR che arrivasse adesso
+            // non è più di quel conto.
+            if (_receipt != null)
+            {
+                messages.Add(new ReceiptClear(_receipt.Id));
+                _receipt = null;
+            }
+            _lastPaid = null;
             messages.Add(new SaleOpen());
             _open = true;
         }
@@ -195,6 +265,7 @@ public sealed class SaleTracker
             messages.Add(new SaleClose(receipt.Payment));
             Reset();
             _lastBillTotal = 0;
+            _lastPaid = (receipt, now, wallNow);
         }
         return messages;
     }

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using Bluetech.Display.Agent.Logging;
 using Bluetech.Display.Agent.Server;
@@ -11,7 +12,9 @@ namespace Bluetech.Display.Agent;
 /// - <c>/</c>: il display (la build di display/ nella cartella <see cref="AgentOptions.CartellaDisplay"/>);
 ///   <c>/display</c> rimanda lì, perché è l'indirizzo predefinito del Player;
 /// - <c>/ws</c>: i messaggi del protocollo, via WebSocket;
-/// - <c>/diagnostica</c>: cosa arriva dalla cassa, dal vivo; <c>/api/stato</c>: lo stesso in JSON.
+/// - <c>/diagnostica</c>: cosa arriva dalla cassa, dal vivo; <c>/api/stato</c>: lo stesso in JSON;
+/// - <c>/cliente</c>: la stessa pagina senza le parti tecniche, per un palmare o uno schermo touch finché il display
+///   vero non c'è (scontrino digitale e copia cartacea, docs/03).
 /// </summary>
 public static class AgentApp
 {
@@ -63,6 +66,21 @@ public static class AgentApp
         var app = builder.Build();
         app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(20) });
 
+        if (options.ChiaviDispositivi.Length > 0)
+        {
+            app.Use(async (context, next) =>
+            {
+                if (DeviceAllowed(context, options.ChiaviDispositivi))
+                {
+                    await next();
+                    return;
+                }
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "text/plain; charset=utf-8";
+                await context.Response.WriteAsync("Dispositivo non abbinato: apri una volta l'indirizzo con ?chiave=… (la chiave è nell'appsettings.json dell'Agent).");
+            });
+        }
+
         app.Map("/ws", async (HttpContext context, AgentEngine engine, DisplayHub hub, IHostApplicationLifetime lifetime) =>
         {
             if (!context.WebSockets.IsWebSocketRequest)
@@ -80,11 +98,12 @@ public static class AgentApp
             var client = engine.Connect(socket, context.Connection.RemoteIpAddress?.ToString() ?? "?");
             // Anche l'arresto del servizio chiude il collegamento: altrimenti ogni stop aspetterebbe 30 s.
             using var end = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted, lifetime.ApplicationStopping);
-            await hub.RunAsync(client, end.Token);
+            await hub.RunAsync(client, end.Token, engine.OnDisplayMessage);
         });
         app.MapGet("/api/stato", (AgentEngine engine) =>
             Results.Text(engine.Status().ToJsonString(Indented), "application/json; charset=utf-8"));
         app.MapGet("/diagnostica", () => Results.Text(DiagnosticPage.Value, "text/html; charset=utf-8"));
+        app.MapGet("/cliente", () => Results.Text(DiagnosticPage.Value, "text/html; charset=utf-8"));
         app.MapGet("/display", () => Results.Redirect("/"));
         app.MapGet("/display/{**rest}", () => Results.Redirect("/"));
 
@@ -128,6 +147,32 @@ public static class AgentApp
         else if (context.Context.Request.Path.StartsWithSegments("/assets"))
             context.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
     }
+
+    /// <summary>
+    /// Con le chiavi dei dispositivi: questo PC entra sempre; un palmare o un tablet solo con <c>?chiave=…</c>, che poi
+    /// resta in un cookie (così anche la pagina, i suoi file e il WebSocket passano).
+    /// </summary>
+    internal static bool DeviceAllowed(HttpContext context, IReadOnlyCollection<string> keys)
+    {
+        var remote = context.Connection.RemoteIpAddress;
+        if (remote == null || IPAddress.IsLoopback(remote) || (remote.IsIPv4MappedToIPv6 && IPAddress.IsLoopback(remote.MapToIPv4())))
+            return true;
+        var key = context.Request.Query["chiave"].ToString();
+        if (key.Length > 0 && keys.Contains(key))
+        {
+            context.Response.Cookies.Append(DeviceCookie, key, new CookieOptions
+            {
+                HttpOnly = true,
+                SameSite = SameSiteMode.Strict,
+                IsEssential = true,
+                Expires = DateTimeOffset.UtcNow.AddYears(5),
+            });
+            return true;
+        }
+        return context.Request.Cookies.TryGetValue(DeviceCookie, out var cookie) && keys.Contains(cookie);
+    }
+
+    const string DeviceCookie = "bluetech_dispositivo";
 
     /// <summary>
     /// Un browser manda sempre l'origine della pagina: si accettano le pagine servite dall'Agent stesso (Player,

@@ -6,7 +6,7 @@
 <title>Diagnostica Agent</title>
 <link rel="icon" href="data:,">
 <style>
-  :root { color-scheme: dark; --bg: #0b1017; --card: #141b26; --line: rgba(255,255,255,.09); --text: #e6eaf2; --muted: #9aa6ba; --faint: #6f7e95; --ok: #3ddc97; --warn: #f5b84a; --accent: #3ddc97; }
+  :root { color-scheme: dark; --bg: #0b1017; --card: #141b26; --line: rgba(255,255,255,.09); --text: #e6eaf2; --muted: #9aa6ba; --faint: #6f7e95; --ok: #3ddc97; --warn: #f5b84a; --accent: #3ddc97; --paper: #fbfaf7; --ink: #1d232c; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, "Segoe UI", sans-serif; }
   header { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; padding: 16px 24px; border-bottom: 1px solid var(--line); }
@@ -33,6 +33,34 @@
   #qr img { image-rendering: pixelated; width: 240px; height: 240px; background: #fff; padding: 16px; border-radius: 12px; }
   #log li { font: 12px/1.5 ui-monospace, Consolas, monospace; color: var(--muted); padding: 4px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
   #log li b { color: var(--text); font-weight: 600; }
+
+  /* Lo scontrino digitale: lo scontrino come sulla carta, il QR grande, il pulsante della copia (docs/03). */
+  #digital { display: none; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+  @media (max-width: 860px) { #digital { grid-template-columns: 1fr; } #digital .scan { order: -1; } }
+  .paper { background: var(--paper); color: var(--ink); border-radius: 6px; padding: 24px 22px; font: 14px/1.5 ui-monospace, Consolas, "Courier New", monospace; box-shadow: 0 10px 30px rgba(0,0,0,.35); max-width: 460px; justify-self: center; width: 100%; }
+  .paper .center { text-align: center; }
+  .paper .sep { border-top: 1px dashed #9aa3ae; margin: 8px 0; }
+  .paper .pair { display: flex; gap: 12px; justify-content: space-between; }
+  .paper .pair span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  .paper .pair span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .paper .under { padding-left: 2.5em; }
+  .paper .muted { color: #5b6573; }
+  .paper .big { font-size: 22px; font-weight: 700; margin-top: 6px; }
+  .paper img { display: block; margin: 14px auto 6px; width: 112px; height: 112px; image-rendering: pixelated; background: #fff; padding: 8px; }
+  .scan { text-align: center; }
+  .scan h2 { color: var(--text); font-size: 22px; letter-spacing: 0; text-transform: none; }
+  .scan img { image-rendering: pixelated; width: min(340px, 80vw); height: min(340px, 80vw); background: #fff; padding: min(26px, 6vw); border-radius: 14px; }
+  .scan .caption { color: var(--muted); margin: 10px 0 20px; }
+  #paperbtn { font: 600 20px/1.2 system-ui, "Segoe UI", sans-serif; min-height: 88px; width: min(420px, 100%); padding: 18px 24px; border-radius: 16px; border: 0; background: var(--accent); color: #062417; cursor: pointer; touch-action: manipulation; }
+  #paperbtn:active { transform: scale(.98); }
+  #paperstatus { font-size: 20px; font-weight: 600; margin: 16px 0 0; min-height: 1.4em; }
+
+  /* /cliente: solo quello che vede il cliente, per un palmare o uno schermo touch. */
+  body.customer header, body.customer #logbox, body.customer #billbox h2 { display: none; }
+  body.customer main { grid-template-columns: 1fr; max-width: 1100px; margin: 0 auto; }
+  body.customer #welcome { display: block; }
+  #welcome { display: none; text-align: center; color: var(--muted); font-size: 22px; padding: 18vh 16px; }
+  body { -webkit-user-select: none; user-select: none; }
 </style>
 </head>
 <body>
@@ -42,10 +70,11 @@
   <span class="fact">Fase <b id="phase">-</b></span>
   <span class="fact">Cassa sul <b id="bill">-</b></span>
   <span class="fact">Ultimo battito <b id="beat">-</b></span>
-  <span class="fact"><a href="/api/stato" style="color:var(--muted)">stato in JSON</a></span>
+  <span class="fact"><a href="/api/stato" style="color:var(--muted)">stato in JSON</a> · <a href="/cliente" style="color:var(--muted)">vista cliente</a></span>
 </header>
 <main>
-  <section aria-label="Conto">
+  <p id="welcome">Benvenuti</p>
+  <section id="billbox" aria-label="Conto">
     <h2>Il conto, come lo vedrà il cliente</h2>
     <ul id="lines"></ul>
     <p id="nolines" class="empty">Nessun conto in corso: il display mostra le slide.</p>
@@ -53,27 +82,41 @@
     <p id="paid"></p>
     <div id="qr"><h2 id="qrtitle">QR di pagamento</h2><p id="qrcaption" class="empty"></p><img id="qrimg" alt="QR"></div>
   </section>
-  <section aria-label="Messaggi">
+  <div id="digital" aria-label="Scontrino digitale">
+    <div class="paper" id="paper"></div>
+    <div class="scan">
+      <h2>Il tuo scontrino digitale</h2>
+      <img id="bigqr" alt="QR per scaricare lo scontrino digitale">
+      <p class="caption" id="bigcaption"></p>
+      <button id="paperbtn" type="button">Preferisci la copia di carta? Tocca qui</button>
+      <p id="paperstatus"></p>
+    </div>
+  </div>
+  <section id="logbox" aria-label="Messaggi">
     <h2>Ultimi messaggi dalla cassa</h2>
     <ul id="log"></ul>
   </section>
 </main>
 <script>
 "use strict";
+const customer = location.pathname === "/cliente" || new URLSearchParams(location.search).get("vista") === "cliente";
+if (customer) { document.body.classList.add("customer"); document.title = "Scontrino"; }
 const euro = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const money = (cents) => (cents < 0 ? "−" : "") + "€ " + euro.format(Math.abs(cents) / 100);
-const state = { phase: "idle", lines: [], total: 0, payment: null, paid: null, bill: false, receiptQr: null };
+const plain = (cents) => (cents < 0 ? "-" : "") + euro.format(Math.abs(cents) / 100);
+const state = { phase: "idle", lines: [], total: 0, payment: null, paid: null, bill: false, receiptQr: null, receipt: null };
 const voidedAt = new Map();
 // Come il display: dopo PAGATO, Grazie con le righe per 8 s (30 s con il QR dello scontrino digitale), poi l'attesa
-// (le slide) senza il conto vecchio.
+// (le slide) senza il conto vecchio. Lo scontrino digitale con la copia cartacea lo chiude l'Agent (receipt.clear).
 const THANKS_MS = 8000;
 const THANKS_WITH_QR_MS = 30000;
 let thanksTimer = 0;
+let socket = null;
 
 function clear(phase) {
   clearTimeout(thanksTimer);
   state.phase = phase; state.lines = []; state.total = 0; state.payment = null; state.paid = null;
-  state.bill = false; state.receiptQr = null;
+  state.bill = false; state.receiptQr = null; state.receipt = null;
 }
 
 function thanksFor(ms) {
@@ -92,12 +135,13 @@ function apply(m) {
       state.payment = m.state.payment || null;
       state.bill = !!m.state.bill;
       state.receiptQr = null;
+      state.receipt = m.state.receipt || null;
       break;
     case "sale.open":
       clear("sale");
       break;
     case "sale.line": {
-      if (state.phase === "thanks") clear("sale");
+      if (state.phase === "thanks" || state.phase === "receipt") clear("sale");
       const i = state.lines.findIndex((l) => l.id === m.line.id);
       if (i >= 0) state.lines[i] = m.line; else state.lines.push(m.line);
       if (m.line.kind === "void") voidedAt.set(m.line.id, Date.now());
@@ -106,7 +150,7 @@ function apply(m) {
     }
     case "sale.total": state.total = m.total; state.bill = !!m.bill; break;
     case "sale.close":
-      if (!m.paid) { clear("idle"); break; }
+      if (!m.paid) { clear(state.receipt ? "receipt" : "idle"); break; }
       state.phase = "thanks"; state.payment = null; state.paid = m.paid;
       thanksFor(state.receiptQr ? THANKS_WITH_QR_MS : THANKS_MS);
       break;
@@ -116,12 +160,108 @@ function apply(m) {
       state.payment = null;
       if (state.phase !== "sale") { state.phase = "thanks"; thanksFor(THANKS_WITH_QR_MS); }
       break;
+    case "receipt.digital":
+      clearTimeout(thanksTimer);
+      state.payment = null;
+      state.receipt = m;
+      state.phase = "receipt";
+      break;
+    case "receipt.paper.status":
+      if (state.receipt && state.receipt.id === m.id) {
+        state.receipt.paper = m.state === "already" ? "requested" : m.state;
+        state.receipt.paperMessage = m.message || (m.state === "already" ? "La copia è già stata chiesta: ritirala alla cassa" : null);
+      }
+      break;
+    case "receipt.clear":
+      if (state.receipt && state.receipt.id === m.id) {
+        state.receipt = null;
+        if (state.phase === "receipt") clear("idle");
+      }
+      break;
     case "pay.clear":
       state.payment = null;
       if (state.phase === "payment") state.phase = state.lines.length ? "sale" : "idle";   // QR senza conto: l'attesa
       break;
   }
 }
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function pair(left, right, className) {
+  const row = el("div", "pair" + (className ? " " + className : ""));
+  row.append(el("span", "", left), el("span", "", right));
+  return row;
+}
+
+/** Lo scontrino come uscirà sulla carta: intestazione, righe, sconti, totale, pagamenti, data, QR piccolo, dicitura. */
+function renderPaper(r) {
+  const paper = document.getElementById("paper");
+  paper.replaceChildren();
+  const bill = r.receipt;
+  if (bill) {
+    for (const h of bill.header || []) paper.append(el("div", "center", h));
+    paper.append(el("div", "sep"), el("div", "muted", "EURO"));
+    for (const line of bill.lines || []) {
+      if (line.kind === "item") {
+        if (line.qty !== 1) paper.append(el("div", "muted", "  " + String(line.qty).replace(".", ",") + (line.unit != null ? " x " + plain(line.unit) : "")));
+        paper.append(pair(line.desc, plain(line.amount)));
+      } else if (line.kind === "note") {
+        paper.append(el("div", "muted", line.text));
+      } else {
+        paper.append(pair(line.desc, plain(line.amount), line.underItem ? "under" : ""));
+      }
+    }
+    paper.append(el("div", "sep"));
+    if (bill.total != null) paper.append(pair("TOTALE", plain(bill.total), "big"));
+    if (bill.paid) {
+      paper.append(pair("Pagato " + bill.paid.method, plain(bill.paid.amount)));
+      if (bill.paid.change != null) paper.append(pair("Resto", plain(bill.paid.change)));
+    }
+  } else {
+    paper.append(el("div", "center", r.caption || "Scontrino digitale"));
+  }
+  const when = new Date(r.issuedAt);
+  if (!isNaN(when)) paper.append(el("div", "muted", when.toLocaleDateString("it-IT") + " " + when.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })));
+  const small = el("img");
+  small.alt = "QR per scaricare il documento commerciale";
+  if (typeof r.png === "string" && r.png.startsWith("data:image/")) small.src = r.png;
+  paper.append(small);
+  if (r.notice) paper.append(el("div", "center muted", r.notice));
+}
+
+function renderDigital() {
+  const r = state.receipt;
+  const digital = document.getElementById("digital");
+  digital.style.display = r ? "grid" : "none";
+  document.getElementById("billbox").style.display = r ? "none" : "";
+  if (!r) return;
+  renderPaper(r);
+  if (typeof r.png === "string" && r.png.startsWith("data:image/")) document.getElementById("bigqr").src = r.png;
+  document.getElementById("bigcaption").textContent = r.caption || "Inquadra per scaricarlo";
+  const button = document.getElementById("paperbtn");
+  const status = document.getElementById("paperstatus");
+  const paper = r.paper || "none";
+  button.style.display = r.paperCopy && (paper === "none" || paper === "failed") ? "" : "none";
+  button.textContent = paper === "failed" ? "Riprova a stampare la copia" : "Preferisci la copia di carta? Tocca qui";
+  status.textContent = !r.paperCopy ? "Vuoi la copia di carta? Chiedila alla cassa"
+    : paper === "printing" ? "Sto stampando la tua copia…"
+    : paper === "requested" ? (r.paperMessage || "Ritira la copia alla cassa")
+    : paper === "failed" ? "Non riesco a stampare: chiedi la copia alla cassa"
+    : "";
+}
+
+document.getElementById("paperbtn").addEventListener("click", () => {
+  const r = state.receipt;
+  if (!r || !socket || socket.readyState !== WebSocket.OPEN) return;
+  socket.send(JSON.stringify({ t: "receipt.paper", id: r.id }));
+  r.paper = "printing";
+  render();
+});
 
 function render() {
   const voided = new Set(state.lines.filter((l) => l.kind === "void" && l.voidsId).map((l) => l.voidsId));
@@ -168,12 +308,20 @@ function render() {
     document.getElementById("qrcaption").textContent = shown.caption || "";
     if (typeof shown.png === "string" && shown.png.startsWith("data:image/")) document.getElementById("qrimg").src = shown.png;
   }
+  renderDigital();
+  if (customer) {
+    const idle = state.phase === "idle" && !state.receipt;
+    document.getElementById("welcome").style.display = idle ? "block" : "none";
+    if (!state.receipt) document.getElementById("billbox").style.display = idle ? "none" : "";
+  }
 }
 
 function log(m) {
+  if (customer) return;
   const shown = JSON.parse(JSON.stringify(m));
   if (shown.png) shown.png = "(immagine)";
   if (shown.state && shown.state.payment) shown.state.payment.png = "(immagine)";
+  if (shown.state && shown.state.receipt) shown.state.receipt.png = "(immagine)";
   const li = document.createElement("li");
   const kind = document.createElement("b");
   kind.textContent = new Date().toLocaleTimeString("it-IT") + "  " + m.t;
@@ -185,7 +333,8 @@ function log(m) {
 
 let delay = 1000;
 function connect() {
-  const socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+  // La chiave di abbinamento (?chiave=…) passa anche al WebSocket; poi basta il cookie.
+  socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws" + location.search);
   socket.onopen = () => {
     delay = 1000;
     document.getElementById("link").textContent = "collegato";
@@ -210,6 +359,7 @@ function connect() {
   };
 }
 setInterval(render, 1000);
+render();
 connect();
 </script>
 </body>

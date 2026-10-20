@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using System.Net;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
@@ -236,5 +238,108 @@ public sealed class AgentAppTests : IAsyncLifetime
             await app.StopAsync();
             await app.DisposeAsync();
         }
+    }
+
+    [Fact]
+    public async Task Digital_receipt_and_paper_copy_from_the_till_to_the_printer()
+    {
+        var printer = new TcpListener(IPAddress.Loopback, 0);
+        printer.Start();
+        var root = Path.Combine(_root, "copia");
+        var file = Path.Combine(root, "MonitorSecondario", "Scontrino.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+        var (app, http) = await StartAgent(root, new()
+        {
+            ["Agent:FileCassa"] = file,
+            ["Agent:ScontrinoDigitale:MostraScontrino"] = "true",
+            ["Agent:ScontrinoDigitale:CopiaCartacea"] = "true",
+            ["Agent:ScontrinoDigitale:Stampa:Collegamento"] = "rete",
+            ["Agent:ScontrinoDigitale:Stampa:Stampante"] = $"127.0.0.1:{((IPEndPoint)printer.LocalEndpoint).Port}",
+        });
+        try
+        {
+            using var socket = new ClientWebSocket();
+            await socket.ConnectAsync(new Uri($"ws://{http.BaseAddress!.Authority}/ws"), CancellationToken.None);
+            await Receive(socket, m => (string)m["t"]! == "sync");
+
+            async Task Write(byte[] bytes)
+            {
+                var temp = file + ".tmp";
+                await File.WriteAllBytesAsync(temp, bytes);
+                File.Move(temp, file);
+            }
+
+            await Write(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "samples", "scontrino-bar-pagato-carta.txt")));
+            await Receive(socket, m => (string)m["t"]! == "sale.close");
+            while (File.Exists(file))
+                await Task.Delay(20);
+            await Write(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "samples", "qr-scontrino-digitale-prova.txt")));
+
+            var digital = await Receive(socket, m => (string)m["t"]! == "receipt.digital");
+            Assert.True((bool)digital["paperCopy"]!);
+            Assert.Equal(120, (long)digital["receipt"]!["total"]!);
+            Assert.Equal("Scarica il tuo scontrino digitale!", (string)digital["caption"]!);
+            var id = (string)digital["id"]!;
+
+            var printed = ReceiveAll(printer);
+            await Send(socket, new JsonObject { ["t"] = "receipt.paper", ["id"] = id });
+            Assert.Equal("printing", (string)(await Receive(socket, m => (string)m["t"]! == "receipt.paper.status"))["state"]!);
+            var done = await Receive(socket, m => (string)m["t"]! == "receipt.paper.status");
+            Assert.Equal("requested", (string)done["state"]!);
+            Assert.Equal("Ritira la copia alla cassa", (string)done["message"]!);
+            var bytes = await printed;
+            Assert.Equal(new byte[] { 0x1B, 0x40 }, bytes[..2]);
+            Assert.Contains("LOCALE 1", Encoding.Latin1.GetString(bytes));
+
+            await Task.Delay(2100);   // un comando ogni 2 s
+            await Send(socket, new JsonObject { ["t"] = "receipt.paper", ["id"] = id });
+            Assert.Equal("already", (string)(await Receive(socket, m => (string)m["t"]! == "receipt.paper.status"))["state"]!);
+
+            var status = JsonNode.Parse(await http.GetStringAsync("/api/stato"))!;
+            Assert.Equal("inviata", (string)status["copieCartacee"]![0]!["esito"]!);
+            Assert.Contains("Il tuo scontrino digitale", await http.GetStringAsync("/cliente"));
+        }
+        finally
+        {
+            printer.Stop();
+            await app.StopAsync();
+            await app.DisposeAsync();
+        }
+    }
+
+    static async Task Send(ClientWebSocket socket, JsonObject message) =>
+        await socket.SendAsync(Encoding.UTF8.GetBytes(message.ToJsonString()), WebSocketMessageType.Text, true, CancellationToken.None);
+
+    static async Task<byte[]> ReceiveAll(TcpListener listener)
+    {
+        using var client = await listener.AcceptTcpClientAsync();
+        using var memory = new MemoryStream();
+        await client.GetStream().CopyToAsync(memory);
+        return memory.ToArray();
+    }
+
+    static HttpContext Request(string remote, string query = "", string? cookie = null)
+    {
+        var context = new DefaultHttpContext();
+        context.Connection.RemoteIpAddress = IPAddress.Parse(remote);
+        context.Request.QueryString = new QueryString(query);
+        if (cookie != null)
+            context.Request.Headers.Cookie = "bluetech_dispositivo=" + cookie;
+        return context;
+    }
+
+    [Fact]
+    public void Only_paired_devices_enter_from_the_network()
+    {
+        string[] keys = ["palmare-1"];
+        Assert.True(AgentApp.DeviceAllowed(Request("127.0.0.1"), keys));        // il Player su questo PC
+        Assert.True(AgentApp.DeviceAllowed(Request("::1"), keys));
+        Assert.False(AgentApp.DeviceAllowed(Request("192.168.1.20"), keys));    // un telefono sulla rete
+        Assert.False(AgentApp.DeviceAllowed(Request("192.168.1.20", "?chiave=sbagliata"), keys));
+
+        var pairing = Request("192.168.1.20", "?chiave=palmare-1");
+        Assert.True(AgentApp.DeviceAllowed(pairing, keys));
+        Assert.Contains("bluetech_dispositivo=palmare-1", pairing.Response.Headers.SetCookie.ToString());
+        Assert.True(AgentApp.DeviceAllowed(Request("192.168.1.20", cookie: "palmare-1"), keys));   // poi basta il cookie
     }
 }

@@ -8,7 +8,9 @@ namespace Bluetech.Display.Agent.Vendita;
 /// - <c>sale.line</c> con un <c>id</c> già inviato aggiorna quella riga (quantità o importo cambiati);
 /// - <c>hb</c>, battito ogni pochi secondi: con una cassa a file il silenzio è normale e non deve far comparire
 ///   "connessione assente";
-/// - <c>sale.close.paid</c>, <c>sale.total.bill</c>, <c>pay.qr.caption</c> e <c>receipt.qr</c> (scontrino digitale).
+/// - <c>sale.close.paid</c>, <c>sale.total.bill</c>, <c>pay.qr.caption</c> e <c>receipt.qr</c> (scontrino digitale);
+/// - <c>receipt.digital</c>, <c>receipt.clear</c> e <c>receipt.paper.status</c> (scontrino digitale a video e copia
+///   cartacea, docs/03); dal display all'Agent solo <c>receipt.paper</c>.
 /// </summary>
 public abstract record CashIn
 {
@@ -109,6 +111,43 @@ public sealed record ReceiptQr(string Png, string? Caption) : CashIn
 public sealed record PayClear : CashIn
 {
     public override string Type => "pay.clear";
+}
+
+/// <summary>
+/// Estensione (docs/03): lo scontrino digitale da mostrare, con il conto pagato se l'abbinamento è sicuro e il pulsante
+/// della copia cartacea. Lo stesso <c>id</c> rimandato aggiorna lo stato della copia.
+/// </summary>
+public sealed record ReceiptDigital(DigitalReceipt Receipt) : CashIn
+{
+    public override string Type => "receipt.digital";
+    protected override void Fill(JsonObject json)
+    {
+        foreach (var (key, value) in Receipt.ToJson())
+            json[key] = value?.DeepClone();
+    }
+}
+
+/// <summary>Estensione: lo scontrino digitale non è più a video (tempo scaduto o vendita nuova).</summary>
+public sealed record ReceiptClear(string Id) : CashIn
+{
+    public override string Type => "receipt.clear";
+    protected override void Fill(JsonObject json) => json["id"] = Id;
+}
+
+/// <summary>
+/// Estensione: com'è andata la richiesta della copia cartacea. <c>requested</c> = la copia è partita verso la
+/// stampante; <c>already</c> = l'aveva già chiesta qualcuno; <c>failed</c> = da chiedere alla cassa.
+/// </summary>
+public sealed record PaperStatus(string Id, string State, string? Message = null) : CashIn
+{
+    public override string Type => "receipt.paper.status";
+    protected override void Fill(JsonObject json)
+    {
+        json["id"] = Id;
+        json["state"] = State;
+        if (Message != null)
+            json["message"] = Message;
+    }
 }
 
 /// <summary>Stato completo: alla connessione del display e quando le righe cambiano in modo non incrementale.</summary>

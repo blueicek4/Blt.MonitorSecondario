@@ -52,8 +52,60 @@ può mettere `http://localhost:5080/diagnostica` per vedere sul monitor cliente 
 | `CartellaDisplay` | `display` | La build del display (`display/dist`), accanto all'exe |
 | `ChiusuraVenditaDopoSecondi` | `60` | Conto aperto, senza `PAGATO`, e nessun file per un minuto: si chiude e il display torna alle slide. Con il QR Satispay a video almeno 3 minuti: il cliente sta pagando. Nelle registrazioni la riga `PAGATO` è arrivata 9–67 s dopo l'ultimo file con contanti e POS: oltre i 60 s il display va alle slide e torna con Grazie e le righe quando arriva `PAGATO`. All'avvio, un file più vecchio di così si toglie senza mostrarlo |
 | `CartellaLog`, `GiorniLog` | `log`, `14` | Un file al giorno |
+| `ChiaviDispositivi` | vuoto | Con `ApertoInRete`: le chiavi dei palmari e dei tablet abbinati. Se ce n'è almeno una, un dispositivo che non è questo PC entra solo aprendo una volta l'indirizzo con `?chiave=…` (poi la ricorda). Vuoto = chiunque sia nella rete |
+| `ScontrinoDigitale` | spento | Scontrino digitale a video e copia cartacea: vedi sotto |
 
 Dalla riga di comando: `--file`, `--porta`, `--replay`, `--velocita`, `--ripeti`.
+
+## Scontrino digitale a video e copia cartacea (opzionale)
+
+Quando Passepartout manda il QR dello scontrino digitale (`QRCODESD`), il palmare o lo schermo touch mostrano lo
+scontrino com'è sulla carta, il QR grande per scaricarlo e il pulsante "Preferisci la copia di carta? Tocca qui". Il
+tocco stampa una copia sulla stampante comande, in ESC/POS: intestazione, righe, sconti, totale, pagamenti, data e in
+fondo il QR piccolo, che è la parte che vale ai fini fiscali (il PDF firmato del documento). **Nessuna richiesta a
+Passepartout Menu né al web service**: i dati sono quelli già passati dal file del monitor. Studio completo in
+[`docs/03`](../docs/03-studio-copia-cartacea.md).
+
+```json
+"ScontrinoDigitale": {
+  "MostraScontrino": true,
+  "CopiaCartacea": true,
+  "SecondiAVideo": 45,
+  "Stampa": {
+    "Collegamento": "rete",
+    "Stampante": "192.168.1.50:9100",
+    "LarghezzaMm": 80,
+    "Colonne": 42,
+    "TabellaCaratteri": "1252",
+    "QrPuntiPerModulo": 4,
+    "Taglio": true,
+    "Dicitura": "Inquadra il QR per scaricare il documento commerciale. Copia di cortesia.",
+    "TestoRitiro": "Ritira la copia alla cassa",
+    "TimeoutSecondi": 8
+  }
+}
+```
+
+- `Collegamento`: `rete` (stampante comande in rete, `Stampante` = indirizzo e porta, 9100 se manca), `windows`
+  (`Stampante` = nome della coda di stampa, installata per tutti gli utenti) o `prova` (niente stampante: la copia
+  finisce in `log\copie` come testo e come comandi ESC/POS).
+- La stampante deve essere **termica** (su quelle ad aghi il QR non si legge) e stare dove il cliente ritira la copia;
+  `TestoRitiro` dice dove.
+- `TabellaCaratteri`: `1252` per le Epson e compatibili, `858` se gli accenti escono sbagliati, `ascii` per scrivere
+  senza accenti come la cassa (`Caffe'`).
+- **Abbinamento del QR al conto.** Il QR non dice di quale conto è. L'Agent lo abbina all'ultimo conto con `PAGATO`
+  se arriva entro 30 s e non è partita un'altra vendita; altrimenti mostra e stampa il solo QR. Così non si stampa mai
+  il QR di un cliente con le righe di un altro. La regola viene dal vecchio monitor 6.0: non abbiamo ancora visto un
+  `QRCODESD` vero, va controllata con le prime transazioni.
+- La schermata resta `SecondiAVideo`, o finché non parte la vendita successiva. Una copia per scontrino: il secondo
+  tocco risponde "già chiesta"; dopo un errore si può riprovare.
+- **Dove si guarda**: `/cliente` dal browser del palmare o dello schermo touch (la pagina della diagnostica senza le
+  parti tecniche, finché il display vero non c'è). Con `ApertoInRete=true` e `ChiaviDispositivi` il palmare si abbina
+  una volta con `http://<pc-cassa>:5080/cliente?chiave=…`. Il palmare va sulla rete del personale, mai su quella degli
+  ospiti.
+- `/api/stato` mostra lo scontrino digitale a video e le ultime 20 copie (ora, display, esito, tempo).
+- Per provare senza cassa: con `"Collegamento": "prova"` si copia in `FileCassa` uno scontrino pagato
+  (`samples/scontrino-bar-pagato-carta.txt`) e subito dopo `samples/qr-scontrino-digitale-prova.txt`.
 
 ## Indirizzi
 
@@ -62,7 +114,8 @@ Dalla riga di comando: `--file`, `--porta`, `--replay`, `--velocita`, `--ripeti`
 | `/` | Il display. Finché nella cartella `display` non c'è, una pagina che lo dice. Quella pagina si ricarica ogni 10 s: un display copiato ad Agent acceso compare da solo anche nel Player. `index.html` si riconvalida sempre: dopo un aggiornamento il Player non tiene la versione vecchia |
 | `/display` | Rimanda a `/` (indirizzo predefinito del Player) |
 | `/ws` | WebSocket: alla connessione lo stato completo (`sync`), poi ogni cambiamento |
-| `/diagnostica` | Il conto come lo vedrà il cliente, il QR, gli ultimi messaggi: per le prove e l'assistenza |
+| `/diagnostica` | Il conto come lo vedrà il cliente, il QR, lo scontrino digitale con il pulsante, gli ultimi messaggi: per le prove e l'assistenza |
+| `/cliente` | La stessa pagina senza le parti tecniche, per un palmare o uno schermo touch |
 | `/api/stato` | File letti e tolti, problemi, display collegati, ultimi 50 messaggi, vecchio monitor aperto |
 
 ## Replay: senza cassa
@@ -102,11 +155,16 @@ Le regole vengono dalle [registrazioni](../samples/registrazioni) (30 e 48 colon
 - `sale.total.bill` (e `bill` in `sync`): la cassa mostra il conto e non la battuta. Serve per l'opzione "prezzi solo
   sul conto" (`ShowPricesDuringOrder=false` del vecchio monitor 6.0);
 - `pay.qr.caption`, se la cassa la scrive;
-- `receipt.qr { png, caption }`: il QR dello scontrino digitale.
+- `receipt.qr { png, caption }`: il QR dello scontrino digitale;
+- con lo scontrino digitale attivo: `receipt.digital { id, png, caption?, notice?, receipt?, paperCopy, paper, issuedAt }`
+  (lo stesso `receipt` anche in `sync`), `receipt.paper.status { id, state, message? }` e `receipt.clear { id }`; dal
+  display all'Agent `receipt.paper { id }`, l'unico comando accettato (al massimo 1 KB, uno ogni 2 s).
 
 ## Cosa manca
 
-- Il display non ha ancora il collegamento WebSocket (M5): oggi si vede tutto in `/diagnostica`.
+- Il display non ha ancora il collegamento WebSocket (M5): oggi si vede tutto in `/diagnostica` e `/cliente`.
+- Scontrino digitale: l'abbinamento del QR al conto e la copia vanno controllati con le prime transazioni vere; un
+  file per palmare (più palmari sulla stessa cassa) e il controllo della carta prima di stampare non ci sono ancora.
 - Annullo, reso e pagamento Satispay vero non sono nelle registrazioni: se Passepartout scrive righe che l'Agent non
   riconosce, arrivano al display come note e finiscono nel log.
 - L'installer (Fase 5) e la firma digitale dell'exe.
