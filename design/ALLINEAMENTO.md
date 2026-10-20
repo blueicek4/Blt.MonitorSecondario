@@ -134,6 +134,25 @@ vanno aggiunte con il trasporto WebSocket (M5).
 mostra ragione sociale, indirizzo e partita IVA, `EURO`, le righe con `SCONTO`, `PAGATO C.CREDITO:` e `Resto:` nel
 corpo, `TOTALE` in basso; nasconde `SNF`, i trattini, `SUBTOT.` e `TOT. DA PAGARE` (che diventa il totale in basso).
 Il conto resta a video fino al file successivo. Nel nostro display l'intestazione la fa il tema (logo del locale, non
-la partita IVA) e metodo e resto passano allo stato Grazie. Se la cassa manda direttamente lo scontrino già pagato, senza
-versioni intermedie, l'Agent manda apertura, righe, totale e chiusura nello stesso istante: il cliente vede solo Grazie
-con l'importo. Da decidere in M2 se Grazie, in quel caso, mostra anche le righe.
+la partita IVA).
+
+## 9. Grazie: decisioni del 20/10
+
+- **Grazie mostra anche le righe del conto**, non solo l'importo: lo scontrino resta dov'era (stretto come nel pagamento
+  `beside`) e nella colonna accanto compaiono "Grazie e arrivederci", l'importo pagato, il metodo e il resto se > 0. Il
+  display quindi a `sale.close` **non svuota** le righe: le tiene per tutto lo stato Grazie e le toglie al passaggio
+  all'attesa o al primo messaggio del conto successivo. Una riga viene sempre battuta prima del pagamento, quindi le
+  righe a video ci sono sempre.
+- **QR di ringraziamento impostabile dal pannello** (Fase 4): recensioni Google, registrazione cliente/fidelity, menu
+  digitale o un indirizzo qualunque, con la didascalia. La SPEC §2.5 lo prevedeva già ("QR opzionale a destra"), ma
+  nessun campo del protocollo lo portava. Proposta:
+  - nel messaggio `cfg`: `thanks?: { png: string; caption: string; seconds?: number }`. Il pannello salva l'indirizzo,
+    l'**Agent genera il PNG** (un pixel per modulo, senza quiet zone, come quello di Satispay): il display lo mostra con
+    lo stesso `QrStage` e resta senza librerie QR;
+  - **durata**: con il QR, 8 s non bastano per tirare fuori il telefono e inquadrare. Grazie resta finché non arriva il
+    conto successivo, al massimo `seconds` (default 30 s); senza QR resta 8 s come da SPEC;
+  - un solo QR alla volta, non due a rotazione: il cliente ha pochi secondi e una sola scelta funziona meglio;
+  - per misurare se funziona conviene un indirizzo con `?utm_source=monitor-cassa` (dove la pagina lo permette; il
+    link alle recensioni di Google no);
+  - legare la registrazione allo scontrino (punti fidelity sull'acquisto appena fatto) oggi non si può: nel file non c'è
+    il numero del documento.
