@@ -317,7 +317,10 @@ function log(m) {
   if (shown.png) shown.png = "(immagine)";
   if (shown.state && shown.state.payment) shown.state.payment.png = "(immagine)";
   if (shown.state && shown.state.receipt) shown.state.receipt.png = "(immagine)";
-  if (shown.thanks && shown.thanks.png) shown.thanks.png = "(immagine)";
+  // Il cfg: le playlist casuali arrivano a 300 elementi, i QR delle promozioni sono immagini.
+  if (shown.promoCards) for (const card of Object.values(shown.promoCards)) if (card && card.qr) card.qr.png = "(immagine)";
+  if (shown.playlists) for (const key of Object.keys(shown.playlists)) shown.playlists[key] = (shown.playlists[key] || []).length + " elementi";
+  if (Array.isArray(shown.ads)) shown.ads = shown.ads.length + " slide";
   const li = document.createElement("li");
   const kind = document.createElement("b");
   kind.textContent = new Date().toLocaleTimeString("it-IT") + "  " + m.t;

@@ -87,24 +87,9 @@ public sealed partial class AgentSettings
         Stampanti.RemoveAll(p => p == null);
         Dispositivi.RemoveAll(d => d == null);
 
-        void FixIds<T>(List<T> items, string prefix, Func<T, string> get, Action<T, string> set)
-        {
-            var seen = new HashSet<string>();
-            foreach (var item in items)
-            {
-                var id = get(item);
-                if (string.IsNullOrWhiteSpace(id) || !IdPattern().IsMatch(id) || !seen.Add(id))
-                {
-                    var fresh = NextId(prefix, items.Select(get).Where(i => i != null).Concat(seen));
-                    set(item, fresh);
-                    seen.Add(fresh);
-                    notes.Add($"id \"{id}\" sostituito con {fresh}");
-                }
-            }
-        }
-        FixIds(Casse, "cassa", c => c.Id, (c, id) => c.Id = id);
-        FixIds(Stampanti, "stampante", p => p.Id, (p, id) => p.Id = id);
-        FixIds(Dispositivi, "dispositivo", d => d.Id, (d, id) => d.Id = id);
+        FixIds(Casse, "cassa", c => c.Id, (c, id) => c.Id = id, notes);
+        FixIds(Stampanti, "stampante", p => p.Id, (p, id) => p.Id = id, notes);
+        FixIds(Dispositivi, "dispositivo", d => d.Id, (d, id) => d.Id = id, notes);
 
         foreach (var device in Dispositivi)
         {
@@ -121,6 +106,22 @@ public sealed partial class AgentSettings
         }
         RepairAppearance(notes);
         return notes;
+    }
+
+    static void FixIds<T>(List<T> items, string prefix, Func<T, string> get, Action<T, string> set, List<string> notes)
+    {
+        var seen = new HashSet<string>();
+        foreach (var item in items)
+        {
+            var id = get(item);
+            if (string.IsNullOrWhiteSpace(id) || !IdPattern().IsMatch(id) || !seen.Add(id))
+            {
+                var fresh = NextId(prefix, items.Select(get).Where(i => i != null).Concat(seen));
+                set(item, fresh);
+                seen.Add(fresh);
+                notes.Add($"id \"{id}\" sostituito con {fresh}");
+            }
+        }
     }
 
     /// <summary>Il primo errore, in parole per chi usa il back office; null se va tutto bene.</summary>

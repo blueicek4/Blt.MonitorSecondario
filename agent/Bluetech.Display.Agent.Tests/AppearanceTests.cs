@@ -12,7 +12,7 @@ using static Bluetech.Display.Agent.Tests.TestAgent;
 
 namespace Bluetech.Display.Agent.Tests;
 
-/// <summary>L'aspetto dello schermo del cliente: temi, contrasto, promozioni, immagini e video, il messaggio cfg.</summary>
+/// <summary>L'aspetto dello schermo del cliente: temi, contrasto, gallerie e set di reclame, immagini e video, il messaggio cfg.</summary>
 public sealed class AppearanceTests
 {
     static AgentSettings WithCash()
@@ -22,7 +22,10 @@ public sealed class AppearanceTests
         return settings;
     }
 
-    static string? ThanksPng(string url) => DisplayConfig.QrPng(url);
+    static string? Qr(string url) => DisplayConfig.QrPng(url);
+
+    static MediaItem Photo(char c, string name) => new() { Id = new string(c, 20) + ".jpg", Nome = name, Tipo = "image/jpeg" };
+    static MediaItem Video(char c, string name) => new() { Id = new string(c, 20) + ".mp4", Nome = name, Tipo = "video/mp4" };
 
     [Fact]
     public void The_eight_palettes_of_the_design_are_readable()
@@ -97,35 +100,123 @@ public sealed class AppearanceTests
         settings.Aspetto.Fondo = "immagine";
         Assert.Contains("sfondo a immagine", settings.Validate());
         settings.Aspetto.Fondo = "luci";
-        settings.Aspetto.QrGrazie = new ThanksQrSettings { Attivo = true, Indirizzo = "javascript:alert(1)" };
-        Assert.Contains("https://", settings.Validate());
-        settings.Aspetto.QrGrazie.Indirizzo = "https://g.page/r/esempio/review";
-        settings.Aspetto.Promozioni.Add(new PromotionConfig { Id = "promo1", Nome = "Aperitivo", NelleSlide = true });
-        Assert.Contains("serve un'immagine o un video", settings.Validate());
-        settings.Aspetto.Promozioni[0] = new PromotionConfig { Id = "promo1", Nome = "Aperitivo", NelleSlide = false, NelConto = true, Titolo = "Spritz a 5 €", Dalle = "18:00" };
+        settings.Aspetto.Promozioni.Add(new PromoConfig { Id = "promo1", Nome = "Registrati" });
+        Assert.Contains("La promozione Registrati: scrivi un titolo o un testo, o scegli un'immagine o un QR", settings.Validate());
+        settings.Aspetto.Promozioni[0].Qr = "javascript:alert(1)";
+        Assert.Contains("l'indirizzo del QR è come https://", settings.Validate());
+        settings.Aspetto.Promozioni[0].Qr = "https://example.com/registrati";
+        settings.Aspetto.Set.Add(new AdSetConfig { Id = "set1", Nome = "Aperitivo", Elementi = [new AdItemConfig { Id = "promo1" }] });
+        Assert.Contains("Il set Aperitivo: scegli dove va", settings.Validate());
+        settings.Aspetto.Set[0].Dove = ["attesa"];
+        settings.Aspetto.Set[0].Dalle = "18:00";
         Assert.Contains("gli orari sono come 18:00", settings.Validate());
-        settings.Aspetto.Promozioni[0].Alle = "20:00";
-        settings.Aspetto.Promozioni[0].Casse = ["cassa9"];
+        settings.Aspetto.Set[0].Alle = "20:00";
+        settings.Aspetto.Set[0].Casse = ["cassa9"];
         Assert.Contains("la cassa cassa9 non c'è", settings.Validate());
-        settings.Aspetto.Promozioni[0].Casse = ["cassa1"];
+        settings.Aspetto.Set[0].Casse = ["cassa1"];
+        settings.Aspetto.Set[0].Elementi.Add(new AdItemConfig { Id = "promo9" });
+        Assert.Contains("un elemento non c'è più (promo9)", settings.Validate());
+        settings.Aspetto.Set[0].Elementi.RemoveAt(1);
+        settings.Aspetto.Set[0].Ordine = "a caso";
+        Assert.Contains("l'ordine è elenco, casuale o alfabetico", settings.Validate());
+        settings.Aspetto.Set[0].Ordine = "casuale";
+        settings.Aspetto.Set[0].QrDopo = 2;
         Assert.Null(settings.Validate());
     }
 
     [Fact]
-    public void A_promotion_follows_its_cash_points_days_hours_and_dates()
+    public void A_set_follows_its_cash_points_days_hours_and_dates()
     {
-        var friday = new PromotionConfig { Attiva = true, Giorni = [5], Dalle = "22:00", Alle = "02:00", Casse = ["cassa2"] };
+        var friday = new AdSetConfig { Giorni = [5], Dalle = "22:00", Alle = "02:00", Casse = ["cassa2"] };
         var fridayNight = new DateTime(2026, 10, 23, 23, 30, 0);   // venerdì
         Assert.True(DisplayConfig.Active(friday, "cassa2", fridayNight));
         Assert.False(DisplayConfig.Active(friday, "cassa1", fridayNight));   // un'altra cassa
         Assert.True(DisplayConfig.Active(friday, "cassa2", fridayNight.AddHours(2)));   // sabato all'1:30 è ancora venerdì sera
+        Assert.Equal(new DateOnly(2026, 10, 23), DisplayConfig.ServiceDay(friday, "cassa2", fridayNight.AddHours(2)));
         Assert.False(DisplayConfig.Active(friday, "cassa2", fridayNight.AddHours(3)));   // le 2:30: finita
         Assert.False(DisplayConfig.Active(friday, "cassa2", fridayNight.AddDays(1)));   // sabato sera no
 
-        var october = new PromotionConfig { Attiva = true, DalGiorno = new DateOnly(2026, 10, 1), AlGiorno = new DateOnly(2026, 10, 31) };
+        var october = new AdSetConfig { DalGiorno = new DateOnly(2026, 10, 1), AlGiorno = new DateOnly(2026, 10, 31) };
         Assert.True(DisplayConfig.Active(october, "cassa1", new DateTime(2026, 10, 31, 23, 59, 0)));
         Assert.False(DisplayConfig.Active(october, "cassa1", new DateTime(2026, 11, 1, 0, 1, 0)));
-        Assert.False(DisplayConfig.Active(new PromotionConfig { Attiva = false }, "cassa1", fridayNight));
+        Assert.False(DisplayConfig.Active(new AdSetConfig { Attivo = false }, "cassa1", fridayNight));
+    }
+
+    [Fact]
+    public void For_each_place_the_first_set_that_holds_wins()
+    {
+        var settings = WithCash();
+        var a = settings.Aspetto;
+        a.Media.AddRange([Photo('a', "spritz.jpg"), Photo('b', "tagliere.jpg"), Photo('c', "pizza.jpg")]);
+        a.Promozioni.Add(new PromoConfig { Id = "promo1", Nome = "Ottobre", Titolo = "Castagne e vin brulé", AlGiorno = new DateOnly(2026, 10, 31) });
+        a.Set.Add(new AdSetConfig { Id = "set1", Nome = "Aperitivo", Dove = ["attesa"], Dalle = "18:00", Alle = "20:00", Elementi = [new() { Id = a.Media[0].Id }, new() { Id = a.Media[1].Id }] });
+        a.Set.Add(new AdSetConfig { Id = "set2", Nome = "Solo ottobre", Dove = ["conto"], Elementi = [new() { Id = "promo1" }] });
+        a.Set.Add(new AdSetConfig { Id = "set3", Nome = "Sempre", Dove = ["attesa", "conto"], Elementi = [new() { Id = a.Media[2].Id }] });
+        a.Set.Add(new AdSetConfig { Id = "set4", Nome = "Spento", Attivo = false, Dove = ["grazie"], Elementi = [new() { Id = "promo1" }] });
+        Assert.Null(settings.Validate());
+
+        var aperitivo = new DateTime(2026, 10, 20, 19, 0, 0);
+        var onAir = DisplayConfig.OnAir(settings, "cassa1", aperitivo);
+        Assert.Equal("set1", onAir["attesa"]!.Id);
+        Assert.Equal("set2", onAir["conto"]!.Id);
+        Assert.Null(onAir["grazie"]);   // un set spento non va in onda
+        Assert.Equal(["in onda", "in onda", "coperto", "spento"], DisplayConfig.States(settings, aperitivo).Values);   // Sempre vale, ma vincono i due sopra
+
+        var evening = new DateTime(2026, 10, 20, 21, 0, 0);
+        Assert.Equal("set3", DisplayConfig.OnAir(settings, "cassa1", evening)["attesa"]!.Id);
+        Assert.Equal("fuori orario", DisplayConfig.States(settings, evening)["set1"]);
+
+        // A novembre la promozione di ottobre è scaduta: il set non ha niente da mostrare e va in onda quello dopo.
+        var november = new DateTime(2026, 11, 2, 12, 0, 0);
+        Assert.Equal("set3", DisplayConfig.OnAir(settings, "cassa1", november)["conto"]!.Id);
+        Assert.Equal("vuoto", DisplayConfig.States(settings, november)["set2"]);
+        a.Set.Insert(0, new AdSetConfig { Id = "set5", Nome = "Anche il conto", Dove = ["conto"], Elementi = [new() { Id = a.Media[0].Id }] });
+        Assert.Equal("set5", DisplayConfig.OnAir(settings, "cassa1", november)["conto"]!.Id);
+        Assert.Equal("in onda", DisplayConfig.States(settings, november)["set3"]);   // nell'attesa sì
+
+        // L'anteprima di un set lo mostra nei suoi posti anche spento e fuori orario.
+        Assert.Equal("set4", DisplayConfig.OnAir(settings, "cassa1", november, forceSet: "set4")["grazie"]!.Id);
+    }
+
+    static List<DisplayConfig.Entry> Entries(params (string Id, bool Qr)[] items) =>
+        items.Select(i => new DisplayConfig.Entry(i.Id, i.Id, i.Qr ? null : Photo('a', i.Id), i.Qr ? new PromoConfig { Id = i.Id, Qr = "https://example.com/" + i.Id } : null, 8)).ToList();
+
+    [Fact]
+    public void In_order_by_name_or_at_random_with_a_qr_promotion_after_every_few()
+    {
+        var items = Entries(("cantina", false), ("aperitivo", false), ("brunch", false), ("registrati", true), ("recensioni", true));
+        var inOrder = DisplayConfig.Expand(new AdSetConfig { Id = "set1", Ordine = "elenco" }, items);
+        Assert.Equal(["cantina", "aperitivo", "brunch", "registrati", "recensioni"], inOrder.Select(i => i.Id));   // il display la ripete
+        var byName = DisplayConfig.Expand(new AdSetConfig { Id = "set1", Ordine = "alfabetico" }, items);
+        Assert.Equal(["aperitivo", "brunch", "cantina", "recensioni", "registrati"], byName.Select(i => i.Id));
+
+        // In ordine con un QR dopo ogni foto: le due liste fanno giri interi (3 foto e 2 QR: 6 blocchi).
+        var everyOther = DisplayConfig.Expand(new AdSetConfig { Id = "set1", Ordine = "elenco", QrDopo = 1 }, items);
+        Assert.Equal(["cantina", "registrati", "aperitivo", "recensioni", "brunch", "registrati", "cantina", "recensioni", "aperitivo", "registrati", "brunch", "recensioni"],
+            everyOther.Select(i => i.Id));
+
+        // A caso, due foto e un QR: "due slide a caso, un QR, due slide, un altro QR".
+        var set = new AdSetConfig { Id = "set7", Ordine = "casuale", QrDopo = 2 };
+        var random = DisplayConfig.Expand(set, items);
+        Assert.InRange(random.Count, 60, 300);
+        Assert.Equal(0, random.Count % 3);
+        for (var i = 0; i < random.Count; i++)
+            Assert.Equal(i % 3 == 2, random[i].HasQr);
+        Assert.Equal(3, random.Where(i => !i.HasQr).Select(i => i.Id).Distinct().Count());
+        Assert.Single(random.Where(i => !i.HasQr).GroupBy(i => i.Id).Select(g => g.Count()).Distinct());   // ognuna lo stesso numero di volte
+        Assert.Single(random.Where(i => i.HasQr).GroupBy(i => i.Id).Select(g => g.Count()).Distinct());
+        Assert.Equal(random.Select(i => i.Id), DisplayConfig.Expand(set, items).Select(i => i.Id));   // sempre la stessa: il cfg non cambia a ogni controllo
+        Assert.NotEqual(random.Select(i => i.Id), DisplayConfig.Expand(new AdSetConfig { Id = "set8", Ordine = "casuale", QrDopo = 2 }, items).Select(i => i.Id));
+
+        // A caso senza la regola: giri mescolati, mai lo stesso elemento due volte di fila.
+        var shuffled = DisplayConfig.Expand(new AdSetConfig { Id = "set2", Ordine = "casuale" }, items);
+        Assert.Equal(60, shuffled.Count);
+        Assert.All(Enumerable.Range(1, shuffled.Count - 1), i => Assert.NotEqual(shuffled[i - 1].Id, shuffled[i].Id));
+        Assert.All(shuffled.Chunk(5), round => Assert.Equal(5, round.Select(i => i.Id).Distinct().Count()));
+
+        // Solo promozioni con il QR, o nessuna: la regola non c'entra.
+        Assert.Equal(["cantina", "aperitivo"], DisplayConfig.Expand(new AdSetConfig { Ordine = "elenco", QrDopo = 2 }, items.Take(2).ToList()).Select(i => i.Id));
+        Assert.True(DisplayConfig.Expand(new AdSetConfig { Ordine = "casuale", QrDopo = 3 }, items.Skip(3).ToList()).All(i => i.HasQr));
     }
 
     [Fact]
@@ -133,7 +224,7 @@ public sealed class AppearanceTests
     {
         var settings = WithCash();
         settings.Casse.Add(new CashPointConfig { Id = "cassa2", Nome = "Bar", FileCassa = Path.Combine(Path.GetTempPath(), "bt-aspetto", "bar", "Scontrino.txt") });
-        var defaults = DisplayConfig.Build(settings, "cassa1", DateTime.Now, ThanksPng);
+        var defaults = DisplayConfig.Build(settings, "cassa1", DateTime.Now, Qr);
         Assert.Equal("bluetech", (string)defaults["preset"]!);
         var theme = defaults["theme"]!;
         Assert.Equal("#1F6FEB", (string)theme["cPrimary"]!);   // con l'automatico i token partono dalla notte
@@ -142,7 +233,9 @@ public sealed class AppearanceTests
         Assert.Equal("light", (string)theme["motion"]!);
         Assert.Equal("beside", (string)theme["qrLayout"]!);
         Assert.Equal(7, (double)defaults["dayHours"]!["start"]!);
-        Assert.Null(defaults["thanks"]);
+        Assert.Empty(defaults["playlists"]!["idle"]!.AsArray());
+        Assert.Empty(defaults["promoCards"]!.AsObject());
+        Assert.Equal(30, (int)defaults["thanksSeconds"]!);
         Assert.False((bool)defaults["pricesOnlyOnBill"]!);
         Assert.Null(defaults["ticker"]);
 
@@ -158,17 +251,19 @@ public sealed class AppearanceTests
         a.NomeLocale = "La Vela";
         a.Scorrevole = "Aperitivo dalle 18";
         a.GiornoDalle = "06:30";
-        a.Media.Add(new MediaItem { Id = new string('a', 20) + ".jpg", Nome = "spritz.jpg", Tipo = "image/jpeg" });
-        a.Media.Add(new MediaItem { Id = new string('b', 20) + ".mp4", Nome = "forno.mp4", Tipo = "video/mp4" });
+        a.Media.Add(Photo('a', "spritz.jpg"));
+        a.Media.Add(Video('b', "forno.mp4"));
         a.Media.Add(new MediaItem { Id = new string('f', 20) + ".png", Nome = "logo-scuro.png", Tipo = "image/png" });
         a.LogoChiaro = a.Media[2].Id;
-        a.Promozioni.Add(new PromotionConfig { Id = "promo1", Nome = "Spritz", Media = a.Media[0].Id, SecondiImmagine = 9, NelConto = true, Titolo = "Spritz a 5 €" });
-        a.Promozioni.Add(new PromotionConfig { Id = "promo2", Nome = "Forno", Media = a.Media[1].Id });
-        a.Promozioni.Add(new PromotionConfig { Id = "promo3", Nome = "Solo bar", Media = a.Media[0].Id, Casse = ["cassa2"] });
-        a.QrGrazie = new ThanksQrSettings { Attivo = true, Indirizzo = "https://g.page/r/esempio/review", Titolo = "Com'è andata?", Secondi = 40 };
+        a.Promozioni.Add(new PromoConfig { Id = "promo1", Nome = "Spritz", Immagine = a.Media[0].Id, Titolo = "Spritz a 5 €" });
+        a.Promozioni.Add(new PromoConfig { Id = "promo2", Nome = "Registrati", Titolo = "Diventa cliente", Qr = "https://example.com/registrati", QrDidascalia = "Inquadra e registrati" });
+        a.Set.Add(new AdSetConfig { Id = "set1", Nome = "Solo bar", Dove = ["attesa"], Casse = ["cassa2"], Elementi = [new() { Id = a.Media[1].Id }] });
+        a.Set.Add(new AdSetConfig { Id = "set2", Nome = "Sempre", Dove = ["attesa", "conto"], Secondi = 9, Elementi = [new() { Id = a.Media[0].Id }, new() { Id = a.Media[1].Id }, new() { Id = "promo1", Secondi = 12 }] });
+        a.Set.Add(new AdSetConfig { Id = "set3", Nome = "Grazie", Dove = ["grazie"], Elementi = [new() { Id = "promo2" }] });
+        a.SecondiGrazie = 40;
         Assert.Null(settings.Validate());
 
-        var config = DisplayConfig.Build(settings, "cassa1", DateTime.Now, ThanksPng);
+        var config = DisplayConfig.Build(settings, "cassa1", DateTime.Now, Qr);
         theme = config["theme"]!;
         Assert.Equal("trattoria", (string)config["preset"]!);
         Assert.Equal("#9C3A1F", (string)theme["cPrimary"]!);   // trattoria di giorno
@@ -184,23 +279,37 @@ public sealed class AppearanceTests
         Assert.Null(config["venue"]!["logo"]);
         Assert.Equal("/media/" + a.Media[2].Id, (string)config["venue"]!["logoLight"]!);   // il logo per i fondi chiari
         Assert.Equal("Aperitivo dalle 18", (string)config["ticker"]!);
+        Assert.Equal(40, (int)config["thanksSeconds"]!);
 
-        var ads = config["ads"]!.AsArray();
-        Assert.Equal(["promo1", "promo2"], ads.Select(s => (string)s!["id"]!));   // la promozione della cassa 2 no
-        Assert.Equal(9000, (int)ads[0]!["durationMs"]!);
-        Assert.Equal("/media/" + a.Media[0].Id, (string)ads[0]!["src"]!);
-        Assert.Null(ads[1]!["durationMs"]);   // un video dura quanto dura
-        Assert.Equal("video", (string)ads[1]!["media"]!);
-        var card = Assert.Single(config["promos"]!.AsArray());
-        Assert.Equal("Spritz a 5 €", (string)card!["title"]!);
+        var idle = config["playlists"]!["idle"]!.AsArray();
+        Assert.Equal([a.Media[0].Id, a.Media[1].Id, "promo1"], idle.Select(i => (string)i!["id"]!));   // il set della cassa 2 no
+        Assert.Equal(["image", "video", "promo"], idle.Select(i => (string)i!["kind"]!));
+        Assert.Equal(9000, (int)idle[0]!["durationMs"]!);   // i secondi del set
+        Assert.Equal("/media/" + a.Media[0].Id, (string)idle[0]!["src"]!);
+        Assert.Null(idle[1]!["durationMs"]);   // un video dura quanto dura
+        Assert.Equal(12000, (int)idle[2]!["durationMs"]!);   // i secondi dell'elemento
+        Assert.Equal(idle.ToJsonString(), config["playlists"]!["sale"]!.ToJsonString());   // lo stesso set accanto al conto
+        Assert.Equal(["promo2"], config["playlists"]!["thanks"]!.AsArray().Select(i => (string)i!["id"]!));
+        Assert.Equal([a.Media[0].Id, a.Media[1].Id], config["ads"]!.AsArray().Select(s => (string)s!["id"]!));   // le AdSlide del design: niente promozioni
 
-        var thanks = config["thanks"]!;
-        Assert.Equal(40, (int)thanks["seconds"]!);
-        var png = Convert.FromBase64String(((string)thanks["png"]!)["data:image/png;base64,".Length..]);
+        var cards = config["promoCards"]!.AsObject();
+        Assert.Equal(["promo1", "promo2"], cards.Select(c => c.Key));
+        Assert.Equal("Spritz a 5 €", (string)cards["promo1"]!["title"]!);
+        Assert.Equal("/media/" + a.Media[0].Id, (string)cards["promo1"]!["image"]!);
+        Assert.Null(cards["promo1"]!["qr"]);
+        Assert.Equal("Inquadra e registrati", (string)cards["promo2"]!["qr"]!["caption"]!);
+        var png = Convert.FromBase64String(((string)cards["promo2"]!["qr"]!["png"]!)["data:image/png;base64,".Length..]);
         var image = QrImage.Decode(png)!;
         Assert.Equal(image.Width, image.Height);
         Assert.Equal(0, (image.Width - 21) % 4);   // 21, 25, 29…: un pixel per modulo, senza quiet zone
         Assert.True(image.Dark[0] && image.Dark[6] && !image.Dark[7]);   // il finder pattern in alto a sinistra
+
+        var bar = DisplayConfig.Build(settings, "cassa2", DateTime.Now, Qr);
+        Assert.Equal([a.Media[1].Id], bar["playlists"]!["idle"]!.AsArray().Select(i => (string)i!["id"]!));   // alla cassa 2 vince il set più in alto
+
+        // L'anteprima di una promozione la mette da sola in tutti e tre i posti.
+        var preview = DisplayConfig.Build(settings, "cassa1", DateTime.Now, Qr, onlyPromo: "promo2");
+        Assert.All(new[] { "idle", "sale", "thanks" }, key => Assert.Equal(["promo2"], preview["playlists"]![key]!.AsArray().Select(i => (string)i!["id"]!)));
     }
 
     [Theory]
@@ -282,7 +391,12 @@ public sealed class AppearanceTests
         aspetto["Tema"] = "cocktail";
         aspetto["NomeLocale"] = "Bar Centrale";
         aspetto["Scorrevole"] = "Happy hour dalle 18 alle 20";
-        aspetto["Promozioni"] = new JsonArray(new JsonObject { ["Nome"] = "Happy hour", ["Media"] = uploaded, ["NelleSlide"] = true });
+        aspetto["Promozioni"] = new JsonArray(new JsonObject { ["Nome"] = "Registrati", ["Titolo"] = "Diventa cliente", ["Qr"] = " https://example.com/registrati " });
+        aspetto["Set"] = new JsonArray(new JsonObject
+        {
+            ["Nome"] = "Happy hour", ["Dove"] = new JsonArray("attesa"),
+            ["Elementi"] = new JsonArray(new JsonObject { ["Id"] = uploaded }, new JsonObject { ["Id"] = "promo1" }),
+        });
         var saved = await agent.Admin.PutAsJsonAsync("/api/bo/aspetto", aspetto);
         Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
 
@@ -290,15 +404,23 @@ public sealed class AppearanceTests
         Assert.Equal("cocktail", (string)config["preset"]!);
         Assert.Equal("Bar Centrale", (string)config["venue"]!["name"]!);
         Assert.Equal("Happy hour dalle 18 alle 20", (string)config["ticker"]!);
-        var slide = Assert.Single(config["ads"]!.AsArray())!;
-        Assert.Equal("promo1", (string)slide["id"]!);   // l'id lo dà l'Agent
-        Assert.Equal("/media/" + uploaded, (string)slide["src"]!);
-        Assert.Equal(HttpStatusCode.OK, (await device.Http.GetAsync((string)slide["src"]!)).StatusCode);
+        var idle = config["playlists"]!["idle"]!.AsArray();
+        Assert.Equal([uploaded, "promo1"], idle.Select(i => (string)i!["id"]!));   // l'id della promozione lo dà l'Agent
+        Assert.Equal("/media/" + uploaded, (string)idle[0]!["src"]!);
+        Assert.Equal(HttpStatusCode.OK, (await device.Http.GetAsync((string)idle[0]!["src"]!)).StatusCode);
+        Assert.StartsWith("data:image/png;base64,", (string)config["promoCards"]!["promo1"]!["qr"]!["png"]!);
+
+        var look = await Json(await agent.Admin.GetAsync("/api/bo/aspetto"));
+        Assert.Equal("https://example.com/registrati", (string)look["Aspetto"]!["Promozioni"]![0]!["Qr"]!);
+        Assert.Equal("set1", (string)look["InOnda"]!["cassa1"]!["attesa"]!);
+        Assert.Null(look["InOnda"]!["cassa1"]!["conto"]);
+        Assert.Equal("in onda", (string)look["StatoSet"]!["set1"]!);
 
         var stored = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(agent.DataFolder, SettingsStore.FileName)))!;
         Assert.Equal("cocktail", (string)stored["Aspetto"]!["Tema"]!);
         var log = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/log"))!;
         Assert.Contains(log["righe"]!.AsArray(), l => ((string)l!).Contains("Aspetto cambiato dal back office"));
+        Assert.Contains(log["righe"]!.AsArray(), l => ((string)l!).Contains("attesa: Happy hour, accanto al conto: niente, Grazie: niente"));
     }
 
     [Fact]
@@ -316,13 +438,27 @@ public sealed class AppearanceTests
         Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
         Assert.Contains("La correzione più vicina: testo #", (string)(await Json(refused))["errore"]!);
 
+        aspetto["Promozioni"] = new JsonArray(new JsonObject { ["Id"] = "promo1", ["Nome"] = "Venerdì", ["Titolo"] = "Musica dal vivo" });
+        aspetto["Set"] = new JsonArray(new JsonObject
+        {
+            ["Id"] = "set1", ["Nome"] = "Venerdì sera", ["Attivo"] = false, ["Dove"] = new JsonArray("attesa", "conto"),
+            ["Elementi"] = new JsonArray(new JsonObject { ["Id"] = "promo1" }),
+        });
         var preview = await Json(await agent.Admin.PostAsJsonAsync("/api/bo/aspetto/anteprima?cassa=cassa1", aspetto));
         Assert.Equal("cfg", (string)preview["cfg"]!["t"]!);
         Assert.Equal("#30343A", (string)preview["cfg"]!["theme"]!["cText"]!);   // la bozza com'è: il display ripiegherebbe
         Assert.Contains(preview["problemi"]!.AsArray(), p => ((string)p!).Contains("poco leggibili"));
         Assert.NotNull(preview["anteprimaQr"]);
+        Assert.Empty(preview["cfg"]!["playlists"]!["idle"]!.AsArray());   // il set è spento
+        Assert.Null(preview["inOnda"]!["attesa"]);
+
+        var trying = await Json(await agent.Admin.PostAsJsonAsync("/api/bo/aspetto/anteprima?cassa=cassa1&set=set1", aspetto));
+        Assert.Equal("promo1", (string)trying["cfg"]!["playlists"]!["sale"]![0]!["id"]!);   // il set che si sta provando, spento o no
+        Assert.Equal("Venerdì sera", (string)trying["inOnda"]!["conto"]!);
+        Assert.Null(trying["inOnda"]!["grazie"]);
         var stored = (await Json(await agent.Admin.GetAsync("/api/bo/aspetto")))["Aspetto"]!;
         Assert.Equal("auto", (string)stored["Modo"]!);   // l'anteprima non salva
+        Assert.Empty(stored["Set"]!.AsArray());
     }
 
     [Fact]
@@ -349,20 +485,21 @@ public sealed class AppearanceTests
     }
 
     [Fact]
-    public async Task Removing_a_cash_point_switches_off_the_promotions_that_were_only_for_it()
+    public async Task Removing_a_cash_point_switches_off_the_sets_that_were_only_for_it()
     {
         await using var agent = await Start(s =>
         {
             AddCash(s, "cassa2", "Bar");
-            s.Aspetto.Promozioni.Add(new PromotionConfig { Id = "promo1", Nome = "Solo bar", NelleSlide = false, NelConto = true, Titolo = "Caffè e cornetto", Casse = ["cassa2"] });
-            s.Aspetto.Promozioni.Add(new PromotionConfig { Id = "promo2", Nome = "Tutte e due", NelleSlide = false, NelConto = true, Titolo = "Dolce del giorno", Casse = ["cassa1", "cassa2"] });
+            s.Aspetto.Promozioni.Add(new PromoConfig { Id = "promo1", Nome = "Colazione", Titolo = "Caffè e cornetto" });
+            s.Aspetto.Set.Add(new AdSetConfig { Id = "set1", Nome = "Solo bar", Dove = ["conto"], Casse = ["cassa2"], Elementi = [new() { Id = "promo1" }] });
+            s.Aspetto.Set.Add(new AdSetConfig { Id = "set2", Nome = "Tutte e due", Dove = ["conto"], Casse = ["cassa1", "cassa2"], Elementi = [new() { Id = "promo1" }] });
         });
         Assert.Equal(HttpStatusCode.OK, (await agent.Admin.DeleteAsync("/api/bo/casse/cassa2")).StatusCode);
-        var promos = (await Json(await agent.Admin.GetAsync("/api/bo/aspetto")))["Aspetto"]!["Promozioni"]!.AsArray();
-        Assert.False((bool)promos[0]!["Attiva"]!);   // non passa a tutte le casse
-        Assert.Empty(promos[0]!["Casse"]!.AsArray());
-        Assert.True((bool)promos[1]!["Attiva"]!);
-        Assert.Equal(["cassa1"], promos[1]!["Casse"]!.AsArray().Select(c => (string)c!));
+        var sets = (await Json(await agent.Admin.GetAsync("/api/bo/aspetto")))["Aspetto"]!["Set"]!.AsArray();
+        Assert.False((bool)sets[0]!["Attivo"]!);   // non passa a tutte le casse
+        Assert.Empty(sets[0]!["Casse"]!.AsArray());
+        Assert.True((bool)sets[1]!["Attivo"]!);
+        Assert.Equal(["cassa1"], sets[1]!["Casse"]!.AsArray().Select(c => (string)c!));
     }
 
     [Fact]
@@ -380,7 +517,9 @@ public sealed class AppearanceTests
                 s.Aspetto.Media.Add(new MediaItem { Id = kept, Nome = "logo.png", Tipo = "image/png" });
                 s.Aspetto.Media.Add(new MediaItem { Id = gone, Nome = "spritz.jpg", Tipo = "image/jpeg" });
                 s.Aspetto.Logo = kept;
-                s.Aspetto.Promozioni.Add(new PromotionConfig { Id = "promo1", Nome = "Spritz", Media = gone });
+                s.Aspetto.Promozioni.Add(new PromoConfig { Id = "promo1", Nome = "Spritz", Immagine = gone });
+                s.Aspetto.Promozioni.Add(new PromoConfig { Id = "promo2", Nome = "Pizza", Titolo = "La pizza del mese", Immagine = gone });
+                s.Aspetto.Set.Add(new AdSetConfig { Id = "set1", Nome = "Sempre", Dove = ["attesa"], Elementi = [new() { Id = gone }, new() { Id = "promo1" }, new() { Id = "promo2" }] });
                 return null;
             });
             var media = Path.Combine(folder, "media");
@@ -396,8 +535,77 @@ public sealed class AppearanceTests
             Assert.Contains(notes, n => n.Contains("la promozione Spritz è tolta"));
             Assert.Equal([kept], store.Current.Aspetto.Media.Select(m => m.Id));
             Assert.Equal(kept, store.Current.Aspetto.Logo);
-            Assert.Empty(store.Current.Aspetto.Promozioni);
+            var pizza = Assert.Single(store.Current.Aspetto.Promozioni);   // la pizza ha ancora il titolo
+            Assert.Null(pizza.Immagine);
+            Assert.Equal(["promo2"], store.Current.Aspetto.Set[0].Elementi.Select(e => e.Id));
             Assert.Equal([kept, "leggimi.txt"], Directory.GetFiles(media).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    [Fact]
+    public void The_promotions_of_the_first_version_move_into_the_gallery_and_three_sets()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "bt-migra-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(folder);
+            var photo = new string('a', 20) + ".jpg";
+            var video = new string('b', 20) + ".mp4";
+            var old = new JsonObject
+            {
+                ["Casse"] = new JsonArray(new JsonObject { ["Id"] = "cassa1", ["Nome"] = "Cassa 1", ["FileCassa"] = Path.Combine(folder, "cassa1", "Scontrino.txt") }),
+                ["Aspetto"] = new JsonObject
+                {
+                    ["QrGrazie"] = new JsonObject { ["Attivo"] = true, ["Indirizzo"] = "https://example.com/promozioni", ["Titolo"] = "Scopri le promozioni!", ["Didascalia"] = "Inquadra il QR", ["Secondi"] = 45 },
+                    ["Promozioni"] = new JsonArray(
+                        new JsonObject
+                        {
+                            ["Id"] = "promo1", ["Nome"] = "Spritz", ["Attiva"] = true, ["NelleSlide"] = true, ["NelConto"] = true, ["Media"] = photo, ["SecondiImmagine"] = 9,
+                            ["Titolo"] = "Spritz a 5 €", ["Testo"] = "", ["Casse"] = new JsonArray(), ["Giorni"] = new JsonArray(5), ["Dalle"] = null, ["Alle"] = null, ["AlGiorno"] = "2026-12-31",
+                        },
+                        new JsonObject { ["Id"] = "promo2", ["Nome"] = "Forno", ["Attiva"] = true, ["NelleSlide"] = true, ["NelConto"] = false, ["Media"] = video, ["SecondiImmagine"] = 7, ["Titolo"] = "", ["Testo"] = "" },
+                        new JsonObject { ["Id"] = "promo3", ["Nome"] = "Spenta", ["Attiva"] = false, ["NelleSlide"] = false, ["NelConto"] = true, ["Media"] = null, ["SecondiImmagine"] = 7, ["Titolo"] = "Dolce del giorno", ["Testo"] = "" }),
+                    ["Media"] = new JsonArray(
+                        new JsonObject { ["Id"] = photo, ["Nome"] = "spritz.jpg", ["Tipo"] = "image/jpeg", ["Byte"] = 1 },
+                        new JsonObject { ["Id"] = video, ["Nome"] = "forno.mp4", ["Tipo"] = "video/mp4", ["Byte"] = 1 }),
+                },
+            };
+            File.WriteAllText(Path.Combine(folder, SettingsStore.FileName), old.ToJsonString());
+
+            var store = new SettingsStore(folder);
+            var a = store.Current.Aspetto;
+            Assert.Equal(["promo1", "promo3", "promo4"], a.Promozioni.Select(p => p.Id));   // il forno era solo un video: ora è nel set
+            Assert.Equal(photo, a.Promozioni[0].Immagine);
+            Assert.Equal(new DateOnly(2026, 12, 31), a.Promozioni[0].AlGiorno);
+            var qr = a.Promozioni[2];
+            Assert.Equal(("QR dopo il pagamento", "Scopri le promozioni!", "https://example.com/promozioni", "Inquadra il QR"), (qr.Nome, qr.Titolo, qr.Qr, qr.QrDidascalia));
+            Assert.Equal(45, a.SecondiGrazie);
+            Assert.Equal(["Attesa", "Accanto al conto", "Grazie"], a.Set.Select(x => x.Nome));
+            Assert.Equal(new (string, int?)[] { (photo, 9), (video, null) }, a.Set[0].Elementi.Select(e => (e.Id, e.Secondi)));
+            Assert.Equal(["promo1"], a.Set[1].Elementi.Select(e => e.Id));   // la promozione spenta resta nella galleria, fuori dai set
+            Assert.Equal(["promo4"], a.Set[2].Elementi.Select(e => e.Id));
+            Assert.Null(store.Current.Validate());
+            // Il venerdì dello spritz va rimesso sul set: lo dice il log.
+            Assert.Contains(store.LoadNotes, n => n.Contains("nei set Attesa, Accanto al conto, Grazie") && n.Contains("controllali dal back office"));
+
+            // Al primo salvataggio il file è nel formato nuovo, e la conversione non si ripete.
+            Assert.Null(store.Update(_ => null));
+            var saved = File.ReadAllText(Path.Combine(folder, SettingsStore.FileName));
+            Assert.DoesNotContain("NelleSlide", saved);
+            Assert.DoesNotContain("QrGrazie", saved);
+            var again = new SettingsStore(folder);
+            Assert.Equal(3, again.Current.Aspetto.Set.Count);
+            Assert.DoesNotContain(again.LoadNotes, n => n.Contains("prima versione"));
         }
         finally
         {

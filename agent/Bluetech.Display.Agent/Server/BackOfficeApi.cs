@@ -198,10 +198,10 @@ public static class BackOfficeApi
             if (s.Casse.Count == 1)
                 return "Serve almeno una cassa.";
             s.Casse.Remove(cash);
-            foreach (var promo in s.Aspetto.Promozioni)
+            foreach (var set in s.Aspetto.Set)
             {
-                if (promo.Casse.Remove(id) && promo.Casse.Count == 0)
-                    promo.Attiva = false;   // era solo per questa cassa: non deve passare a tutte
+                if (set.Casse.Remove(id) && set.Casse.Count == 0)
+                    set.Attivo = false;   // era solo per questa cassa: non deve passare a tutte
             }
             return null;
         })));

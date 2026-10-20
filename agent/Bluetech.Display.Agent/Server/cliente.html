@@ -20,6 +20,7 @@
   --font-text: 'IBM Plex Sans', 'Segoe UI', sans-serif; --radius: 24px; --glass-blur: 14px;
   --total-fill: rgba(31,111,235,0.12); --total-border: rgba(31,111,235,0.42); --total-text: #E6EAF2;
   --glow: rgba(31,111,235,0.30); --glow-2: rgba(61,220,151,0.14); --c-bg-rgb: 11,16,23; --c-text-rgb: 230,234,242;
+  --c-primary-rgb: 31,111,235; --c-accent-rgb: 61,220,151;
   --k-row: 1; --k-amount: 1; --k-total: 1;
 }
 :root[data-motion='light'] { --d-row: 300ms; --d-state: 320ms; --d-slide: 600ms; --e-spring: var(--e-out); --d-total-pulse: 0ms; }
@@ -116,7 +117,8 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 :root[data-motion='full'] #idle .slide.on img { animation: bt-kenburns 9s linear both; }
 #idle .scrim { position: absolute; inset: 0; display: none;
   background: linear-gradient(180deg, rgba(5,7,9,0.72) 0%, rgba(5,7,9,0) 26%, rgba(5,7,9,0) 58%, rgba(5,7,9,0.88) 100%); }
-#idle.has-slides .scrim { display: block; }
+#idle.has-slides .scrim { display: block; transition: opacity var(--d-slide) var(--e-out); }
+#idle.promo-on .scrim { opacity: 0; }   /* la promozione ha la sua velatura: sopra il QR ne servirebbe una in meno */
 .venue { display: flex; align-items: center; gap: calc(var(--t-venue) * 0.55); min-width: 0; }
 .venue img { display: block; height: var(--logo-h); max-width: calc(var(--logo-h) * 4); object-fit: contain; }
 .venue .words { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
@@ -197,21 +199,8 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 :root[data-side='none'] .side { display: none; }
 :root[data-layout='portrait'] .side { flex: 0 0 auto; max-height: 42%; }
 .side > section { display: none; flex: 1; min-height: 0; }
-:root[data-side='promo'] .side .promo, :root[data-side='venue'] .side .venuecard, :root[data-side='qr'] .side .paycard,
+:root[data-side='promo'] .side .adcard, :root[data-side='venue'] .side .venuecard, :root[data-side='qr'] .side .paycard,
 :root[data-side='thanks'] .side .thanks { display: flex; }
-.promo { flex-direction: column; overflow: hidden; border-radius: var(--radius); background: rgba(var(--c-text-rgb), 0.04); border: 1px solid var(--c-line); }
-/* L'immagine com'è fatta per le slide, 16:9: tagliata a colonna perderebbe le scritte. */
-.promo .pic { flex: 0 0 auto; aspect-ratio: 16 / 9; background: center / cover no-repeat; }
-.promo.only-pic { justify-content: center; }
-.promo .copy { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: calc(var(--t-promo) * 0.76); }
-.promo.only-text .copy { justify-content: center; }
-.promo.only-pic .copy { display: none; }
-:root[data-layout='portrait'] .promo { flex-direction: row; align-items: center; }
-:root[data-layout='portrait'] .promo .pic { width: 46%; }
-:root[data-layout='portrait'] .promo .copy { justify-content: center; }
-.promo .label { color: var(--c-accent); font-size: calc(var(--t-label) * 0.9); }
-.promo h3 { margin: 0; font-family: var(--font-display); font-size: var(--t-promo); font-weight: 700; line-height: 1.08; letter-spacing: -0.01em; }
-.promo p { margin: 0; font-size: var(--t-promo-text); line-height: 1.5; color: var(--c-muted); }
 .venuecard { flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; border-radius: var(--radius);
   background: rgba(var(--c-text-rgb), 0.03); border: 1px solid var(--c-line); padding: 32px; }
 .venuecard img { max-width: 70%; max-height: 40%; object-fit: contain; }
@@ -232,16 +221,96 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 .thanks .paid { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 20px; }
 .thanks .paid .value { font-family: var(--font-display); font-size: calc(var(--t-thanks) * 0.47); font-weight: 700; }
 .thanks .paid .method { font-size: calc(var(--t-hint) * 0.8); color: var(--c-muted); }
-.thanks .qr { display: none; align-items: center; gap: 28px; margin-top: calc(var(--t-thanks) * 0.15); animation: bt-rise 520ms var(--e-out) 120ms both; }
-.thanks .qr.on { display: flex; }
-.thanks .qr .words { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.thanks .qr .title { font-size: calc(var(--t-hint) * 1.0); font-weight: 600; }
-.thanks .qr .caption { font-size: calc(var(--t-hint) * 0.66); line-height: 1.45; color: var(--c-muted); }
+/* Con una reclame il saluto e il totale salgono in alto, e sotto c'è la promozione (o lo scontrino digitale). */
+.thanks.with-ad { justify-content: flex-start; padding-top: 8px; }
+.thanks.with-ad h2 { font-size: calc(var(--t-thanks) * 0.82); }
+.thanksad { display: none; flex: 1; min-height: 0; margin-top: calc(var(--t-thanks) * 0.12); animation: bt-rise 520ms var(--e-out) 140ms both; }
+.thanks.with-ad .thanksad { display: flex; }
 .rings { position: absolute; left: 30%; top: 50%; width: calc(var(--t-thanks) * 3.4); height: calc(var(--t-thanks) * 3.4); transform: translate(-50%, -50%); pointer-events: none; }
 .ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--c-primary); opacity: 0; animation: bt-ring var(--d-celebration) var(--e-out) both; }
 .ring:nth-child(2) { border-color: var(--c-accent); animation-delay: 140ms; }
 .ring:nth-child(3) { border-color: rgba(var(--c-text-rgb), 0.25); animation-delay: 280ms; }
 :root[data-layout='portrait'] .thanks h2, :root[data-format='palmare'] .thanks h2 { font-size: calc(var(--t-thanks) * 0.8); }
+:root.thanks-ad[data-layout='portrait'][data-side='thanks'] .side { max-height: 64%; }
+:root[data-side='none'] #bill .body { justify-content: center; }
+
+/* Le reclame dei set: una foto, un video o una promozione (titolo, testo, immagine, QR). La stessa scheda nelle slide
+   dell'attesa, accanto al conto e sotto il Grazie; cambia solo la disposizione. */
+@keyframes bt-fade { from { opacity: 0; } to { opacity: 1; } }
+.ad { position: relative; isolation: isolate; box-sizing: border-box; min-width: 0; min-height: 0; overflow: hidden; }
+.ad > img, .ad > video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ad .pic { background: center / cover no-repeat; min-height: 0; }
+.ad .copy { display: flex; flex-direction: column; min-width: 0; }
+.ad h3 { margin: 0; font-family: var(--font-display); font-weight: 700; line-height: 1.06; letter-spacing: -0.015em; overflow-wrap: anywhere; }
+.ad p { margin: 0; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-line; }
+.ad .qrzone { display: flex; flex-direction: column; align-items: center; text-align: center; flex-shrink: 0; }
+.ad .qrzone .caption { font-weight: 600; line-height: 1.3; }
+.ad .qrbox { border-radius: 18px; }
+
+/* Nell'attesa: a tutto schermo, sempre su un fondo scuro come le foto (il logo e il testo scorrevole sono chiari). */
+#idle .ad.promo { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: space-between; gap: 64px;
+  padding: calc(var(--pad-y) + var(--logo-h) + 48px) var(--pad-x) calc(var(--pad-y) + var(--footer-h) + 56px); color: #F4F6FA;
+  background: radial-gradient(ellipse 55% 60% at 16% 22%, rgba(var(--c-primary-rgb), 0.5) 0%, transparent 64%),
+    radial-gradient(ellipse 50% 50% at 88% 84%, rgba(var(--c-accent-rgb), 0.26) 0%, transparent 62%), #080B11; }
+#idle.has-ticker .ad.promo { padding-bottom: calc(var(--pad-y) + var(--footer-h) + var(--t-ticker) * 2.4 + 72px); }
+#idle .ad.promo .pic { position: absolute; inset: 0; }
+:root[data-motion='full'] #idle .slide.on .ad.promo .pic { animation: bt-kenburns 9s linear both; }
+#idle .ad.promo.has-pic::before { content: ""; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(90deg, rgba(5,7,9,0.84) 0%, rgba(5,7,9,0.5) 50%, rgba(5,7,9,0.08) 100%), linear-gradient(0deg, rgba(5,7,9,0.72) 0%, rgba(5,7,9,0) 48%); }
+#idle .ad.promo .copy, #idle .ad.promo .qrzone { position: relative; z-index: 2; }
+#idle .ad.promo .copy { max-width: 60%; gap: 22px; }
+#idle .ad.promo .label { color: rgba(244,246,250,0.72); }
+#idle .ad.promo h3 { font-size: calc(var(--t-welcome) * 1.5); text-wrap: balance; }
+#idle .ad.promo p { font-size: calc(var(--t-promo-text) * 1.55); color: rgba(244,246,250,0.84); max-width: 30em; }
+#idle .ad.promo .qrzone { gap: 18px; }
+#idle .ad.promo .qrzone .caption { font-size: calc(var(--t-hint) * 0.9); max-width: 13em; }
+:root[data-layout='narrow'] #idle .ad.promo { gap: 40px; }
+:root[data-layout='portrait'] #idle .ad.promo { flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; gap: 44px;
+  padding-bottom: calc(var(--pad-y) + var(--footer-h) + 96px); }
+:root[data-layout='portrait'] #idle.has-ticker .ad.promo { padding-bottom: calc(var(--pad-y) + var(--footer-h) + var(--t-ticker) * 2.4 + 120px); }
+:root[data-layout='portrait'] #idle .ad.promo .copy { max-width: none; align-items: center; }
+:root[data-layout='portrait'] #idle .ad.promo.has-pic::before { background: linear-gradient(0deg, rgba(5,7,9,0.9) 0%, rgba(5,7,9,0.55) 55%, rgba(5,7,9,0.15) 100%); }
+
+/* Accanto al conto: una scheda alta; la foto 16:9 come nelle slide, tagliata a colonna perderebbe le scritte. */
+.adcard { flex-direction: column; min-height: 0; }
+.adcard > .ad { animation: bt-fade 420ms var(--e-out) both; }
+.adcard > .ad.image, .adcard > .ad.video { flex: 0 0 auto; aspect-ratio: 16 / 9; margin: auto 0; border-radius: var(--radius); background: #000; border: 1px solid var(--c-line); }
+.adcard > .ad.promo { flex: 1; display: flex; flex-direction: column; border-radius: var(--radius); background: rgba(var(--c-text-rgb), 0.04); border: 1px solid var(--c-line); }
+.adcard .ad.promo .pic { flex: 0 1 auto; aspect-ratio: 16 / 9; }
+.adcard .ad.promo .copy { flex: 1 0 auto; justify-content: center; gap: 14px; padding: calc(var(--t-promo) * 0.76); }
+.adcard .ad.promo.has-pic .copy { justify-content: flex-start; }
+.adcard .ad.promo .label { color: var(--c-accent); font-size: calc(var(--t-label) * 0.9); }
+.adcard .ad.promo h3 { font-size: var(--t-promo); }
+.adcard .ad.promo p { font-size: var(--t-promo-text); color: var(--c-muted); }
+.adcard .ad.promo .qrzone { flex-direction: row; gap: 22px; padding: 0 calc(var(--t-promo) * 0.76) calc(var(--t-promo) * 0.76); text-align: left; }
+.adcard .ad.promo .qrzone .caption { font-size: calc(var(--t-hint) * 0.72); }
+.adcard .ad.promo.has-qr:not(.has-pic) .copy { flex-grow: 0; padding-top: calc(var(--t-promo) * 1.2); }
+.adcard .ad.promo.has-qr:not(.has-pic) .qrzone { flex: 1; flex-direction: column; justify-content: center; text-align: center; }
+:root[data-layout='portrait'] .adcard > .ad.promo { flex-direction: row; align-items: center; }
+:root[data-layout='portrait'] .adcard .ad.promo .pic { flex: 0 0 40%; align-self: stretch; aspect-ratio: auto; }
+:root[data-layout='portrait'] .adcard .ad.promo .copy { flex: 1 1 auto; }
+:root[data-layout='portrait'] .adcard .ad.promo .qrzone, :root[data-layout='portrait'] .adcard .ad.promo.has-qr:not(.has-pic) .qrzone { flex: 0 0 auto; flex-direction: column; padding: calc(var(--t-promo) * 0.6); }
+
+/* Sotto il Grazie: una scheda larga, il QR a sinistra come nel design (S5). */
+.thanksad > .ad { flex: 1; min-width: 0; }
+.thanksad > .ad.image, .thanksad > .ad.video { flex: 0 1 auto; aspect-ratio: 16 / 9; max-width: 100%; max-height: 100%; align-self: flex-start; border-radius: var(--radius); background: #000; }
+.thanksad > .ad.promo { display: flex; align-items: center; gap: 30px; padding: 26px; border-radius: var(--radius); background: rgba(var(--c-text-rgb), 0.04); border: 1px solid var(--c-line); align-self: stretch; }
+.thanksad .ad.promo .pic { flex: 0 0 40%; aspect-ratio: 16 / 9; align-self: center; border-radius: calc(var(--radius) * 0.6); }
+.thanksad .ad.promo .copy { flex: 1; gap: 12px; }
+.thanksad .ad.promo .label { color: var(--c-accent); font-size: calc(var(--t-label) * 0.9); }
+.thanksad .ad.promo h3 { font-size: calc(var(--t-thanks) * 0.34); }
+.thanksad .ad.promo p { font-size: calc(var(--t-hint) * 0.72); color: var(--c-muted); }
+.thanksad .ad.promo .qrzone { gap: 12px; }
+.thanksad .ad.promo .qrzone .caption { font-size: calc(var(--t-hint) * 0.66); max-width: 12em; }
+.thanksad .ad.promo.has-qr:not(.has-pic) .qrzone { order: -1; }
+:root[data-layout='portrait'] .thanksad > .ad.promo, :root[data-format='palmare'] .thanksad > .ad.promo { gap: 18px; padding: 18px; }
+/* Dove la colonna è stretta, con il QR la foto resta fuori: il QR e le scritte contano di più. */
+:root:not([data-layout='wide']) .thanksad .ad.promo.has-qr .pic, :root[data-layout='portrait'] .adcard .ad.promo.has-qr .pic,
+:root[data-format='palmare'] .thanksad .ad.promo .pic { display: none; }
+:root:not([data-layout='wide']) .thanksad .ad.promo .label { display: none; }
+:root[data-format='palmare'] .thanksad > .ad.promo { flex-direction: column; justify-content: center; text-align: center; }
+:root[data-format='palmare'] .thanksad .ad.promo .copy { flex: 0 0 auto; align-items: center; }
+:root[data-format='palmare'] .thanksad .ad.promo.has-qr:not(.has-pic) .qrzone { order: 0; }
 
 /* Pagamento a tutto schermo: importo e istruzione, il QR grande (SPEC §2.4). */
 #pay { display: flex; align-items: center; justify-content: center; gap: 110px; padding: var(--pad-y) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); }
@@ -320,7 +389,7 @@ html.nocursor, html.nocursor * { cursor: none !important; }
         <div class="total"><span class="label" id="totallabel">Totale</span><span class="value num" id="total">€ 0,00</span></div>
       </div>
       <div class="side">
-        <section class="promo" id="promo"><div class="pic"></div><div class="copy"><span class="label">Promozione</span><h3></h3><p></p></div></section>
+        <section class="adcard" id="salead"></section>
         <section class="venuecard" id="venuecard"></section>
         <section class="paycard"><div class="qrbox" id="besideqr"><img alt="QR per pagare con Satispay"><i class="halo"></i><i class="halo"></i><i class="halo"></i></div>
           <div class="hint">Inquadra il QR con l'app Satispay</div><div class="caption" id="besidecaption"></div></section>
@@ -328,7 +397,7 @@ html.nocursor, html.nocursor * { cursor: none !important; }
           <div class="rings"><i class="ring"></i><i class="ring"></i><i class="ring"></i></div>
           <h2 id="thankstext">Grazie e arrivederci</h2>
           <div class="paid"><span class="label">Pagato</span><span class="value num" id="paidamount"></span><span class="method" id="paidmethod"></span></div>
-          <div class="qr" id="thanksqr"><div class="qrbox"><img alt=""></div><div class="words"><div class="title"></div><div class="caption"></div></div></div>
+          <div class="thanksad" id="thanksad"></div>
         </section>
       </div>
     </div>
@@ -424,6 +493,8 @@ function applyTheme() {
   T.apply(root, p);
   root.style.setProperty("--c-bg-rgb", rgbOf(p.bg, "11,16,23"));
   root.style.setProperty("--c-text-rgb", rgbOf(p.text, "230,234,242"));
+  root.style.setProperty("--c-primary-rgb", rgbOf(p.primary, "31,111,235"));
+  root.style.setProperty("--c-accent-rgb", rgbOf(p.accent, "61,220,151"));
   root.dataset.mode = resolved.mode;
   lightBackground = (T.contrast(p.bg, "#000000") || 0) > 8;   // luminanza oltre 0,35: un fondo chiaro
   root.dataset.footer = p.footerVariant === "light" ? "light" : "dark";
@@ -490,6 +561,7 @@ function applyTexts() {
   const ticker = document.querySelector(".ticker");
   const track = ticker.querySelector(".track");
   track.replaceChildren();
+  $("idle").classList.toggle("has-ticker", !!(cfg && cfg.ticker));
   if (cfg && cfg.ticker) {
     ticker.hidden = false;
     track.append(el("span", "", cfg.ticker), el("span", "", cfg.ticker));   // contenuto doppio: giro senza salti
@@ -511,7 +583,7 @@ function applyConfig(next, persist) {
   applyTheme();
   applyBackground();
   applyTexts();
-  playlist(cfg.ads || []);
+  applyPlaylists();
   render();
 }
 
@@ -519,8 +591,93 @@ function applyConfig(next, persist) {
 setInterval(() => { if (cfg && cfg.theme && cfg.theme.mode === "auto" && state.phase !== "payment") { applyTheme(); applyTexts(); } }, 60000);
 
 // ---------------------------------------------------------------------------------------------------------------
-// Le slide dell'attesa: due livelli, uno visibile e uno pronto, mai tre (SPEC §2.1).
+// Le reclame dei set: tre playlist già scelte e messe in ordine dall'Agent (attesa, accanto al conto, Grazie), con le
+// schede delle promozioni a parte. Un cfg della versione di prima (solo ads) vale ancora per l'attesa.
 // ---------------------------------------------------------------------------------------------------------------
+let lists = { idle: [], sale: [], thanks: [] };
+
+function cardOf(id) { return (cfg && cfg.promoCards && cfg.promoCards[id]) || null; }
+
+function usable(item) {
+  if (!item) return false;
+  if (item.kind === "promo") return !!cardOf(item.id);
+  return (item.kind === "image" || item.kind === "video") && typeof item.src === "string";
+}
+
+function applyPlaylists() {
+  const p = (cfg && cfg.playlists) || null;
+  const old = ((cfg && cfg.ads) || []).map((a) => ({ id: a.id, kind: a.media, src: a.src, durationMs: a.durationMs }));
+  lists = { idle: (p ? p.idle : old) || [], sale: (p && p.sale) || [], thanks: (p && p.thanks) || [] };
+  for (const key of Object.keys(lists)) lists[key] = lists[key].filter(usable);
+  playlist(lists.idle);
+  salePlaylist(lists.sale);
+  thanksPlaylist(lists.thanks);
+}
+
+/** La chiave di una playlist: cambia se cambiano gli elementi o le schede delle loro promozioni. */
+function keyOf(items) {
+  return JSON.stringify(items) + JSON.stringify(items.filter((i) => i.kind === "promo").map((i) => cardOf(i.id)));
+}
+
+const QR_SCALE = { slide: 1.3, side: 0.95, thanks: 1 };
+
+/**
+ * La scheda di un elemento: la foto, il video (muto) o la promozione con le sue scritte, l'immagine e il QR.
+ * onEnded: il video è finito (o non parte); loop: il video ricomincia da solo.
+ */
+function buildAd(item, where, options) {
+  const o = options || {};
+  if (item.kind === "promo") {
+    const card = o.card || cardOf(item.id) || {};
+    const node = el("div", "ad promo" + (card.image ? " has-pic" : "") + (card.qr && card.qr.png ? " has-qr" : ""));
+    if (card.image) {
+      const pic = el("div", "pic");
+      pic.style.backgroundImage = "url(\"" + String(card.image).replace(/["\\\n]/g, "") + "\")";
+      node.append(pic);
+    }
+    const copy = el("div", "copy");
+    if ((card.title || card.text) && !o.noLabel) copy.append(el("span", "label", "Promozione"));
+    if (card.title) copy.append(el("h3", "", card.title));
+    if (card.text) copy.append(el("p", "", card.text));
+    node.append(copy);
+    if (card.qr && card.qr.png) {
+      const box = el("div", "qrbox");
+      box.append(el("img"));
+      const img = box.firstChild;
+      img.alt = card.qr.caption || card.title || "QR";
+      const zone = el("div", "qrzone");
+      zone.append(box);
+      if (card.qr.caption) zone.append(el("span", "caption", card.qr.caption));
+      node.append(zone);
+      showQr(box, card.qr.png, cssNumber("--qr-thanks") * QR_SCALE[where] * (where === "thanks" && root.dataset.format === "palmare" ? 0.68 : 1));
+    }
+    return node;
+  }
+  const node = el("div", "ad " + item.kind);
+  if (item.kind === "video") {
+    const video = el("video");
+    video.muted = true; video.playsInline = true; video.autoplay = true; video.setAttribute("muted", ""); video.preload = "auto";
+    video.loop = !!o.loop;
+    if (o.onEnded) { video.addEventListener("ended", o.onEnded); video.addEventListener("error", () => setTimeout(o.onEnded, 1500)); }
+    video.src = item.src;
+    node.append(video);
+  } else {
+    const img = el("img");
+    img.alt = "";
+    if (o.onError) img.addEventListener("error", o.onError);
+    img.src = item.src;
+    node.append(img);
+  }
+  return node;
+}
+
+function play(node) {
+  const video = node && node.querySelector("video");
+  if (video) { const p = video.play(); if (p && p.catch) p.catch(() => {}); }
+}
+
+// L'attesa: due livelli, uno visibile e uno pronto, mai tre (SPEC §2.1). I puntini solo per le playlist corte: in una
+// casuale di 60 elementi non direbbero niente.
 let slides = [];
 let slideIndex = -1;
 let slideTimer = 0;
@@ -528,17 +685,16 @@ let slideKey = "";
 const layers = Array.from(document.querySelectorAll("#idle .slide"));
 let activeLayer = 0;
 
-function playlist(ads) {
-  const usable = ads.filter((a) => a && typeof a.src === "string" && (a.media === "image" || a.media === "video"));
-  const key = usable.map((a) => a.id + "|" + a.src + "|" + (a.durationMs || "")).join(",");
+function playlist(items) {
+  const key = keyOf(items);
   if (key === slideKey) return;
   slideKey = key;
-  slides = usable;
+  slides = items;
   slideIndex = -1;
   clearTimeout(slideTimer);
   layers.forEach((layer) => { layer.classList.remove("on"); layer.replaceChildren(); });
   const dots = document.querySelector("#idle .dots");
-  dots.replaceChildren(...slides.map(() => el("i")));
+  dots.replaceChildren(...(slides.length > 1 && slides.length <= 12 ? slides.map(() => el("i")) : []));
   $("idle").classList.toggle("has-slides", slides.length > 0);
   if (screenNow === "idle") nextSlide();
 }
@@ -550,35 +706,90 @@ function nextSlide() {
   const slide = slides[slideIndex];
   const next = layers[1 - activeLayer];
   const current = layers[activeLayer];
-  next.replaceChildren();
-  let media;
-  if (slide.media === "video") {
-    media = el("video");
-    media.muted = true; media.playsInline = true; media.autoplay = true; media.setAttribute("muted", ""); media.preload = "auto";
-    media.addEventListener("ended", () => nextSlide());
-    media.addEventListener("error", () => { slideTimer = setTimeout(nextSlide, 1500); });
-    media.src = slide.src;
-    slideTimer = setTimeout(nextSlide, 5 * 60 * 1000);   // un video bloccato non ferma la playlist
-  } else {
-    media = el("img");
-    media.alt = "";
-    media.src = slide.src;
-    media.addEventListener("error", () => { slideTimer = setTimeout(nextSlide, 1500); });
-    slideTimer = setTimeout(nextSlide, slide.durationMs || 7000);
-  }
-  next.append(media);
+  // Solo la slide a schermo fa andare avanti: un video tolto che finisce o va in errore non salta la slide dopo.
+  let node = null;
+  const shown = () => node && node.parentNode === layers[activeLayer];
+  const retry = () => { if (shown()) { clearTimeout(slideTimer); slideTimer = setTimeout(nextSlide, 1500); } };
+  node = buildAd(slide, "slide", { onEnded: () => { if (shown()) nextSlide(); }, onError: retry });
+  next.replaceChildren(node);
+  $("idle").classList.toggle("promo-on", slide.kind === "promo");
+  // Un video dura quanto dura, ma uno bloccato non ferma la playlist.
+  slideTimer = setTimeout(nextSlide, slide.kind === "video" ? 5 * 60 * 1000 : slide.durationMs || 7000);
   next.classList.add("on");
   current.classList.remove("on");
   activeLayer = 1 - activeLayer;
   const old = current;
   setTimeout(() => { if (!old.classList.contains("on")) { const v = old.querySelector("video"); if (v) v.pause(); old.replaceChildren(); } }, 1400);
   document.querySelectorAll("#idle .dots i").forEach((dot, i) => dot.classList.toggle("on", i === slideIndex));
-  if (slide.media === "video") { const p = media.play(); if (p && p.catch) p.catch(() => {}); }
+  play(node);
 }
 
 function pauseSlides() {
   clearTimeout(slideTimer);
   layers.forEach((layer) => { const v = layer.querySelector("video"); if (v) v.pause(); });
+}
+
+// Accanto al conto: la scheda cambia con i tempi del set, e dal conto dopo riparte da dove era.
+let saleItems = [];
+let saleIndex = -1;
+let saleTimer = 0;
+let saleKey = "";
+let saleRunning = false;
+
+function salePlaylist(items) {
+  const key = keyOf(items);
+  if (key === saleKey) return;
+  saleKey = key;
+  saleItems = items;
+  saleIndex = -1;
+  if (saleRunning) { stopSaleAds(); startSaleAds(); }
+}
+
+function nextSaleAd() {
+  clearTimeout(saleTimer);
+  if (!saleRunning || !saleItems.length) return;
+  saleIndex = (saleIndex + 1) % saleItems.length;
+  const item = saleItems[saleIndex];
+  const box = $("salead");
+  const before = box.querySelector("video");
+  if (before) before.pause();
+  let node = null;
+  const shown = () => node && node.parentNode === box && saleRunning;
+  node = buildAd(item, "side", {
+    onEnded: () => { if (shown()) nextSaleAd(); },
+    onError: () => { if (shown()) { clearTimeout(saleTimer); saleTimer = setTimeout(nextSaleAd, 1500); } },
+  });
+  box.replaceChildren(node);
+  play(node);
+  saleTimer = setTimeout(nextSaleAd, item.kind === "video" ? 5 * 60 * 1000 : item.durationMs || 8000);
+}
+
+function startSaleAds() { saleRunning = true; nextSaleAd(); }
+function stopSaleAds() {
+  saleRunning = false;
+  clearTimeout(saleTimer);
+  const video = $("salead").querySelector("video");
+  if (video) video.pause();
+}
+
+// Nel Grazie: un elemento per cliente, nell'ordine del set. Con il QR il Grazie resta di più (thanksSeconds).
+let thanksItems = [];
+let thanksIndex = -1;
+let thanksKey = "";
+let thanksItem = null;
+
+function thanksPlaylist(items) {
+  const key = keyOf(items);
+  if (key === thanksKey) return;
+  thanksKey = key;
+  thanksItems = items;
+  thanksIndex = -1;
+  thanksItem = null;
+  if (state.phase === "thanks") nextThanksItem();   // il set è cambiato durante il Grazie (l'anteprima, o un salvataggio)
+}
+
+function nextThanksItem() {
+  thanksItem = thanksItems.length ? thanksItems[(thanksIndex = (thanksIndex + 1) % thanksItems.length)] : null;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -590,8 +801,6 @@ const seenLines = new Set();
 const THANKS_MS = 8000;
 let thanksTimer = 0;
 let messageTimer = 0;
-let saleCount = 0;
-let promoIndex = 0;
 let lastTotal = null;
 
 function clearSale(phase) {
@@ -607,14 +816,14 @@ function thanksFor(ms) {
 
 function thanksDuration() {
   if (state.receiptQr) return 30000;
-  if (cfg && cfg.thanks && cfg.thanks.png) return Math.max(10, Math.min(120, cfg.thanks.seconds || 30)) * 1000;
+  const card = thanksItem && thanksItem.kind === "promo" ? cardOf(thanksItem.id) : null;
+  if (card && card.qr) return Math.max(10, Math.min(120, (cfg && cfg.thanksSeconds) || 30)) * 1000;
   return THANKS_MS;
 }
 
-function newSale() {
-  saleCount++;
-  const promos = (cfg && cfg.promos) || [];
-  promoIndex = promos.length ? (saleCount - 1) % promos.length : 0;   // una promozione per conto, a rotazione
+function startThanks() {
+  nextThanksItem();
+  thanksFor(thanksDuration());
 }
 
 function apply(m) {
@@ -625,7 +834,6 @@ function apply(m) {
     case "sync": {
       clearTimeout(thanksTimer);
       const s = m.state || {};
-      const fresh = (s.lines || []).length && !state.lines.length;
       state.paid = null;
       state.phase = s.phase || "idle";
       state.lines = (s.lines || []).slice();
@@ -635,17 +843,15 @@ function apply(m) {
       state.bill = !!s.bill;
       state.receiptQr = null;
       state.receipt = s.receipt || null;
-      if (fresh) newSale();
       state.lines.forEach((l) => seenLines.add(l.id));   // dopo un sync si anima solo ciò che arriva dopo
       break;
     }
     case "sale.open":
       clearSale("sale");
-      newSale();
       break;
     case "sale.line": {
-      if (state.phase === "thanks" || state.phase === "receipt") { clearSale("sale"); newSale(); }
-      if (state.phase === "idle") { state.phase = "sale"; if (!state.lines.length) newSale(); }
+      if (state.phase === "thanks" || state.phase === "receipt") clearSale("sale");
+      if (state.phase === "idle") state.phase = "sale";
       const i = state.lines.findIndex((l) => l.id === m.line.id);
       if (i >= 0) state.lines[i] = m.line; else state.lines.push(m.line);
       if (m.line.kind === "void") voidedAt.set(m.line.id, Date.now());
@@ -655,7 +861,7 @@ function apply(m) {
     case "sale.close":
       if (!m.paid) { clearSale(state.receipt ? "receipt" : "idle"); break; }
       state.phase = "thanks"; state.payment = null; state.paid = m.paid;
-      thanksFor(thanksDuration());
+      startThanks();
       break;
     case "pay.qr": state.phase = "payment"; state.payment = { png: m.png, amount: m.amount, caption: m.caption }; break;
     case "pay.clear":
@@ -665,7 +871,7 @@ function apply(m) {
     case "receipt.qr":
       state.receiptQr = { png: m.png, caption: m.caption };
       state.payment = null;
-      if (state.phase !== "sale") { state.phase = "thanks"; thanksFor(thanksDuration()); }
+      if (state.phase !== "sale") { if (state.phase !== "thanks") nextThanksItem(); state.phase = "thanks"; thanksFor(thanksDuration()); }
       break;
     case "receipt.digital":
       clearTimeout(thanksTimer);
@@ -738,13 +944,14 @@ function screen() {
 }
 
 function side() {
-  const promos = (cfg && cfg.promos) || [];
   if (state.phase === "thanks") return "thanks";
   if (state.phase === "payment" && state.payment) return "qr";
-  // Sul 4:3 niente colonna (le promozioni stanno nelle slide), sul palmare il conto prende tutto lo spazio.
+  // Sul 4:3 niente colonna (le reclame stanno nelle slide), sul palmare il conto prende tutto lo spazio.
   if (root.dataset.layout === "narrow" || root.dataset.format === "palmare") return "none";
-  if (promos.length) return "promo";
-  return root.dataset.layout === "portrait" ? "none" : "venue";
+  if (saleItems.length) return "promo";
+  // Il locale accanto al conto solo se c'è qualcosa da mostrare: senza logo né nome il conto sta al centro.
+  const v = (cfg && cfg.venue) || {};
+  return root.dataset.layout !== "portrait" && (logoFor(false) || v.name) ? "venue" : "none";
 }
 
 function renderLines() {
@@ -794,35 +1001,27 @@ function renderMessage() {
   }
 }
 
-function renderPromo() {
-  const promos = (cfg && cfg.promos) || [];
-  const promo = promos[promoIndex % Math.max(1, promos.length)];
-  const card = $("promo");
-  if (!promo) return;
-  card.querySelector(".pic").style.backgroundImage = promo.image ? "url(\"" + promo.image.replace(/"/g, "") + "\")" : "";
-  card.querySelector(".pic").style.display = promo.image ? "" : "none";
-  card.querySelector("h3").textContent = promo.title || "";
-  card.querySelector("p").textContent = promo.text || "";
-  card.querySelector("h3").style.display = promo.title ? "" : "none";
-  card.querySelector("p").style.display = promo.text ? "" : "none";
-  card.classList.toggle("only-pic", !!promo.image && !promo.title && !promo.text);
-  card.classList.toggle("only-text", !promo.image);
-}
-
 function renderThanks() {
   const paid = state.paid;
   $("paidamount").textContent = paid ? money(paid.amount) : money(state.total);
   $("paidmethod").textContent = paid ? [method(paid.method), paid.change > 0 ? "resto " + money(paid.change) : ""].filter(Boolean).join(" · ") : "";
-  const box = $("thanksqr");
-  const qr = state.receiptQr
-    ? { png: state.receiptQr.png, title: "Il tuo scontrino digitale", caption: state.receiptQr.caption || "Scarica il tuo scontrino digitale" }
-    : cfg && cfg.thanks && cfg.thanks.png ? cfg.thanks : null;
-  box.classList.toggle("on", !!qr);
-  if (qr) {
-    showQr(box.querySelector(".qrbox"), qr.png, cssNumber("--qr-thanks"));
-    box.querySelector(".title").textContent = qr.title || "";
-    box.querySelector(".caption").textContent = qr.caption || "";
+  // Lo scontrino digitale della cassa ha la precedenza sulla reclame: è il documento del cliente.
+  const area = $("thanksad");
+  let key = "", node = null;
+  if (state.receiptQr) {
+    key = "scontrino|" + state.receiptQr.png;
+    if (key !== area.dataset.key) node = buildAd({ kind: "promo" }, "thanks", { noLabel: true, card: { title: "Il tuo scontrino digitale", text: "", qr: { png: state.receiptQr.png, caption: state.receiptQr.caption || "Scarica il tuo scontrino digitale" } } });
+  } else if (thanksItem && usable(thanksItem)) {
+    key = thanksIndex + "|" + JSON.stringify(thanksItem) + JSON.stringify(cardOf(thanksItem.id));
+    if (key !== area.dataset.key) node = buildAd(thanksItem, "thanks", { loop: true });
   }
+  if (key !== area.dataset.key) {
+    area.dataset.key = key;
+    area.replaceChildren(...(node ? [node] : []));
+  }
+  play(area.firstChild);   // anche lo stesso video del cliente prima, fermato alla fine del suo Grazie
+  $("thanks").classList.toggle("with-ad", !!key);
+  root.classList.toggle("thanks-ad", !!key);
 }
 
 function pair(left, right, className) {
@@ -893,18 +1092,20 @@ function render() {
     if (now === "idle") nextSlide(); else if (before === "idle") pauseSlides();
   }
   root.dataset.screen = now;
+  const adsBeside = now === "bill" && side() === "promo";
+  if (adsBeside && !saleRunning) startSaleAds(); else if (!adsBeside && saleRunning) stopSaleAds();
   root.classList.toggle("over-slides", now === "idle" && slides.length > 0);
   root.classList.toggle("noprices", !!(cfg && cfg.pricesOnlyOnBill) && !state.bill && state.phase === "sale");
   const sideBefore = root.dataset.side;
   root.dataset.side = side();
+  if (root.dataset.side !== "thanks") { const v = $("thanksad").querySelector("video"); if (v) v.pause(); }
   if (root.dataset.side === "thanks" && sideBefore !== "thanks") {
     // La celebrazione una volta sola, all'arrivo del Grazie.
-    document.querySelectorAll("#thanks, #thanks .ring, #thanksqr").forEach((node) => { node.style.animation = "none"; void node.offsetWidth; node.style.animation = ""; });
+    document.querySelectorAll("#thanks, #thanks .ring, #thanksad").forEach((node) => { node.style.animation = "none"; void node.offsetWidth; node.style.animation = ""; });
   }
   if (now === "bill") {
     renderLines();
     renderMessage();
-    if (root.dataset.side === "promo") renderPromo();
     if (root.dataset.side === "thanks") renderThanks();
     if (root.dataset.side === "qr") { showQr($("besideqr"), state.payment.png, cssNumber("--qr-beside")); $("besidecaption").textContent = state.payment.caption || ""; }
     $("totallabel").textContent = state.phase === "payment" ? "Da pagare" : "Totale";
@@ -1000,13 +1201,14 @@ function demoPhase(phase) {
   clearTimeout(thanksTimer);
   seenLines.clear();
   if (phase === "attesa") { clearSale("idle"); }
-  else if (phase === "conto") { clearSale("sale"); newSale(); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2; }
+  else if (phase === "conto") { clearSale("sale"); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2; }
   else if (phase === "pagamento") {
-    clearSale("payment"); newSale(); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2;
+    clearSale("payment"); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2;
     state.payment = { png: demoQr, amount: DEMO_TOTAL };
   } else if (phase === "grazie") {
-    clearSale("thanks"); newSale(); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2;
+    clearSale("thanks"); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2;
     state.paid = { method: "C.CREDITO", amount: DEMO_TOTAL };
+    nextThanksItem();
   } else if (phase === "auto") {
     // Il giro completo: attesa, righe battute una alla volta, pagamento, Grazie, di nuovo l'attesa.
     clearSale("idle");
@@ -1014,7 +1216,7 @@ function demoPhase(phase) {
     const run = () => {
       if (step === 0) { clearSale("idle"); render(); step++; demoTimer = setTimeout(run, 9000); return; }
       if (step <= DEMO_LINES.length) {
-        if (step === 1) { clearSale("sale"); newSale(); }
+        if (step === 1) clearSale("sale");
         state.lines.push(DEMO_LINES[step - 1]);
         state.total = DEMO_LINES.slice(0, step).reduce((s, l) => s + (l.amount || 0), 0);
         state.cover = 2;
@@ -1022,7 +1224,8 @@ function demoPhase(phase) {
       }
       if (step === DEMO_LINES.length + 1 && demoQr) { state.phase = "payment"; state.payment = { png: demoQr, amount: state.total }; render(); step++; demoTimer = setTimeout(run, 6000); return; }
       state.phase = "thanks"; state.payment = null; state.paid = { method: "C.CREDITO", amount: state.total };
-      render(); step = 0; demoTimer = setTimeout(run, Math.min(thanksDuration(), 10000));
+      nextThanksItem();
+      render(); step = 0; demoTimer = setTimeout(run, Math.min(thanksDuration(), 12000));
     };
     run();
     return;
@@ -1041,7 +1244,7 @@ if (preview) {
 }
 
 window.addEventListener("resize", layout);
-if (cfg) { applyTheme(); applyBackground(); applyTexts(); playlist(cfg.ads || []); } else { applyTexts(); }
+if (cfg) { applyTheme(); applyBackground(); applyTexts(); applyPlaylists(); } else { applyTexts(); }
 layout();
 if (!demo) connect();
 </script>

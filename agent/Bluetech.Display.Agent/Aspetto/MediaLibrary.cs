@@ -5,7 +5,7 @@ using Bluetech.Display.Agent.Server;
 namespace Bluetech.Display.Agent.Aspetto;
 
 /// <summary>
-/// Le immagini e i video caricati dal back office (logo, sfondo, promozioni), in dati\media. Il nome del file è
+/// Le foto e i video caricati dal back office (le gallerie, il logo, lo sfondo), in dati\media. Il nome del file è
 /// l'impronta del contenuto: lo stesso file caricato due volte è uno solo, e un display lo tiene in cache per sempre
 /// perché a un nome corrisponde sempre lo stesso contenuto. Nelle impostazioni c'è l'elenco, con il nome originale.
 /// </summary>
@@ -151,7 +151,7 @@ public sealed class MediaLibrary(SettingsStore settings, AgentRuntime runtime, I
         return File.Exists(path) ? path : null;
     }
 
-    /// <summary>Dove è usato un file: il logo, lo sfondo, le promozioni.</summary>
+    /// <summary>Dove è usato un file: il logo, lo sfondo, le promozioni, i set.</summary>
     public static List<string> UsedBy(AgentSettings s, string id)
     {
         var used = new List<string>();
@@ -161,7 +161,8 @@ public sealed class MediaLibrary(SettingsStore settings, AgentRuntime runtime, I
             used.Add("il logo per i fondi chiari");
         if (s.Aspetto.FondoMedia == id)
             used.Add("lo sfondo");
-        used.AddRange(s.Aspetto.Promozioni.Where(p => p.Media == id).Select(p => $"la promozione {p.Nome}"));
+        used.AddRange(s.Aspetto.Promozioni.Where(p => p.Immagine == id).Select(p => $"la promozione {p.Nome}"));
+        used.AddRange(s.Aspetto.Set.Where(x => x.Elementi.Any(e => e.Id == id)).Select(x => $"il set {x.Nome}"));
         return used;
     }
 
@@ -208,15 +209,17 @@ public sealed class MediaLibrary(SettingsStore settings, AgentRuntime runtime, I
                         s.Aspetto.FondoMedia = null;
                         s.Aspetto.Fondo = "luci";
                     }
-                    foreach (var promo in s.Aspetto.Promozioni.Where(p => p.Media == id).ToList())
+                    foreach (var set in s.Aspetto.Set)
+                        set.Elementi.RemoveAll(e => e.Id == id);
+                    foreach (var promo in s.Aspetto.Promozioni.Where(p => p.Immagine == id).ToList())
                     {
-                        promo.Media = null;
-                        promo.NelleSlide = false;
-                        if (!promo.NelConto || (string.IsNullOrWhiteSpace(promo.Titolo) && string.IsNullOrWhiteSpace(promo.Testo)))
-                        {
-                            s.Aspetto.Promozioni.Remove(promo);
-                            notes.Add($"la promozione {promo.Nome} è tolta: senza il suo file non resta niente da mostrare");
-                        }
+                        promo.Immagine = null;
+                        if (promo.HasContent)
+                            continue;
+                        s.Aspetto.Promozioni.Remove(promo);
+                        foreach (var set in s.Aspetto.Set)
+                            set.Elementi.RemoveAll(e => e.Id == promo.Id);
+                        notes.Add($"la promozione {promo.Nome} è tolta: senza il suo file non resta niente da mostrare");
                     }
                     s.Aspetto.Media.RemoveAll(m => m.Id == id);
                 }
