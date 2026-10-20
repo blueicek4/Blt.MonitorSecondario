@@ -118,8 +118,9 @@ il QR non si copre, quindi il cambio aspetta la fine del pagamento.
 
 ## 8. Aggiunte al protocollo fatte nell'Agent (da implementare in M5)
 
-L'[Agent](../agent/README.md) manda i messaggi di `protocol.ts` con quattro aggiunte. In `display/src/types/protocol.ts`
-vanno aggiunte con il trasporto WebSocket (M5).
+L'[Agent](../agent/README.md) manda i messaggi di `protocol.ts` con queste aggiunte. In `display/src/types/protocol.ts`
+vanno aggiunte con il trasporto WebSocket (M5). Le ultime quattro vengono dal vecchio monitor 6.0 di Passepartout
+(`docs/01` §10).
 
 | Messaggio | Perché | Cosa fa il display |
 |---|---|---|
@@ -127,6 +128,10 @@ vanno aggiunte con il trasporto WebSocket (M5).
 | `{ t: 'hb' }` ogni 3 s | Con la cassa a file il silenzio è normale: senza battito dopo 8 s comparirebbe "connessione assente" | Conta come messaggio per `link`, nient'altro |
 | `sale.close` con `paid?: { method: string; amount: Cents; change?: Cents }` | La cassa scrive metodo e resto | Grazie mostra l'importo pagato, il metodo (`C.CREDITO` → "Carta") e il resto solo se > 0 |
 | `sync` durante la vendita, non solo alla riconnessione | Righe unite, sconti spostati sotto le righe, ordine cambiato: con i soli messaggi incrementali il cliente vedrebbe storni finti | Sostituisce le righe confrontando gli id: anima solo quelle davvero nuove, nessuna uscita di massa |
+| `receipt.qr { png, caption? }` | `QRCODESD`: il QR per scaricare lo **scontrino digitale**, a pagamento fatto | Nello stato Grazie, al posto del QR di ringraziamento del pannello, con la didascalia (default "Scarica il tuo scontrino digitale"). Grazie dura 30 s. Arrivato a conto aperto, aspetta il `PAGATO` |
+| `pay.qr.caption?` | La 6.0 mostra sopra il QR la riga che la cassa scrive dopo l'immagine. Finora quella riga è vuota | Se c'è, al posto del testo del design |
+| `sale.total.bill` (e `bill` in `sync`) | `true` quando la cassa mostra il conto (intestazione: dettagli conto, preconto, scontrino), `false` durante la battuta | Con l'opzione del pannello "prezzi solo sul conto" (`ShowPricesDuringOrder=false` della 6.0, per chi la usa già) le righe senza importi e niente totale finché è `false` |
+| `pay.clear` seguito da `sale.close` | Un QR arrivato dopo la chiusura per inattività (nessun conto a video) scade da solo dopo 3 minuti | L'attesa, non una vendita vuota. In generale `pay.clear` torna alla vendita solo se ci sono righe |
 
 `pay.qr.amount` è l'ultimo totale ricevuto: il file del QR non porta l'importo. Il PNG arriva già ridotto a un pixel
 per modulo (49×49 per il QR Satispay), senza quiet zone.
