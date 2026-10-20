@@ -48,7 +48,9 @@ Cosa sappiamo dalle prove sul campo (stesso PC):
   file c'è ancora, Passepartout aspetta circa 3 s (`NumeroTentativi` × `SecondiAttesa`) e lo toglie da sé; se è già
   stato tolto, scrive subito. Con `/consuma` le battute arrivano dopo 0,23–0,85 s invece che dopo 3,3 s.
 
-Il perché della prima prova non è ancora noto: quel giorno Passepartout non ha nemmeno eliminato il file.
+Il 19/10 si spiega col modello XML di allora: `SovrascriviSeEsistente=false`. Con il file presente Passepartout
+riprova 3 volte e poi rinuncia, senza toccarlo. Dal 20/10 il modello ha `true`: aspetta 3 s e poi lo sostituisce
+(i due modelli sono in `docs/reference`).
 
 Il registratore ti avvisa alla seconda nota se nel frattempo il file non è cambiato, e ti dice cosa può significare:
 file assente (percorso sbagliato), file mai riscritto (prova qui sotto), vecchio monitor che legge un'altra cartella.

@@ -309,9 +309,9 @@ public sealed class RecordingSession : IDisposable
         else
         {
             kind = "mai-riscritto";
-            advice.Add("Da quando registro, Passepartout non ha mai riscritto il file. Una causa possibile, da verificare, è che non");
-            advice.Add("sovrascriva un file che esiste già. Prova: scrivi /consuma e rifai l'operazione, poi /consuma di nuovo (si spegne)");
-            advice.Add("e rifai ancora. Se arriva una versione nuova solo con /consuma attiva, la causa è questa.");
+            advice.Add("Da quando registro, Passepartout non ha mai riscritto il file. Succede quando nel modello XML del monitor");
+            advice.Add("c'è SovrascriviSeEsistente=false: con il file presente Passepartout rinuncia (prova del 19/10).");
+            advice.Add("Scrivi /consuma, così il file viene tolto dopo ogni lettura, e rifai l'operazione: deve arrivare.");
         }
 
         // Il vecchio monitor è il testimone migliore: legge Scontrino.txt nella cartella del suo exe.

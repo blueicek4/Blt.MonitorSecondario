@@ -21,8 +21,8 @@ Poi, sempre con `/consuma`: #27 "dettagli conto", una riscrittura identica 0,32 
 e `Resto: 110,50`.
 
 **Conferma dell'ipotesi del 20/10**: se il file c'è ancora, Passepartout aspetta circa 3 s, lo elimina da sé e scrive
-il nuovo (nel modello a 30 colonne che conosciamo: `SovrascriviSeEsistente=false`, 3 tentativi da 1 s; quello a 48 in
-uso non l'abbiamo visto). Se il file è già stato tolto, scrive subito. Senza `/consuma` le
+il nuovo: è il [modello a 48 colonne](../../../docs/reference/XMLMonitorCliente-48colonne.xml), con 3 tentativi da 1 s e
+`SovrascriviSeEsistente=true` (con `false`, come il 19/10, rinuncerebbe). Se il file è già stato tolto, scrive subito. Senza `/consuma` le
 battute arrivano una ogni 3,3 s qualunque sia il ritmo in cassa (A2: 9 versioni in 28 s). Con `/consuma` arrivano col
 ritmo di chi batte. Tre cambi di modalità (due accensioni e uno spegnimento), tutti coerenti.
 

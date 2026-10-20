@@ -24,9 +24,9 @@ in `eventi.jsonl` lo `sha256` è ricalcolato sui file anonimizzati (e le righe s
 - **Scrittura**: Passepartout elimina il file e lo ricrea (0,25–0,27 s dopo). Il file nasce vuoto e viene
   riempito subito dopo (#10: lettura a 0 byte, messa da parte).
 - **Ritmo**: mai prima di 3,06 s dalla scrittura precedente; 20 intervalli su 41 sono tra 3,06 e 3,14 s (13 articoli
-  battuti di fila, 7 contenuti rimandati o "dettagli"). Coerente con `NumeroTentativi=3` × `SecondiAttesa=1` (valori
-  del modello a 30 colonne: quello a 48 di questa prova non l'abbiamo): Passepartout aspetterebbe fino a 3 s che il
-  file sparisca, poi lo toglierebbe da sé.
+  battuti di fila, 7 contenuti rimandati o "dettagli"). È `NumeroTentativi=3` × `SecondiAttesa=1` del
+  [modello a 48 colonne](../../../docs/reference/XMLMonitorCliente-48colonne.xml), che ha `SovrascriviSeEsistente=true`:
+  Passepartout aspetta fino a 3 s che il file sparisca, poi lo toglie da sé.
   Da verificare con `/consuma` (se è così, le versioni arrivano subito).
 - **Stesso contenuto rimandato**: #08, #15, #22, #23, #35, #41, #42 sono uguali alla versione precedente.
 - **Formato a 48 colonne**: descrizione fino a 40 caratteri (`Tortellini in crema di Sua Maesta' il Ne`), accenti

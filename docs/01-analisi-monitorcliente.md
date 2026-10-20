@@ -191,9 +191,11 @@ Un nome non riconosciuto diventa bianco.
 | `StampaStringa` | `{0}` | le righe di testo dello scontrino |
 | `StampaQRCode` | `QRCODE` + a capo + `{0}` | QR Satispay |
 | `VisualizzaMessaggioDisplay` | `{1} {2}` | messaggi del visore → barra alta |
-| `NumeroColonne` | 30 | larghezza delle righe di testo |
+| `NumeroColonne` | 30 (dal 20/10: 48) | larghezza delle righe di testo |
 | `NumeroColonneDisplay` | 16 | larghezza del visore |
-| `ParametriStampaSuFile` | 3 tentativi, 1 s, `DisplayInviaSNF=true`, `DisplayInviaQRCode=true` | |
+| `CaratteriAmmessi` | `!/:-=€` | probabilmente per questo gli accenti arrivano come apostrofo (`Maesta'`): da provare aggiungendo `àèéìòù`, guardando col registratore che codifica usa poi il file |
+| `TestoSoloMaiuscole` | `false` | maiuscole e minuscole come in anagrafica |
+| `ParametriStampaSuFile` | 3 tentativi, 1 s, `SovrascriviSeEsistente=false` (dal 20/10: `true`), `DisplayInviaSNF=true`, `DisplayInviaQRCode=true` | se il file c'è già, Passepartout aspetta e poi lo sostituisce o rinuncia (sotto) |
 
 **Ipotesi da verificare** (dai nomi, non dal codice del monitor):
 - `DisplayInviaSNF=true` → la cassa invia al monitor una copia testuale (SNF) dello scontrino.
@@ -216,11 +218,19 @@ Un nome non riconosciuto diventa bianco.
   appena letto) 10 su 10 arrivano dopo 0,23–0,85 s, cioè col ritmo di chi batte, e Passepartout non elimina niente.
   Tre cambi di modalità nella stessa registrazione, tutti coerenti.
 
-**Confermato**: se il file c'è ancora, Passepartout aspetta circa 3 s (`NumeroTentativi` × `SecondiAttesa`; i valori 3 e
-1 vengono dal modello a 30 colonne in `docs/reference`, quello a 48 in uso non l'abbiamo visto), poi lo elimina da sé
-e scrive. Il vecchio monitor non toglie mai il file, quindi **oggi ogni battuta arriva al display circa 3 s dopo**; se
-in cassa si batte più in fretta, le versioni escono comunque una ogni 3,3 s e alcuni stati intermedi si perdono (due
-righe nuove nella stessa versione). Il 19/10 resta da spiegare: Passepartout non ha nemmeno eliminato il file.
+**Come scrive Passepartout**, coerente con tutte e tre le prove. I due modelli XML
+([30 colonne](reference/XMLMonitorCliente.xml), quello del 19/10; [48 colonne](reference/XMLMonitorCliente-48colonne.xml),
+dal 20/10) differiscono solo in `NumeroColonne` e `SovrascriviSeEsistente`.
+
+- Se il file **non c'è**, lo scrive subito.
+- Se **c'è**, riprova `NumeroTentativi` volte a `SecondiAttesa` di distanza (3 × 1 s). Poi, se il file c'è ancora:
+  - con `SovrascriviSeEsistente=true` lo elimina e scrive il nuovo (20/10): circa 3 s di ritardo;
+  - con `false` **rinuncia**: quell'aggiornamento non arriva mai (19/10: una sola versione, nessuna attività nella
+    cartella).
+
+Il vecchio monitor non toglie mai il file, quindi **oggi ogni battuta arriva al display circa 3 s dopo** (con `true`)
+o non arriva affatto dopo la prima (con `false`). Con `true`, se in cassa si batte più in fretta, le versioni escono
+comunque una ogni 3,3 s e alcuni stati intermedi si perdono (due righe nuove nella stessa versione).
 
 **Opportunità**: essendo un template, possiamo definire noi l'output dei comandi (es. `StampaRigaArticolo` →
 `ART|{0}|{1}|{2}|{5}`) e ottenere dati **strutturati** (quantità, prezzo unitario, reparto, sconti, metodo di
