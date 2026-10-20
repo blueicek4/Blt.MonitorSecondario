@@ -157,6 +157,13 @@ lui. A un dispositivo revocato o spostato l'Agent chiude il WebSocket: al rifiut
 ricarica la pagina, che mostra l'errore o la cassa nuova (la pagina provvisoria dell'Agent fa così, vedi
 `diagnostica.html`). Il Player si configura su `/auth`.
 
+**Il display come app (PWA).** Servendo `/cliente`, l'Agent aggiunge prima di `</head>` il manifest
+(`/manifest.webmanifest`: schermo intero, parte da `/auth`), le meta e l'icona per iOS e lo script `/pwa/pwa.js`, che
+registra il service worker `/sw.js` (solo la pagina "Mi ricollego…" quando l'Agent non risponde: i conti non vanno in
+cache), mostra l'invito a installare in basso e tiene acceso lo schermo. Per M5: **niente manifest né service worker
+propri** (sarebbero due sulla stessa radice); l'invito è un livello fisso in basso, `z-index` massimo, che si chiude da
+solo: il layout non deve fargli posto. Se il design vuole disegnarlo, basta spostare il testo in `pwa.js`.
+
 Per M5 in sviluppo: il display servito da Vite (`http://localhost:5173`) si collega se nell'`appsettings.json`
 dell'Agent c'è `"AltreOrigini": ["http://localhost:5173"]` e se il browser è stato abbinato una volta aprendo
 `http://localhost:5080/auth` (il cookie di `localhost` vale per tutte le porte).
