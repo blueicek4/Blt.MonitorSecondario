@@ -157,8 +157,18 @@ la sua cassa e la sua stampante per la copia cartacea. I dispositivi si autorizz
 `/auth`, il codice si scrive nel back office; a chi non è autorizzato `/cliente` risponde solo con un errore. HTTPS
 opzionale, con un certificato dato o generato dall'Agent. `/cliente` si installa come app (PWA) su Android e iOS, a
 schermo intero; il Player Windows sceglie lo schermo (automatico, principale o uno preciso) e funziona anche in una
-finestra normale. Mancano l'editor del tema, i media, il testo scorrevole e il simulatore: hanno senso con il display
-del design (M5).
+finestra normale.
+
+**Aspetto e promozioni (20/10)**: nel back office l'[editor dell'aspetto](../agent/README.md#aspetto-e-promozioni) con
+l'anteprima dal vivo dello schermo del cliente (un conto di prova o una cassa vera, in 16:9, 4:3, verticale e palmare):
+i quattro temi del design di giorno, di notte o automatici, i colori del locale con il controllo del contrasto (sotto
+4,5:1 non salva e propone la correzione più vicina), font, angoli, vetro, sfondo (anche un'immagine o un video),
+animazioni, logo per i fondi scuri e per quelli chiari, scritte, testo scorrevole, QR dopo il pagamento (recensioni,
+fidelity, menu) e "prezzi solo sul conto". Le promozioni: immagini e video nelle slide dell'attesa e schede accanto al
+conto, ognuna per casse, giorni, ore e date. I file in `dati\media`, i font dentro l'exe: niente internet. L'Agent manda
+il messaggio `cfg` del design (con le aggiunte di ALLINEAMENTO §8) e lo rimanda quando cambia qualcosa; `/cliente` ora
+è lo schermo a tema, con le misure del design. Il "simulatore" della fase è l'anteprima con il conto di prova. Mancano
+un aspetto per cassa (locali con due marchi) e il conteggio delle promozioni viste.
 
 ### Fase 5 — Pacchetto e pilota (1 settimana + 2 settimane di pilota)
 - Installer unico (Agent come servizio + Player in avvio automatico + WebView2 Runtime se manca).

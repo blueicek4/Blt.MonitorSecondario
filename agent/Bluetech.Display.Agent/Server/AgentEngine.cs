@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Bluetech.Display.Agent.Aspetto;
 using Bluetech.Display.Agent.Cassa;
 using Bluetech.Display.Agent.Impostazioni;
 using Bluetech.Display.Agent.Stampa;
@@ -27,6 +28,8 @@ public sealed partial class AgentEngine(
     static readonly TimeSpan HeartbeatEvery = TimeSpan.FromSeconds(3);
     static readonly TimeSpan StartRetry = TimeSpan.FromSeconds(10);
     static readonly TimeSpan SaveStatsEvery = TimeSpan.FromMinutes(1);
+    /// <summary>Ogni quanto si guarda se una promozione entra o esce dal suo orario.</summary>
+    static readonly TimeSpan ScheduleEvery = TimeSpan.FromSeconds(30);
     const int RecentLimit = 50;
     const int PrintsLimit = 30;
 
@@ -46,6 +49,9 @@ public sealed partial class AgentEngine(
         public bool Replay;
         public CancellationTokenSource? Starting;
         public readonly Queue<JsonObject> Recent = new();
+        /// <summary>L'aspetto mandato ai display della cassa (tema, slide, promozioni): a chi si collega subito, agli altri quando cambia.</summary>
+        public ConfigMessage? Config;
+        public string? ConfigJson;
 
         /// <summary>Ferma la sorveglianza; la sorgente si chiude fuori dal lucchetto (può aspettare una lettura in corso).</summary>
         public CashFileSource? Retire()
@@ -72,6 +78,7 @@ public sealed partial class AgentEngine(
     readonly long _startedTicks = Stopwatch.GetTimestamp();
     CancellationToken _stop;
     string[] _oldMonitors = [];
+    readonly Dictionary<string, string?> _thanksQr = [];
 
     AgentOptions Options => options.Value;
     string LogFolder => Path.Combine(AppContext.BaseDirectory, Options.CartellaLog);
@@ -125,6 +132,7 @@ public sealed partial class AgentEngine(
         var replay = Replaying ? Task.Run(() => RunReplay(Options.Replay!, stop), stop) : Task.CompletedTask;
         TimeSpan? lastBeat = null;
         var lastSave = TimeSpan.Zero;
+        var lastSchedule = TimeSpan.Zero;
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
         try
         {
@@ -146,6 +154,16 @@ public sealed partial class AgentEngine(
                 {
                     stats.SaveIfDirty();
                     lastSave = elapsed;
+                }
+                if (elapsed - lastSchedule >= ScheduleEvery)
+                {
+                    var current = settings.Current;
+                    lock (_gate)
+                    {
+                        foreach (var point in _points)
+                            RefreshConfig(point, current);
+                    }
+                    lastSchedule = elapsed;
                 }
             }
         }
@@ -231,6 +249,8 @@ public sealed partial class AgentEngine(
         }
         _points.Clear();
         _points.AddRange(ordered);
+        foreach (var point in _points)
+            RefreshConfig(point, now);
 
         if (before != null)
         {
@@ -466,8 +486,62 @@ public sealed partial class AgentEngine(
             if (_points.Find(p => p.Id == cashPoint) is not { } point)
                 return null;
             var client = hub.Add(socket, remote, cashPoint, deviceId, name, canPrint);
+            if (point.Config != null)
+                hub.Send(client, point.Config);   // prima l'aspetto, poi il conto: lo schermo non cambia faccia dopo
             hub.Send(client, new Sync(point.Tracker.Snapshot()));
             return client;
+        }
+    }
+
+    /// <summary>
+    /// Ricompone l'aspetto della cassa (impostazioni cambiate, o una promozione che entra o esce dal suo orario) e lo
+    /// manda ai suoi display solo se è cambiato. Dentro il lucchetto.
+    /// </summary>
+    void RefreshConfig(CashPoint point, AgentSettings now)
+    {
+        JsonObject body;
+        try
+        {
+            body = DisplayConfig.Build(now, point.Id, DateTime.Now, ThanksPng);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            log.LogError(ex, "{Name}: aspetto non composto, i display tengono quello di prima", point.Name);
+            return;
+        }
+        var json = body.ToJsonString();
+        if (json == point.ConfigJson)
+            return;
+        var first = point.ConfigJson == null;
+        point.ConfigJson = json;
+        point.Config = new ConfigMessage(body);
+        if (!first)
+        {
+            hub.Broadcast(point.Id, [point.Config]);
+            log.LogInformation("{Name}: aspetto aggiornato sui display ({Slides} slide, {Promos} promozioni accanto al conto)",
+                point.Name, body["ads"]!.AsArray().Count, body["promos"]!.AsArray().Count);
+        }
+    }
+
+    /// <summary>Il PNG del QR del Grazie, fatto una volta per indirizzo. Null se l'indirizzo non entra in un QR.</summary>
+    public string? ThanksPng(string url)
+    {
+        lock (_thanksQr)
+        {
+            if (_thanksQr.TryGetValue(url, out var png))
+                return png;
+            try
+            {
+                png = DisplayConfig.QrPng(url);
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                log.LogWarning("QR del Grazie non creato per {Url}: {Problem}", url, ex.Message);
+                png = null;
+            }
+            if (_thanksQr.Count > 20)
+                _thanksQr.Clear();
+            return _thanksQr[url] = png;
         }
     }
 

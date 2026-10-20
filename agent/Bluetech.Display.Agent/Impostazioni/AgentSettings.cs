@@ -113,6 +113,7 @@ public sealed partial class AgentSettings
                 device.Cassa = Casse[0].Id;
             }
         }
+        RepairAppearance(notes);
         return notes;
     }
 
@@ -192,6 +193,9 @@ public sealed partial class AgentSettings
             if (device.Stampante != null && Printer(device.Stampante) == null)
                 yield return $"{device.Nome}: la stampante scelta non c'è.";
         }
+
+        foreach (var problem in AppearanceProblems())
+            yield return problem;
     }
 
     static string? Name(string? name, string what) =>
@@ -200,7 +204,7 @@ public sealed partial class AgentSettings
         : null;
 
     [GeneratedRegex("^[a-z0-9-]{1,40}$")]
-    private static partial Regex IdPattern();
+    internal static partial Regex IdPattern();
 
     [GeneratedRegex(@"^[A-Za-z0-9.\-]+(:\d{1,5})?$")]
     private static partial Regex NetworkAddress();

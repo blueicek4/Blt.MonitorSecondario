@@ -106,6 +106,7 @@ public static class BackOfficeApi
         bo.MapGet("/stato", (HttpContext context) => Json(FullStatus(context)));
 
         bo.MapGet("/impostazioni", (SettingsStore settings) => Json(ForUi(settings)));
+        AppearanceApi.Map(bo);
 
         bo.MapPut("/opzioni", async (HttpContext context, SettingsStore settings, IServer server, ILogger<SettingsStore> log) =>
         {
@@ -189,6 +190,11 @@ public static class BackOfficeApi
             if (s.Casse.Count == 1)
                 return "Serve almeno una cassa.";
             s.Casse.Remove(cash);
+            foreach (var promo in s.Aspetto.Promozioni)
+            {
+                if (promo.Casse.Remove(id) && promo.Casse.Count == 0)
+                    promo.Attiva = false;   // era solo per questa cassa: non deve passare a tutte
+            }
             return null;
         })));
 
@@ -549,7 +555,7 @@ public static class BackOfficeApi
         return lines.Count > count ? lines[^count..] : lines;
     }
 
-    static async Task<JsonObject?> Body(HttpContext context)
+    internal static async Task<JsonObject?> Body(HttpContext context)
     {
         if (context.Request.ContentLength > MaxBody)
             return null;
@@ -568,7 +574,7 @@ public static class BackOfficeApi
         }
     }
 
-    static async Task<T?> Read<T>(HttpContext context) where T : class
+    internal static async Task<T?> Read<T>(HttpContext context) where T : class
     {
         var body = await Body(context);
         try
@@ -584,17 +590,17 @@ public static class BackOfficeApi
     static string? Text(JsonObject? body, string name) =>
         body?[name] is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
 
-    static IResult Json(JsonNode node) => Results.Text(node.ToJsonString(AgentSettings.Json), "application/json; charset=utf-8");
+    internal static IResult Json(JsonNode node) => Results.Text(node.ToJsonString(AgentSettings.Json), "application/json; charset=utf-8");
 
-    static IResult Ok(JsonObject? extra = null)
+    internal static IResult Ok(JsonObject? extra = null)
     {
         var json = extra ?? new JsonObject();
         json["ok"] = true;
         return Json(json);
     }
 
-    static IResult Error(string message, int status = StatusCodes.Status400BadRequest) =>
+    internal static IResult Error(string message, int status = StatusCodes.Status400BadRequest) =>
         Results.Text(new JsonObject { ["errore"] = message }.ToJsonString(AgentSettings.Json), "application/json; charset=utf-8", statusCode: status);
 
-    static IResult Result(string? error) => error == null ? Ok() : Error(error);
+    internal static IResult Result(string? error) => error == null ? Ok() : Error(error);
 }

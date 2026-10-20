@@ -25,6 +25,10 @@ public sealed class AgentAppTests
         await using var agent = await TestAgent.Start();
         var device = await agent.Pair("Player cassa");
         using var socket = await agent.Connect(device);
+        var look = await Receive(socket, _ => true);   // prima l'aspetto, poi il conto
+        Assert.Equal("cfg", (string)look["t"]!);
+        Assert.Equal("bluetech", (string)look["preset"]!);
+        Assert.Equal("auto", (string)look["theme"]!["mode"]!);
         var sync = await Receive(socket, _ => true);
         Assert.Equal("sync", (string)sync["t"]!);
         Assert.Equal("idle", (string)sync["state"]!["phase"]!);
@@ -675,7 +679,7 @@ public sealed class AgentAppTests
         page.Options.Cookies = device.Cookies;
         page.Options.SetRequestHeader("Origin", $"http://{agent.Base.Authority}");
         await page.ConnectAsync(new Uri($"ws://{agent.Base.Authority}/ws"), CancellationToken.None);
-        Assert.Equal("sync", (string)(await Receive(page, _ => true))["t"]!);
+        Assert.Equal("cfg", (string)(await Receive(page, _ => true))["t"]!);
 
         using var post = new HttpRequestMessage(HttpMethod.Post, "/api/abbinamento");
         post.Headers.Add("Origin", "https://evil.example");
@@ -688,6 +692,7 @@ public sealed class AgentAppTests
         await using var agent = await TestAgent.Start();
         Assert.Contains("Diagnostica Agent", await agent.Admin.GetStringAsync("/diagnostica?cassa=cassa1"));
         using var preview = await agent.Connect(null, "?cassa=cassa1", agent.AdminCookies);
+        Assert.Equal("cfg", (string)(await Receive(preview, _ => true))["t"]!);
         Assert.Equal("sync", (string)(await Receive(preview, _ => true))["t"]!);
         await Write(agent.CashFile(), Coffee);
         Assert.Equal("Caffè", (string)(await Receive(preview, Type("sale.line")))["line"]!["desc"]!);

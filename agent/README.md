@@ -54,14 +54,17 @@ Il **Player** del monitor cliente apre `http://localhost:5080/auth` (sullo stess
 
 | Indirizzo | Per chi | Cosa |
 |---|---|---|
-| `/cliente` | i dispositivi autorizzati | Lo schermo del cliente per la cassa del dispositivo: il conto, il QR di pagamento, lo scontrino digitale con il pulsante della copia. Si installa come app (sotto). A un dispositivo non autorizzato solo "Dispositivo non autorizzato", senza indicazioni su come entrare. Quando nella cartella `display` ci sarà il display del design (M5), `/cliente` servirà quello |
+| `/cliente` | i dispositivi autorizzati | Lo schermo del cliente per la cassa del dispositivo, con l'aspetto scelto nel back office: le slide del locale nell'attesa, il conto con la promozione accanto, il QR di pagamento, il Grazie con il QR, lo scontrino digitale con il pulsante della copia. Si installa come app (sotto). A un dispositivo non autorizzato solo "Dispositivo non autorizzato", senza indicazioni su come entrare. Quando nella cartella `display` ci sarà il display del design (M5), `/cliente` servirà quello |
 | `/auth` | uno schermo nuovo | Il codice di abbinamento: vale 10 minuti, poi ne compare un altro. Scritto il codice nel back office, lo schermo va su `/cliente`; su un dispositivo già autorizzato `/auth` porta subito lì |
-| `/backoffice` | chi ha la password | Stato di casse e display, casse, dispositivi, stampanti (con la stampa di prova), opzioni, statistiche, log, riavvio |
+| `/backoffice` | chi ha la password | Stato di casse e display, casse, dispositivi, stampanti (con la stampa di prova), aspetto e promozioni (con l'anteprima), opzioni, statistiche, log, riavvio |
 
 Poi `/ws` (il WebSocket del protocollo: solo i dispositivi autorizzati, ognuno con la sua cassa, e l'anteprima del back
-office), `/diagnostica?cassa=…` (una cassa dal vivo con gli ultimi messaggi, dal back office) e `/api/stato` (lo stato
+office), `/media/…` (le immagini e i video caricati nel back office: solo ai dispositivi autorizzati e al back office),
+`/diagnostica?cassa=…` (una cassa dal vivo con gli ultimi messaggi, dal back office), `/cliente?anteprima=…` (lo
+schermo del cliente per il back office: `demo` è un conto finto, `cassa1` una cassa dal vivo) e `/api/stato` (lo stato
 completo in JSON, con la password). `/` e `/display` rimandano a `/cliente`. Pubblici e senza dati: il manifest
-(`/manifest.webmanifest`), il service worker (`/sw.js`) e i file in `/pwa/` (icone, script dell'invito, pagina di attesa).
+(`/manifest.webmanifest`), il service worker (`/sw.js`), i file in `/pwa/` (icone, script dell'invito, pagina di
+attesa), i font del monitor in `/fonts/` e le palette dei temi in `/aspetto/tema.js`.
 
 ## Il monitor come app su telefoni e tablet (PWA)
 
@@ -116,6 +119,7 @@ avvio:
 | `Casse` | `Id`, `Nome`, `FileCassa`: un `.txt`, fuori dalle cartelle dell'Agent. L'Agent lo cancella dopo averlo letto, quindi il back office rifiuta anche un file che c'è già e non sembra quello del monitor, e l'Agent non tocca mai un file di oltre 256 KB |
 | `Stampanti` | `Id`, `Nome`, `Collegamento` (`rete`, `windows`, `prova`), `Indirizzo`, `LarghezzaMm`, `Colonne`, `TabellaCaratteri`, `QrPuntiPerModulo`, `Taglio`, `TestoRitiro`, `TimeoutSecondi` |
 | `Dispositivi` | `Id`, `Nome`, `Cassa`, `Stampante`, `AutorizzatoIl` e l'hash del token del dispositivo: il token vero lo ha solo il dispositivo, in un cookie |
+| `Aspetto` | Come appare lo schermo del cliente: `NomeLocale`, `Sottotitolo`, `Logo`, `LogoChiaro`, `Tema`, `Modo`, `GiornoDalle`/`GiornoAlle`, `Colori`, `FontTitoli`, `FontTesto`, `Raggio`, `Vetro`, `Footer`, `Fondo`/`FondoMedia`, `Animazioni`, `QrPagamento`, `RigheCompatte`, `PrezziSoloSulConto`, le scritte (`Benvenuto`, `Scorrevole`, `TitoloConto`, `Grazie`), `QrGrazie`, `Promozioni` e `Media` (l'elenco dei file in `dati\media`): vedi sotto |
 
 Ogni modifica si salva subito e la versione prima resta in `impostazioni.json.bak`; se `impostazioni.json` sparisce,
 all'avvio torna dalla copia. Il file si può copiare come copia di
@@ -123,8 +127,9 @@ sicurezza. Se lo modifichi a mano fallo ad Agent fermo: un file rotto viene mess
 riparte dalla copia `.bak`; un errore dentro un file valido (una stampante senza indirizzo) si vede nel back office e non
 impedisce di cambiare il resto.
 
-Accanto: `statistiche.json` (i conteggi giorno per giorno, un anno, e l'ultimo accesso dei dispositivi) e `https\` (i
-certificati generati dall'Agent).
+Accanto: `statistiche.json` (i conteggi giorno per giorno, un anno, e l'ultimo accesso dei dispositivi), `https\` (i
+certificati generati dall'Agent) e `media\` (immagini e video caricati dal back office: per una copia di sicurezza
+completa si copia tutta la cartella `dati`).
 
 `appsettings.json` (sezione `Agent`) dice solo dove stanno le cose: `CartellaDati` (`dati`), `CartellaLog` e `GiorniLog`
 (`log`, 14), `CartellaDisplay` (`display`) e `AltreOrigini`, le pagine di altri indirizzi che possono collegarsi a
@@ -135,8 +140,9 @@ quell'avvio), `--dati`, `--replay`, `--velocita`, `--ripeti`.
 
 - **Stato**: per ogni cassa la fase (in attesa, vendita, QR di pagamento, scontrino digitale), il totale, l'ultimo file,
   i file letti, i display collegati e i problemi; gli indirizzi da aprire sui dispositivi; i display collegati; le
-  ultime copie cartacee. Si aggiorna da solo. "Anteprima dal vivo" apre una cassa come la vede il cliente, con i
-  messaggi.
+  ultime copie cartacee. Si aggiorna da solo. "Schermo del cliente" apre una cassa come la vede il cliente,
+  "Diagnostica" la stessa cassa con i messaggi.
+- **Aspetto** e **Promozioni**: vedi sotto.
 - **Dispositivi**: l'autorizzazione con il codice (con chi sta mostrando un codice in quel momento, ma non il codice),
   nome, cassa e stampante di ogni dispositivo, se è collegato, ultimo accesso e indirizzo, copie stampate; modifica e
   revoca.
@@ -150,6 +156,51 @@ quell'avvio), `--dati`, `--replay`, `--velocita`, `--ripeti`.
   sbagliate di fila fermano quel PC per un minuto.
 - Il cookie di un dispositivo dura 400 giorni (il massimo di Chrome) e si rinnova a ogni visita e ogni 6 ore a pagina
   aperta. Su HTTPS ha un altro nome: passare da HTTPS a HTTP, o il contrario, chiede solo un nuovo abbinamento.
+
+## Aspetto e promozioni
+
+Dal back office si sceglie come appare lo schermo del cliente; i display collegati cambiano subito, senza ricaricare.
+L'Agent manda a ogni display il messaggio `cfg` del protocollo del design (`theme`, `ads`, `ticker`) con le aggiunte di
+`design/ALLINEAMENTO.md` §8, già scelto per la sua cassa, il giorno e l'ora: il display non decide niente.
+
+- **Il locale**: nome, sottotitolo e logo. Due loghi: quello per i fondi scuri (anche sopra le slide) e, facoltativo,
+  quello per i fondi chiari, perché un logo chiaro su un tema di giorno non si vede. Se il logo ha già il nome, il nome
+  si lascia vuoto.
+- **Tema**: i quattro del design (Bluetech, Trattoria, Fine dining, Cocktail bar), ognuno di notte e di giorno.
+  "Automatico" passa dal giorno alla notte con le ore scelte (7-19 se non si cambiano).
+- **Colori**: con giorno o notte fissi si possono usare i colori del locale al posto di quelli del tema (con
+  l'automatico valgono quelli del tema, come nel design). Il back office misura il contrasto delle coppie che il cliente
+  deve leggere (testo sul fondo e sulla card, testo sul primario, cifra del totale): sotto 4,5:1 non salva e propone la
+  correzione più vicina, la stessa tinta più chiara o più scura. Lo stesso controllo lo fa lo schermo: un tema
+  illeggibile arrivato lo stesso (un file scritto a mano) diventa Bluetech di notte.
+- **Caratteri e forma**: gli otto font del design (dentro l'exe, serviti a `/fonts`: niente internet), gli angoli, il
+  vetro della card, la firma "powered by Bluetech" chiara o scura (c'è sempre).
+- **Sfondo e animazioni**: tinta, sfumato, luci che si muovono piano, un'immagine o un video del locale (velati con il
+  colore del fondo); animazioni piene, leggere (consigliate) o ridotte; il QR del pagamento accanto al conto o a tutto
+  schermo; righe più grandi sui 4:3; importi e totale solo quando la cassa mostra il conto (preconto, scontrino), come
+  `ShowPricesDuringOrder=false` del vecchio monitor.
+- **Scritte**: il benvenuto (nell'attesa senza slide), il titolo del conto, il saluto dopo il pagamento, il testo che
+  scorre in basso nell'attesa.
+- **QR dopo il pagamento**: un indirizzo (recensioni, fidelity, menu digitale) di cui l'Agent fa il QR, con titolo e
+  didascalia, nel Grazie accanto al saluto. Il Grazie resta finché arriva il conto dopo, al massimo i secondi scelti
+  (30); senza QR 8 secondi. Se la cassa manda il QR dello scontrino digitale, si vede quello.
+- **Promozioni**: immagini e video nelle slide dell'attesa, nell'ordine della lista (un'immagine per i secondi scelti, un
+  video per la sua durata), e schede accanto al conto (titolo, testo e un'immagine; una per conto, a rotazione; non sui
+  4:3 né sul palmare, dove lo spazio è del conto). Ognuna può valere solo per alcune casse, giorni della settimana, ore
+  (anche a cavallo della mezzanotte: venerdì 22:00-02:00 vale fino alle 2 di sabato) e date; l'Agent la manda e la toglie
+  da sé quando entra o esce dall'orario. Una cassa eliminata spegne le promozioni che erano solo sue. Le promozioni si
+  salvano subito; l'aspetto con il suo pulsante.
+- **Immagini e video**: PNG, JPEG, WebP, GIF fino a 15 MB e MP4 (H.264) o WebM fino a 200 MB, 3 GB in tutto. Il tipo
+  si riconosce dal contenuto, non dal nome (un SVG va esportato in PNG). Stanno in `dati\media` con l'impronta del
+  contenuto come nome: lo stesso file caricato due volte è uno solo e i display lo tengono in cache. Un file usato non
+  si elimina (il back office dice dove è usato).
+- **Anteprima**: accanto alle due schede lo schermo del cliente con la bozza, prima di salvare: un conto di prova
+  (attesa, conto, pagamento, Grazie, o il giro completo) o una cassa dal vivo, in 16:9, 4:3, verticale e palmare. Nella
+  prova ci sono tutte le promozioni attive, anche fuori dal loro orario.
+
+Lo schermo del cliente sceglie la disposizione dal rapporto d'aspetto (SPEC §9 del design): 16:9 con la colonna
+laterale, 4:3 senza, verticale con la promozione sopra il conto, palmare con il conto a tutto schermo. La tela del
+formato si adatta alla risoluzione vera dello schermo.
 
 ## HTTPS (opzionale)
 
@@ -240,11 +291,12 @@ Le regole vengono dalle [registrazioni](../samples/registrazioni) (30 e 48 colon
 ## Cosa manca
 
 - Il display del design non ha ancora il collegamento WebSocket (M5): oggi i dispositivi vedono `/cliente`, la pagina
-  provvisoria dell'Agent.
+  dell'Agent, con le misure e i temi del design ma non con tutte le sue animazioni.
 - Scontrino digitale: l'abbinamento del QR al conto e la copia vanno controllati con le prime transazioni vere; il
   controllo della carta prima di stampare non c'è ancora.
-- Le impostazioni del display (tema, slide, QR di ringraziamento) non sono ancora nel back office: arriveranno con il
-  display (Fase 4).
+- Aspetto e promozioni sono per tutto l'Agent: un locale con due marchi (bar e ristorante con nomi diversi) avrebbe
+  bisogno di un aspetto per cassa. Le promozioni invece si scelgono già per cassa.
+- Nessun conteggio delle slide e delle promozioni viste: lo schermo non lo dice all'Agent.
 - La PWA è provata in Chrome (installabile, service worker, pagina di attesa) e con l'aspetto di un iPhone e di un
   Android: va provata su dispositivi veri, soprattutto iPhone e iPad.
 - Annullo, reso e pagamento Satispay vero non sono nelle registrazioni: se Passepartout scrive righe che l'Agent non

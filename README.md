@@ -19,5 +19,5 @@ personalizzabile con il brand del locale e sempre firmata "powered by Bluetech".
 |---|---|
 | [`player/`](player/README.md) | **Bluetech Display Player** — WebView2 a schermo intero sul monitor secondario, avvio automatico, configurazione protetta da codice. Pronto per il collaudo |
 | [`tools/`](tools/README.md) | **Bluetech Recorder** — registra ogni versione di `Scontrino.txt` per la Fase 0. Pronto |
-| [`agent/`](agent/README.md) | **Bluetech Display Agent** — servizio Windows che legge il file di Passepartout di una o più casse, lo toglie appena letto e manda ai display solo quello che cambia, via WebSocket. Back office con password (impostazioni in JSON, statistiche, log), dispositivi autorizzati con un codice, HTTPS opzionale, replay delle registrazioni. Pronto per la prova in cassa |
-| `display/` | Interfaccia web del monitor e pannello di amministrazione — da fare (Fasi 3–4) |
+| [`agent/`](agent/README.md) | **Bluetech Display Agent** — servizio Windows che legge il file di Passepartout di una o più casse, lo toglie appena letto e manda ai display solo quello che cambia, via WebSocket. Back office con password (impostazioni in JSON, statistiche, log), aspetto e promozioni con l'anteprima, dispositivi autorizzati con un codice, HTTPS opzionale, replay delle registrazioni. Lo schermo del cliente a tema è in `/cliente`. Pronto per la prova in cassa |
+| `display/` | Interfaccia web del monitor (il display del design) — da fare (Fase 3, M2–M5). Il pannello del locale è nel back office dell'Agent |

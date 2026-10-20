@@ -55,12 +55,6 @@
   #paperbtn:active { transform: scale(.98); }
   #paperstatus { font-size: 20px; font-weight: 600; margin: 16px 0 0; min-height: 1.4em; }
 
-  /* /cliente: solo quello che vede il cliente, per un palmare o uno schermo touch. */
-  body.customer header, body.customer #logbox, body.customer #billbox h2 { display: none; }
-  body.customer main { grid-template-columns: 1fr; max-width: 1100px; margin: 0 auto; }
-  body.customer #welcome { display: block; }
-  #welcome { display: none; text-align: center; color: var(--muted); font-size: 22px; padding: 18vh 16px; }
-  body { -webkit-user-select: none; user-select: none; }
 </style>
 </head>
 <body>
@@ -71,10 +65,9 @@
   <span class="fact">Cassa sul <b id="bill">-</b></span>
   <span class="fact">Ultimo battito <b id="beat">-</b></span>
   <span class="fact">Cassa <b id="cashname">-</b></span>
-  <span class="fact"><a href="/backoffice" style="color:var(--muted)">back office</a> · <a href="/api/stato" style="color:var(--muted)">stato in JSON</a></span>
+  <span class="fact"><a href="/backoffice" style="color:var(--muted)">back office</a> · <a id="customerlink" href="/cliente?anteprima=cassa1" style="color:var(--muted)">come lo vede il cliente</a> · <a href="/api/stato" style="color:var(--muted)">stato in JSON</a></span>
 </header>
 <main>
-  <p id="welcome">Benvenuti</p>
   <section id="billbox" aria-label="Conto">
     <h2>Il conto, come lo vedrà il cliente</h2>
     <ul id="lines"></ul>
@@ -100,16 +93,15 @@
 </main>
 <script>
 "use strict";
-const customer = location.pathname === "/cliente" || new URLSearchParams(location.search).get("vista") === "cliente";
-if (customer) { document.body.classList.add("customer"); document.title = "Scontrino"; }
-else {
-  // Anteprima dal back office: ?cassa=… sceglie la cassa (senza, la prima).
-  fetch("/api/bo/impostazioni", { cache: "no-store" }).then((r) => r.json()).then((s) => {
-    const id = new URLSearchParams(location.search).get("cassa");
-    const cash = (s.Casse || []).find((c) => c.Id === id) || (s.Casse || [])[0];
-    if (cash) document.getElementById("cashname").textContent = cash.Nome;
-  }).catch(() => {});
-}
+// La diagnostica del back office: ?cassa=… sceglie la cassa (senza, la prima). Lo schermo del cliente è /cliente.
+fetch("/api/bo/impostazioni", { cache: "no-store" }).then((r) => r.json()).then((s) => {
+  const id = new URLSearchParams(location.search).get("cassa");
+  const cash = (s.Casse || []).find((c) => c.Id === id) || (s.Casse || [])[0];
+  if (cash) {
+    document.getElementById("cashname").textContent = cash.Nome;
+    document.getElementById("customerlink").href = "/cliente?anteprima=" + encodeURIComponent(cash.Id);
+  }
+}).catch(() => {});
 const euro = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const money = (cents) => (cents < 0 ? "−" : "") + "€ " + euro.format(Math.abs(cents) / 100);
 const plain = (cents) => (cents < 0 ? "-" : "") + euro.format(Math.abs(cents) / 100);
@@ -318,19 +310,14 @@ function render() {
     if (typeof shown.png === "string" && shown.png.startsWith("data:image/")) document.getElementById("qrimg").src = shown.png;
   }
   renderDigital();
-  if (customer) {
-    const idle = state.phase === "idle" && !state.receipt;
-    document.getElementById("welcome").style.display = idle ? "block" : "none";
-    if (!state.receipt) document.getElementById("billbox").style.display = idle ? "none" : "";
-  }
 }
 
 function log(m) {
-  if (customer) return;
   const shown = JSON.parse(JSON.stringify(m));
   if (shown.png) shown.png = "(immagine)";
   if (shown.state && shown.state.payment) shown.state.payment.png = "(immagine)";
   if (shown.state && shown.state.receipt) shown.state.receipt.png = "(immagine)";
+  if (shown.thanks && shown.thanks.png) shown.thanks.png = "(immagine)";
   const li = document.createElement("li");
   const kind = document.createElement("b");
   kind.textContent = new Date().toLocaleTimeString("it-IT") + "  " + m.t;
@@ -363,11 +350,11 @@ function connect() {
   socket.onclose = async () => {
     document.getElementById("link").textContent = "riconnessione…";
     document.getElementById("dot").classList.remove("on");
-    // Dispositivo revocato o sessione del back office scaduta: la pagina ricaricata dice cosa succede.
+    // Sessione del back office scaduta: la pagina ricaricata manda all'accesso.
     try {
-      const check = await fetch(customer ? "/api/abbinamento" : "/api/bo/sessione", { cache: "no-store" });
+      const check = await fetch("/api/bo/sessione", { cache: "no-store" });
       const answer = await check.json();
-      if (customer ? answer.stato !== "autorizzato" : !answer.autenticato) { location.reload(); return; }
+      if (!answer.autenticato) { location.reload(); return; }
     } catch { /* Agent fermo: si riprova */ }
     setTimeout(connect, delay);
     delay = Math.min(delay * 2, 8000);

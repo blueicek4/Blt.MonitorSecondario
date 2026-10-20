@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using Bluetech.Display.Agent.Accesso;
+using Bluetech.Display.Agent.Aspetto;
 using Bluetech.Display.Agent.Impostazioni;
 using Bluetech.Display.Agent.Logging;
 using Bluetech.Display.Agent.Server;
@@ -150,6 +151,7 @@ public static class AgentApp
         builder.Services.AddSingleton<AdminAccess>();
         builder.Services.AddSingleton<DeviceAccess>();
         builder.Services.AddSingleton<DisplayHub>();
+        builder.Services.AddSingleton<MediaLibrary>();
         builder.Services.AddSingleton<AgentEngine>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<AgentEngine>());
 
@@ -159,6 +161,8 @@ public static class AgentApp
             startup.LogWarning("{Note}", note);
         if (app.Services.GetRequiredService<Statistics>().LoadProblem is { } statsProblem)
             startup.LogWarning("{Problem}", statsProblem);
+        foreach (var note in app.Services.GetRequiredService<MediaLibrary>().Tidy())
+            startup.LogWarning("Immagini e video: {Note}", note);
         if (httpsProblem != null)
             startup.LogError("{Problem}", httpsProblem);
         foreach (var problem in startupProblems)
@@ -235,16 +239,69 @@ public static class AgentApp
         app.MapGet("/display", () => Results.Redirect("/cliente"));   // l'indirizzo predefinito del Player di prima
         app.MapGet("/display/{**rest}", () => Results.Redirect("/cliente"));
 
-        app.MapGet("/cliente", (HttpContext context, DeviceAccess devices, Statistics stats) =>
+        app.MapGet("/cliente", (HttpContext context, DeviceAccess devices, AdminAccess admin, Statistics stats) =>
         {
-            if (devices.Find(context) is not { } device)
-                return Denied();
-            devices.Refresh(context);
-            stats.Seen(device.Id, Remote(context), connected: false);
+            // ?anteprima=cassa1 (dal vivo) o ?anteprima=demo (un conto finto): l'anteprima del back office, solo con la sua
+            // sessione. Sempre la pagina dell'Agent, che riceve anche la bozza dell'aspetto dal back office.
+            var preview = context.Request.Query.ContainsKey("anteprima");
+            var device = devices.Find(context);
+            if (preview && !admin.IsAuthenticated(context))
+                return device != null ? Results.Redirect("/cliente") : Denied();
+            if (!preview)
+            {
+                if (device == null)
+                    return Denied();
+                devices.Refresh(context);
+                stats.Seen(device.Id, Remote(context), connected: false);
+            }
             NoCache(context);
             var display = Path.Combine(runtime.DisplayFolder, "index.html");
-            var page = File.Exists(display) ? File.ReadAllText(display) : Page("diagnostica.html");   // il display del design, quando c'è (M5)
-            return Results.Content(WithPwa(page), "text/html; charset=utf-8");
+            var page = !preview && File.Exists(display) ? File.ReadAllText(display) : Page("cliente.html");   // il display del design, quando c'è (M5)
+            return Results.Content(preview ? page : WithPwa(page), "text/html; charset=utf-8");
+        });
+
+        // L'aspetto: le palette del design (pubbliche), i font del monitor, le immagini e i video caricati dal back office
+        // (solo per chi può vedere lo schermo del cliente).
+        app.MapGet("/aspetto/tema.js", (HttpContext context) =>
+        {
+            NoCache(context);
+            return Results.Text(ThemeScript.Value, "text/javascript; charset=utf-8");
+        });
+        app.MapGet("/fonts/{name}", (string name, HttpContext context) =>
+        {
+            var type = Path.GetExtension(name) switch
+            {
+                ".woff2" => "font/woff2",
+                ".css" => "text/css; charset=utf-8",
+                _ => null,
+            };
+            if (type == null || name.Contains("..", StringComparison.Ordinal))
+                return Results.NotFound();
+            var own = Path.Combine(runtime.DisplayFolder, "fonts", name);   // quelli del display del design, se c'è
+            if (File.Exists(own))
+                return Results.File(own, type);
+            if (Resource("fonts/" + name) is not { } bytes)
+                return Results.NotFound();
+            context.Response.Headers.CacheControl = type == "font/woff2" ? "public, max-age=31536000, immutable" : "no-cache";
+            return Results.Bytes(bytes, type);
+        });
+        app.MapGet("/media/{id}", (string id, HttpContext context, DeviceAccess devices, AdminAccess admin, MediaLibrary media) =>
+        {
+            if ((devices.Find(context) == null && !admin.IsAuthenticated(context)) || media.PathOf(id) is not { } path)
+                return Results.NotFound();
+            var type = Path.GetExtension(id) switch
+            {
+                ".png" => "image/png",
+                ".jpg" => "image/jpeg",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                ".mp4" => "video/mp4",
+                _ => "video/webm",
+            };
+            // Il nome è l'impronta del contenuto: lo stesso nome è sempre lo stesso file.
+            context.Response.Headers.CacheControl = "private, max-age=31536000, immutable";
+            context.Response.Headers.XContentTypeOptions = "nosniff";
+            return Results.File(path, type, enableRangeProcessing: true);
         });
 
         // La PWA: pubblica, senza dati (il browser chiede manifest e icone senza cookie).
@@ -375,6 +432,15 @@ public static class AgentApp
             app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(displayFolder), OnPrepareResponse = CacheHeaders });
         }
     }
+
+    /// <summary>tema.js con le palette e i font dell'Agent: un'unica fonte per il C# e per le pagine.</summary>
+    static readonly Lazy<string> ThemeScript = new(() =>
+    {
+        var camel = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        return Page("tema.js")
+            .Replace("/*PALETTES*/{}", JsonSerializer.Serialize(Palettes.All, camel))
+            .Replace("/*FONTS*/{}", JsonSerializer.Serialize(Palettes.Fonts));
+    });
 
     static IResult Denied() => Results.Content(Page("negato.html"), "text/html; charset=utf-8", statusCode: StatusCodes.Status403Forbidden);
 
