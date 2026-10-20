@@ -18,7 +18,9 @@ static class Program
     static int _finished;
 
     /// <summary>
-    /// BluetechRecorder.exe [file o cartella] [--out cartella] [--consuma]
+    /// BluetechRecorder.exe [file o cartella] [--out cartella] [--senza-consumo]
+    /// Il file viene tolto subito dopo ogni lettura, come farà il nuovo monitor (prova A/B/A del 20/10):
+    /// --senza-consumo (o /consuma durante la registrazione) lo lascia dov'è, solo per le prove di diagnosi.
     /// Senza argomenti registra C:\MonitorSecondario\Scontrino.txt.
     /// Si può anche trascinare il file Scontrino.txt sull'eseguibile.
     /// </summary>
@@ -30,13 +32,15 @@ static class Program
         Console.Title = "Bluetech Recorder";
 
         string target = null, output = null;
-        var consume = false;
+        var consume = true;
         for (var i = 0; i < args.Length; i++)
         {
             if (string.Equals(args[i], "--out", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 output = CleanPath(args[++i]);
+            else if (string.Equals(args[i], "--senza-consumo", StringComparison.OrdinalIgnoreCase))
+                consume = false;
             else if (string.Equals(args[i], "--consuma", StringComparison.OrdinalIgnoreCase))
-                consume = true;
+                consume = true;   // il default; accettato per chi lo usava già
             else
                 target ??= CleanPath(args[i]);
         }
@@ -107,11 +111,14 @@ static class Program
         log.Line("");
         log.Line("Scrivi una nota e premi Invio per segnare cosa stai facendo in cassa", ConsoleColor.Yellow);
         log.Line("(es. \"storno seconda riga\", \"pago con Satispay\"). Per terminare scrivi /fine oppure Ctrl+C.", ConsoleColor.Yellow);
-        log.Line($"{ConsumeCommand} attiva o disattiva la modalità consumo (toglie il file dopo ogni lettura).", ConsoleColor.Yellow);
         log.Line("Se le operazioni in cassa non portano versioni nuove, alla seconda nota ti dico cosa provare.", ConsoleColor.Yellow);
         log.Line("");
         if (consume)
             _session.SetConsumeMode(true);
+        log.Line(_session.ConsumeMode
+            ? $"{ConsumeCommand} smette di togliere il file (serve solo per le prove di diagnosi) e lo riattiva."
+            : $"Il file NON viene tolto dopo la lettura: {ConsumeCommand} lo fa togliere, come farà il nuovo monitor.", ConsoleColor.Yellow);
+        log.Line("");
 
         Console.CancelKeyPress += (_, e) =>
         {
@@ -195,7 +202,7 @@ static class Program
             }
             else if (RecordingSession.SameFolder(folder, session.Folder))
             {
-                log.Line($"Vecchio monitor aperto sullo stesso file ({exe}): per la prova con /consuma va chiuso.", ConsoleColor.DarkYellow);
+                log.Line($"Vecchio monitor aperto sullo stesso file ({exe}): chiudilo, o il file non verrà tolto dopo la lettura.", ConsoleColor.DarkYellow);
             }
             else
             {
