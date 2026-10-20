@@ -122,6 +122,12 @@ riceve subito lo stato corrente.
 - Importazione del vecchio `MonitorCliente.exe.config` (colori `R;G;B` e nomi italiani, cartella immagini, testo scorrevole) → tema iniziale: migrazione indolore dei clienti esistenti.
 - Modalità **replay**: riproduce una sequenza registrata → test e demo in showroom senza cassa.
 
+**Stato (20/10)**: fatto in [`agent/`](../agent/README.md), tranne l'importazione del vecchio `.config`. Al posto di
+SignalR un WebSocket nativo con i messaggi di `protocol.ts` (decisione in `design/ALLINEAMENTO.md`). Il confronto tra
+versioni è stato riscritto per il protocollo: righe con id stabili, quantità cambiate come aggiornamento della stessa
+riga, righe unite e sconti spostati come stato completo (`sync`) invece di storni finti. Test su ogni versione delle
+registrazioni del 20/10.
+
 ### Fase 2 — Design (1 settimana, in parallelo alla Fase 1)
 - Prompt pronto in [03-prompt-claude-design.md](03-prompt-claude-design.md).
 - Revisione con 2–3 ristoratori veri prima di sviluppare.

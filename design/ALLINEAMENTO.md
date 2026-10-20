@@ -31,10 +31,10 @@ confrontando ogni versione del file con quella precedente.
 | Prima versione `SNF` di un conto | `sale.open` + una `sale.line` per riga | |
 | Riga nuova (dal diff) | `sale.line` `item` con **id nuovo** | Gli id li assegna l'Agent e restano stabili tra versioni grazie al diff (stessa riga = stesso id) |
 | Riga sparita (dal diff) | `sale.line` `void` con `voidsId` | Il design la tiene barrata 6 s. Lo storno, il 20/10, **toglie la riga** (nessuna riga negativa; da confermare con chi era in cassa) |
-| Righe uguali che diventano una (in "dettagli conto") | **Non è uno storno**: aggiornamento della quantità della riga che resta | `Cestino 3,00` due volte → `2 X 3,00 Euro` + `Cestino 6,00`. Il diff vede due righe tolte e due aggiunte: l'Agent deve riconoscere l'unione (stessa descrizione, somma degli importi), altrimenti il cliente vedrebbe due righe barrate |
+| Righe uguali che diventano una (in "dettagli conto") | **Non è uno storno**: `sync` con le righe nuove | `Cestino 3,00` due volte → `2 X 3,00 Euro` + `Cestino 6,00`. Senza riconoscere l'unione il cliente vedrebbe due righe barrate. Lo stesso per gli sconti spostati sotto le righe e per i cambi d'ordine (§8) |
 | `SCONTO  -5,00` tra `SUBTOT.` e `TOT. DA PAGARE` | `discount` sul conto | Sullo scontrino finale lo stesso sconto arriva ripartito sotto ogni riga (`SCONTO -1,25` allineato a destra) e il subtotale è già netto: da decidere se mostrare il ripartito o tenere lo sconto unico, mai tutti e due |
 | Intestazione (righe centrate, `-----`, `EURO`) | nessuno | Compare solo in "dettagli conto" e sullo scontrino. La ragione sociale era `Da inserire`, cioè non compilata |
-| `PAGATO …:` e `Resto:` | fine vendita → stato **Grazie** | Metodo e resto non hanno un messaggio nel protocollo: proposta `sale.paid { method, amount, change }` |
+| `PAGATO …:` e `Resto:` | `sale.close` con `paid: { method, amount, change }` → stato **Grazie** | Estensione (§8). `method` è il testo della cassa (`CONTANTI`, `C.CREDITO`) |
 | Stesso contenuto rimandato | nessuno | Si scarta per hash |
 | File vuoto appena creato | nessuno | Passepartout lo crea vuoto e lo riempie subito dopo: si aspetta il contenuto |
 | `TOT. DA PAGARE  35,50` | `sale.total` `3550` | **Centesimi**, parsing della stringa senza `parseFloat` (gestire anche `1.234,50`). Il totale viene dalla cassa, come vuole il design |
@@ -46,7 +46,7 @@ confrontando ogni versione del file con quella precedente.
 | Fattura | come uno scontrino | Al monitor non arrivano i dati del cliente |
 | Promozione | `discount` sotto le righe | Compare solo sullo scontrino finale, ripartita riga per riga |
 | Qualunque file dopo un QR | `pay.clear` | È il comportamento del vecchio monitor |
-| Conto nuovo | `sale.close` + `sale.open` | Criterio da definire coi dati (nessuna riga in comune? totale ripartito da zero?) |
+| Conto nuovo | `sale.close` + `sale.open` | Dopo un `PAGATO`. Senza `PAGATO`: un conto senza nessuna riga in comune con quello a video, oppure 5 minuti senza file. Un conto nuovo che parte con un articolo uguale a quello di un conto non pagato si vede come storni del vecchio: da rivedere con altre registrazioni |
 | Agent riavviato o browser ricaricato | `sync` con lo stato completo | Il design lo prevede già per la riconnessione |
 
 ## 3. Cosa il design cambia nel nostro piano
@@ -116,3 +116,24 @@ confrontando ogni versione del file con quella precedente.
 Va fatta in sola opacità (due livelli, mai una transizione sui colori), sotto il footer e mai durante il pagamento:
 il QR non si copre, quindi il cambio aspetta la fine del pagamento.
 
+## 8. Aggiunte al protocollo fatte nell'Agent (da implementare in M5)
+
+L'[Agent](../agent/README.md) manda i messaggi di `protocol.ts` con quattro aggiunte. In `display/src/types/protocol.ts`
+vanno aggiunte con il trasporto WebSocket (M5).
+
+| Messaggio | Perché | Cosa fa il display |
+|---|---|---|
+| `sale.line` con un `id` già ricevuto | La quantità cambia mentre si batte (`2 pz X 12,00 Euro`) o in "dettagli conto" | Sostituisce la riga con quell'id, senza animazione d'ingresso: cambia la cifra |
+| `{ t: 'hb' }` ogni 3 s | Con la cassa a file il silenzio è normale: senza battito dopo 8 s comparirebbe "connessione assente" | Conta come messaggio per `link`, nient'altro |
+| `sale.close` con `paid?: { method: string; amount: Cents; change?: Cents }` | La cassa scrive metodo e resto | Grazie mostra l'importo pagato, il metodo (`C.CREDITO` → "Carta") e il resto solo se > 0 |
+| `sync` durante la vendita, non solo alla riconnessione | Righe unite, sconti spostati sotto le righe, ordine cambiato: con i soli messaggi incrementali il cliente vedrebbe storni finti | Sostituisce le righe confrontando gli id: anima solo quelle davvero nuove, nessuna uscita di massa |
+
+`pay.qr.amount` è l'ultimo totale ricevuto: il file del QR non porta l'importo.
+
+**Il vecchio monitor sullo scontrino pagato** (foto del 20/10, [`samples/scontrino-bar-pagato-carta.txt`](../samples/scontrino-bar-pagato-carta.txt)):
+mostra ragione sociale, indirizzo e partita IVA, `EURO`, le righe con `SCONTO`, `PAGATO C.CREDITO:` e `Resto:` nel
+corpo, `TOTALE` in basso; nasconde `SNF`, i trattini, `SUBTOT.` e `TOT. DA PAGARE` (che diventa il totale in basso).
+Il conto resta a video fino al file successivo. Nel nostro display l'intestazione la fa il tema (logo del locale, non
+la partita IVA) e metodo e resto passano allo stato Grazie. Se la cassa manda direttamente lo scontrino già pagato, senza
+versioni intermedie, l'Agent manda apertura, righe, totale e chiusura nello stesso istante: il cliente vede solo Grazie
+con l'importo. Da decidere in M2 se Grazie, in quel caso, mostra anche le righe.
