@@ -62,8 +62,9 @@ confrontando ogni versione del file con quella precedente.
   quello a 48 provato il 20/10 (`Tortellini in crema di Sua Maesta' il Ne`). La regola "a capo su due righe, poi
   ellissi" serve poco finché la cassa taglia. 48 colonne vanno bene per il nuovo monitor; il vecchio, con righe più
   lunghe, cambia aspetto.
-- **Accenti resi con l'apostrofo** (`Maesta'`): il file è ASCII. Rimettere l'accento su una vocale finale seguita da
-  apostrofo funziona quasi sempre, ma sbaglia `po'`: da decidere se farlo, con un elenco di eccezioni.
+- **Accenti resi con l'apostrofo** (`Maesta'`): il file è ASCII, e il modello XML ammette solo `!/:-=€` oltre a
+  lettere e cifre (`CaratteriAmmessi`). Prima di ricostruire gli accenti nel display (funziona quasi sempre, ma sbaglia
+  `po'`) conviene provare ad aggiungere `àèéìòù` al modello e vedere col registratore cosa arriva.
 - **Ritmo**: col file tolto appena letto le battute arrivano col ritmo di chi batte: nella prova A/B/A 7 versioni in
   2 secondi (0,23–0,47 s l'una dall'altra). Il motore dello scontrino (M3) deve reggere più righe nuove nello stesso
   secondo, scaglionando gli ingressi.
@@ -72,8 +73,10 @@ confrontando ogni versione del file con quella precedente.
 - **Coperti**: `sale.total.cover` non ha ancora una fonte. Se il conto ha una riga "Coperto", l'Agent li ricava da lì.
 - **L'Agent toglie sempre il file appena letto** (decisione del 20/10). Lo dice la [prova A/B/A](../samples/registrazioni/2026-10-20_064854/README.md):
   se il file c'è ancora Passepartout aspetta circa 3 s, lo elimina da sé e scrive (oggi, col vecchio monitor, ogni
-  battuta arriva 3 s dopo e alcuni stati intermedi si perdono); se è già stato tolto scrive subito. Lo toglie solo se
-  contiene ancora la versione letta, come il registratore. Non convive col vecchio monitor sullo stesso file.
+  battuta arriva 3 s dopo e alcuni stati intermedi si perdono); se è già stato tolto scrive subito. Con
+  `SovrascriviSeEsistente=false` (il modello del 19/10) senza toglierlo gli aggiornamenti si perdono del tutto. Lo
+  toglie solo se contiene ancora la versione letta, come il registratore. Non convive col vecchio monitor sullo stesso
+  file. Nelle nostre installazioni anche `SovrascriviSeEsistente=true`, come rete di sicurezza se l'Agent si ferma.
 
 ## 5. Asset da recuperare (dal pacchetto)
 
