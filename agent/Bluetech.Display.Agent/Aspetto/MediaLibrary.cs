@@ -92,8 +92,15 @@ public sealed class MediaLibrary(SettingsStore settings, AgentRuntime runtime, I
             if (settings.Current.Aspetto.Media.Sum(m => m.Byte) + total > MaxTotalBytes)
                 return (null, $"Immagini e video insieme arrivano al massimo a {MaxTotalBytes / 1024 / 1024 / 1024} GB: togli quelli che non usi più.");
             var path = Path.Combine(Folder, id);
-            if (!File.Exists(path))
-                File.Move(temp, path);
+            try
+            {
+                if (!File.Exists(path))
+                    File.Move(temp, path);
+            }
+            catch (IOException) when (File.Exists(path))
+            {
+                // Lo stesso file caricato due volte nello stesso momento: è già al suo posto.
+            }
             var item = new MediaItem
             {
                 Id = id,

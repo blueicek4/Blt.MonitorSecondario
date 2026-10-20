@@ -175,7 +175,7 @@ public sealed class SettingsTests : IDisposable
     }
 
     [Fact]
-    public async Task A_file_locked_for_a_moment_is_read_again_not_thrown_away()
+    public void A_file_locked_for_a_moment_is_read_again_not_thrown_away()
     {
         var store = new SettingsStore(_folder);
         store.Update(s =>
@@ -185,13 +185,15 @@ public sealed class SettingsTests : IDisposable
             return null;
         });
         var locked = new FileStream(FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);   // un antivirus, una copia
-        var release = Task.Run(async () =>
+        // Un thread suo, non il pool: con gli altri test in parallelo il pool può restare occupato oltre i tentativi.
+        var release = new Thread(() =>
         {
-            await Task.Delay(700);
+            Thread.Sleep(700);
             locked.Dispose();
         });
+        release.Start();
         var reloaded = new SettingsStore(_folder);
-        await release;
+        release.Join();
         Assert.Equal(77, reloaded.Current.ChiusuraVenditaDopoSecondi);
         Assert.Empty(Directory.GetFiles(_folder, SettingsStore.FileName + ".errore-*"));
     }
