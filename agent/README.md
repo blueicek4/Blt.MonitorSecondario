@@ -6,8 +6,8 @@ Il servizio che gira sul PC cassa:
 2. **Lo toglie subito dopo la lettura**, così Passepartout scrive il successivo senza aspettare. Se il file resta lì,
    Passepartout aspetta circa 3 s prima di sostituirlo (con `SovrascriviSeEsistente=true`), oppure rinuncia (con
    `false`): [prova A/B/A](../samples/registrazioni/2026-10-20_064854/README.md).
-3. **Manda al display** i messaggi di [`protocol.ts`](../design/handoff/src/types/protocol.ts) via WebSocket, solo con
-   quello che cambia.
+3. **Manda al display** i messaggi di `protocol.ts` (`display/src/types/protocol.ts`, ramo `claude/design-handoff`) via
+   WebSocket, solo con quello che cambia.
 
 La lettura e la cancellazione sono quelle del [registratore](../tools/README.md), già provate in cassa: il file si
 toglie solo se contiene ancora la versione letta.
@@ -42,7 +42,7 @@ Il Player apre `http://localhost:5080/display`, che rimanda al display.
 | `Porta` | `5080` | |
 | `ApertoInRete` | `false` | `false`: risponde solo a questo PC. `true`: anche a tablet e TV della rete (serve una regola nel firewall). I conti viaggiano in chiaro |
 | `CartellaDisplay` | `display` | La build del display (`display/dist`), accanto all'exe |
-| `ChiusuraVenditaDopoSecondi` | `300` | Vendita aperta e nessun file per 5 minuti: si chiude. All'avvio, un file più vecchio di così si toglie senza mostrarlo |
+| `ChiusuraVenditaDopoSecondi` | `120` | Conto aperto, senza `PAGATO`, e nessun file per 2 minuti: si chiude e il display torna alle slide. Nelle registrazioni il pagamento più lento è arrivato 80 s dopo l'ultimo file (QR Satispay a video): con i 20 s del vecchio monitor il totale sarebbe sparito mentre il cliente pagava in 6 conti su 9. All'avvio, un file più vecchio di così si toglie senza mostrarlo |
 | `CartellaLog`, `GiorniLog` | `log`, `14` | Un file al giorno |
 
 Dalla riga di comando: `--file`, `--porta`, `--replay`, `--velocita`, `--ripeti`.
@@ -77,7 +77,7 @@ Le regole vengono dalle [registrazioni](../samples/registrazioni) (30 e 48 colon
 | Riga sparita, le altre uguali invariate | storno: `sale.line` `void` con `voidsId` |
 | Righe uguali unite in "dettagli conto", sconti spostati sotto le righe, ordine cambiato | `sync`, lo stato completo: niente storni finti |
 | `TOT. DA PAGARE` | `sale.total`, in centesimi (il display non somma mai) |
-| `PAGATO …:` e `Resto:` | `sale.close` con `paid: { method, amount, change }` |
+| `PAGATO …:` e `Resto:` | `sale.close` con `paid: { method, amount, change }`: Grazie con le righe, poi le slide |
 | Conto dopo un `PAGATO`, o senza nessuna riga in comune con quello a video | `sale.open`: vendita nuova |
 | QR in Base64 | `pay.qr` con l'ultimo totale; il conto successivo lo toglie (`pay.clear`) |
 | Intestazione del locale, `SUBTOT.`, `EURO` | niente |
