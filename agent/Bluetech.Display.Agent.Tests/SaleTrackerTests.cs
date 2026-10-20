@@ -249,6 +249,18 @@ public class SaleTrackerTests
     }
 
     [Fact]
+    public void The_payment_qr_stays_longer_than_the_idle_timeout()
+    {
+        var tracker = new SaleTracker();
+        var timeout = TimeSpan.FromSeconds(60);
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007")), T0);
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddSeconds(5));
+        Assert.Equal("payment", tracker.Phase);
+        Assert.Empty(tracker.CheckIdle(T0.AddSeconds(5 + 90), timeout));   // 80 s il 20/10, prima del PAGATO
+        Assert.Equal("sale.close", Assert.Single(tracker.CheckIdle(T0.AddSeconds(5) + SaleTracker.MinimumWithQr, timeout)).Type);
+    }
+
+    [Fact]
     public void A_bill_with_nothing_in_common_is_a_new_sale()
     {
         var tracker = new SaleTracker();

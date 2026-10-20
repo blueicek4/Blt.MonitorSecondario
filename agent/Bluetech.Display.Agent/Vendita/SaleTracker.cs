@@ -58,9 +58,17 @@ public sealed class SaleTracker
         }
     }
 
-    /// <summary>Vendita aperta e nessun file da <paramref name="timeout"/>: si chiude, come faceva il vecchio monitor.</summary>
+    /// <summary>Con il QR a video il cliente sta pagando: il QR resta almeno tanto (80 s nella registrazione del 20/10).</summary>
+    public static readonly TimeSpan MinimumWithQr = TimeSpan.FromMinutes(3);
+
+    /// <summary>
+    /// Vendita aperta e nessun file da <paramref name="timeout"/>: si chiude e il display torna alle slide, come faceva il
+    /// vecchio monitor. Con il QR di pagamento a video si aspetta almeno <see cref="MinimumWithQr"/>.
+    /// </summary>
     public IReadOnlyList<CashIn> CheckIdle(DateTimeOffset now, TimeSpan timeout)
     {
+        if (_qr != null && timeout > TimeSpan.Zero && timeout < MinimumWithQr)
+            timeout = MinimumWithQr;
         if (!_open || timeout <= TimeSpan.Zero || now - LastActivity < timeout)
             return [];
         Reset();
