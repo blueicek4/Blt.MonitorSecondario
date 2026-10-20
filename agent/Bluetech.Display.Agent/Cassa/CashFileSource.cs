@@ -231,6 +231,7 @@ public sealed class CashFileSource : IDisposable
         {
             _doNotDeliver = null;
             _doNotDeliverMeta = null;
+            LastProblem = null;   // letto e tolto: i problemi di prima (cartella creata, file bloccato) sono passati
         }
         else
         {

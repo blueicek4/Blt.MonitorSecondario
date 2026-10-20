@@ -10,7 +10,8 @@
 > standard.
 >
 > Stato (20/10): **fasi 2 e 3 fatte** nell'Agent: abbinamento, copia ESC/POS in rete o nella coda di Windows, modalità
-> prova, abbinamento dei palmari con chiave, pagina `/cliente` e diagnostica con il pulsante (`agent/README.md`). Non
+> prova, pagina `/cliente` e diagnostica con il pulsante (`agent/README.md`). Poi: dispositivi autorizzati con un codice
+> dal back office, ognuno con la sua cassa e la sua stampante, più casse con un solo Agent. Non
 > avendo transazioni con scontrino digitale, tutto si basa su quello che mostra il vecchio monitor 6.0: si sistema
 > con le prime transazioni vere. Le parti segnate *da verificare* restano aperte.
 
@@ -203,10 +204,10 @@ La funzione è pensata per un **palmare** (la pagina del display aperta nel brow
   per la porta 5080. I dati passano in chiaro, quindi il palmare va sulla **rete del personale, mai su quella degli
   ospiti**. Sulla Wi-Fi degli ospiti chiunque potrebbe aprire la pagina, vedere gli scontrini e toccare il
   pulsante.
-- **Abbinamento.** Oggi l'Agent accetta qualunque pagina servita da lui. Con dispositivi in rete serve una chiave:
-  il palmare si abbina una volta (`http://cassa:5080/?chiave=…`, poi la ricorda) e l'Agent accetta il collegamento
-  e il comando di stampa solo da chi ha una chiave valida. Le chiavi sono una per dispositivo e si possono revocare.
-  Il Player sullo stesso PC non ne ha bisogno.
+- **Abbinamento.** L'Agent accetta il collegamento e il comando di stampa solo dai dispositivi autorizzati: il
+  palmare apre `/auth`, mostra un codice di 6 cifre, il codice si scrive nel back office scegliendo cassa e
+  stampante, e il palmare lo ricorda in un cookie. Si revoca dal back office. Vale anche per il Player sullo stesso PC
+  (aggiornamento del 20/10: prima era una chiave nell'indirizzo).
 - **Lo scontrino giusto (la domanda più importante).** Ogni Agent segue il file di una cassa e mostra gli scontrini
   digitali che *quella* cassa emette. Se più camerieri incassano dai palmari e i documenti escono tutti dalla stessa
   cassa, un palmare mostrerebbe lo scontrino di un altro tavolo. Va capito come Passepartout scrive il file del

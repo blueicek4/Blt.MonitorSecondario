@@ -34,7 +34,7 @@ Dettagli in [01-analisi-monitorcliente.md](01-analisi-monitorcliente.md). I punt
 │  │ parser v1 (testo) / v2 (strutturato) → macchina a stati → SignalR   │ │
 │  │ API REST · media · tema · pannello admin · registrazione/replay     │ │
 │  └──────────────────────────────┬───────────────────────────────────────┘ │
-│                                 │ http://localhost:5080/display           │
+│                                 │ http://localhost:5080/cliente           │
 │  Bluetech Display Player ◄──────┘  (WebView2 a tutto schermo, 2° monitor) │
 └───────────────────────────────────────────────────────────────────────────┘
           │ opzionale, in LAN: tablet, smart TV, totem → stesso URL
@@ -148,6 +148,15 @@ anche le chiavi nuove della 6.0 (`TimeoutClearDisplay`, `HideHeader`, `ShowPrice
 - Gestione media (caricamento, ordine, durata, fasce orarie), testo scorrevole, messaggi.
 - Simulatore: "aggiungi riga", "mostra QR", "fine vendita" — indispensabile per vendere in demo.
 - Guida alle dimensioni consigliate delle grafiche (sostituisce il vecchio F6).
+
+**Stato (20/10)**: c'è la prima parte, nell'Agent: il [back office](../agent/README.md#back-office) (`/backoffice`) con
+una password (solo l'hash, in `dati\impostazioni.json`), casse, stampanti, dispositivi, opzioni di rete e dello
+scontrino digitale, stato dal vivo, statistiche per giorno e per cassa, log e riavvio. Tutte le impostazioni sono in file
+JSON, niente database. **Più casse con un solo Agent**: ogni cassa ha il suo file e i suoi display, ogni dispositivo ha
+la sua cassa e la sua stampante per la copia cartacea. I dispositivi si autorizzano con un codice: lo schermo nuovo apre
+`/auth`, il codice si scrive nel back office; a chi non è autorizzato `/cliente` risponde solo con un errore. HTTPS
+opzionale, con un certificato dato o generato dall'Agent. Mancano l'editor del tema, i media, il testo scorrevole e il
+simulatore: hanno senso con il display del design (M5).
 
 ### Fase 5 — Pacchetto e pilota (1 settimana + 2 settimane di pilota)
 - Installer unico (Agent come servizio + Player in avvio automatico + WebView2 Runtime se manca).

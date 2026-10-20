@@ -15,7 +15,10 @@ dentro una WebView2 (il motore di Microsoft Edge), e parte da solo all'accension
 1. Copia la cartella di build (es. in `C:\Program Files\Bluetech\DisplayPlayer`). Contiene
    `BluetechDisplayPlayer.exe`, le DLL `Microsoft.Web.WebView2.*` e la cartella `runtimes`.
 2. Avvia `BluetechDisplayPlayer.exe`: al primo avvio si apre la **prima configurazione**
-   - indirizzo web del monitor (es. `http://localhost:5080/display`; senza `http://` viene aggiunto);
+   - indirizzo web del monitor: `http://localhost:5080/auth` se l'Agent è sullo stesso PC, altrimenti
+     `http://<pc-dell-agent>:5080/auth` (senza `http://` viene aggiunto). La prima volta lo schermo mostra un codice
+     di 6 cifre: si scrive nel back office dell'Agent (Dispositivi) e il Player passa da solo allo schermo del
+     cliente. Le volte dopo `/auth` porta subito lì: il Player ricorda l'autorizzazione nel suo profilo;
    - schermo (automatico = primo schermo secondario; "Identifica schermi" mostra il numero su ogni monitor);
    - **codice di accesso** (almeno 4 caratteri), obbligatorio;
    - avvio automatico con Windows (attivo di default).

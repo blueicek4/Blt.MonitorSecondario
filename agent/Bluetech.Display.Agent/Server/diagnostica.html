@@ -70,7 +70,8 @@
   <span class="fact">Fase <b id="phase">-</b></span>
   <span class="fact">Cassa sul <b id="bill">-</b></span>
   <span class="fact">Ultimo battito <b id="beat">-</b></span>
-  <span class="fact"><a href="/api/stato" style="color:var(--muted)">stato in JSON</a> · <a href="/cliente" style="color:var(--muted)">vista cliente</a></span>
+  <span class="fact">Cassa <b id="cashname">-</b></span>
+  <span class="fact"><a href="/backoffice" style="color:var(--muted)">back office</a> · <a href="/api/stato" style="color:var(--muted)">stato in JSON</a></span>
 </header>
 <main>
   <p id="welcome">Benvenuti</p>
@@ -101,6 +102,14 @@
 "use strict";
 const customer = location.pathname === "/cliente" || new URLSearchParams(location.search).get("vista") === "cliente";
 if (customer) { document.body.classList.add("customer"); document.title = "Scontrino"; }
+else {
+  // Anteprima dal back office: ?cassa=… sceglie la cassa (senza, la prima).
+  fetch("/api/bo/impostazioni", { cache: "no-store" }).then((r) => r.json()).then((s) => {
+    const id = new URLSearchParams(location.search).get("cassa");
+    const cash = (s.Casse || []).find((c) => c.Id === id) || (s.Casse || [])[0];
+    if (cash) document.getElementById("cashname").textContent = cash.Nome;
+  }).catch(() => {});
+}
 const euro = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const money = (cents) => (cents < 0 ? "−" : "") + "€ " + euro.format(Math.abs(cents) / 100);
 const plain = (cents) => (cents < 0 ? "-" : "") + euro.format(Math.abs(cents) / 100);
@@ -333,7 +342,7 @@ function log(m) {
 
 let delay = 1000;
 function connect() {
-  // La chiave di abbinamento (?chiave=…) passa anche al WebSocket; poi basta il cookie.
+  // Il dispositivo si riconosce dal cookie; ?cassa=… (anteprima del back office) passa anche al WebSocket.
   socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws" + location.search);
   socket.onopen = () => {
     delay = 1000;
@@ -351,9 +360,15 @@ function connect() {
     log(message);
     render();
   };
-  socket.onclose = () => {
+  socket.onclose = async () => {
     document.getElementById("link").textContent = "riconnessione…";
     document.getElementById("dot").classList.remove("on");
+    // Dispositivo revocato o sessione del back office scaduta: la pagina ricaricata dice cosa succede.
+    try {
+      const check = await fetch(customer ? "/api/abbinamento" : "/api/bo/sessione", { cache: "no-store" });
+      const answer = await check.json();
+      if (customer ? answer.stato !== "autorizzato" : !answer.autenticato) { location.reload(); return; }
+    } catch { /* Agent fermo: si riprova */ }
     setTimeout(connect, delay);
     delay = Math.min(delay * 2, 8000);
   };

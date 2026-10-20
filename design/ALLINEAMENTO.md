@@ -148,8 +148,18 @@ in ISO 8601 con il fuso. L'Agent abbina il QR al conto solo se l'ultimo `PAGATO`
 non è partita un'altra vendita: mai il QR di un cliente con le righe di un altro. Senza transazioni vere con lo
 scontrino digitale, il formato viene dal vecchio monitor 6.0 e va verificato con le prime.
 
-Per M5 in sviluppo: l'Agent accetta su `/ws` solo le pagine servite da lui stesso. Il display servito da Vite
-(`http://localhost:5173`) si collega se nell'`appsettings.json` dell'Agent c'è `"AltreOrigini": ["http://localhost:5173"]`.
+**Dove vive il display (dal 20/10).** L'Agent serve la build del display a `/cliente` (cartella `display` accanto
+all'exe; i file in `assets/` con la cache lunga) e accetta su `/ws` solo i **dispositivi autorizzati**: uno schermo nuovo
+apre `/auth`, mostra un codice di 6 cifre che si scrive nel back office dell'Agent, e da lì in poi il browser ha un cookie
+(`bluetech_dispositivo`) che il WebSocket della stessa origine manda da solo. Ogni dispositivo è legato a una cassa e, se
+serve, a una stampante: il display non sceglie niente, riceve i messaggi della sua cassa e `paperCopy` già giusto per
+lui. A un dispositivo revocato o spostato l'Agent chiude il WebSocket: al rifiuto della riconnessione (403) il display
+ricarica la pagina, che mostra l'errore o la cassa nuova (la pagina provvisoria dell'Agent fa così, vedi
+`diagnostica.html`). Il Player si configura su `/auth`.
+
+Per M5 in sviluppo: il display servito da Vite (`http://localhost:5173`) si collega se nell'`appsettings.json`
+dell'Agent c'è `"AltreOrigini": ["http://localhost:5173"]` e se il browser è stato abbinato una volta aprendo
+`http://localhost:5080/auth` (il cookie di `localhost` vale per tutte le porte).
 
 **Il vecchio monitor sullo scontrino pagato** (foto del 20/10, [`samples/scontrino-bar-pagato-carta.txt`](../samples/scontrino-bar-pagato-carta.txt)):
 mostra ragione sociale, indirizzo e partita IVA, `EURO`, le righe con `SCONTO`, `PAGATO C.CREDITO:` e `Resto:` nel

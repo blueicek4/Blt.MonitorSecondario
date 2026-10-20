@@ -102,7 +102,7 @@ public sealed class PlayerSettings
         catch (UnauthorizedAccessException) { Directory.CreateDirectory(Folder); }
     }
 
-    /// <summary>Accetta "192.168.1.10:5080/display" aggiungendo http://. Ammessi http, https e file.</summary>
+    /// <summary>Accetta "192.168.1.10:5080/auth" aggiungendo http://. Ammessi http, https e file.</summary>
     public static bool TryNormalizeUrl(string text, out string url)
     {
         url = (text ?? "").Trim();
