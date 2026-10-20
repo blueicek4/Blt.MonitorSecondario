@@ -154,7 +154,7 @@ la partita IVA).
 
   I 60 s (`ChiusuraVenditaDopoSecondi` dell'Agent, configurabile) sono una tua scelta del 20/10. Nelle registrazioni tra
   l'ultimo file e la riga `PAGATO` sono passati 9–67 s con contanti e POS e 80 s con il QR Satispay a video: oltre i
-  60 s (2 pagamenti POS su 8) il display va alle slide e torna con Grazie e le righe quando arriva `PAGATO`. Il QR invece
+  60 s (2 pagamenti su 8: contanti, uno dopo due tentativi falliti al POS) il display va alle slide e torna con Grazie e le righe quando arriva `PAGATO`. Il QR invece
   resta almeno 3 minuti, perché il cliente lo sta usando. Con i 20 s del vecchio monitor il totale sarebbe sparito mentre
   il cliente pagava in 6 conti su 9.
 - **QR di ringraziamento impostabile dal pannello** (Fase 4): recensioni Google, registrazione cliente/fidelity, menu
