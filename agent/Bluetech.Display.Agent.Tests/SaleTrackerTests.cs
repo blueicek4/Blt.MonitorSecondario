@@ -100,10 +100,11 @@ public class SaleTrackerTests
         var tracker = new SaleTracker();
         var model = new DisplayModel();
         var byVersion = new Dictionary<string, List<CashIn>>();
-        var now = T0;
+        // I tempi veri della registrazione: contano per il QR (il conto rimandato subito non lo toglie).
+        var times = Server.AgentEngine.LoadReplay(Samples.Folder(recording)).ToDictionary(s => Path.GetFileName(s.File), s => s.Ms);
         foreach (var (name, bytes) in Samples.Versions(recording))
         {
-            now = now.AddSeconds(1);
+            var now = T0.AddMilliseconds(times[name]);
             var file = ReceiptParser.Parse(bytes);
             var messages = tracker.Apply(file, now).ToList();
             byVersion[name[..4]] = messages;
@@ -224,6 +225,15 @@ public class SaleTrackerTests
         Assert.Equal(0, (long)paid["change"]!);
     }
 
+    /// <summary>Un conto con il coperto ("2 X 2,00 Euro" + "Coperto 4,00") e i piatti da 1,00.</summary>
+    static CashFile Covers(int covers, params string[] dishes)
+    {
+        var lines = new List<string> { "SNF", " ", $"   {covers} X 2,00 Euro", $" {"Coperto",-22}{$"{covers * 2},00",7}" };
+        lines.AddRange(dishes.Select(d => $" {d,-22}{"1,00",7}"));
+        lines.Add($"TOT. DA PAGARE{$"{covers * 2 + dishes.Length},00",16}");
+        return ReceiptParser.Parse(Encoding.ASCII.GetBytes(string.Join("\r\n", lines) + "\r\n"));
+    }
+
     static CashFile Bill(params string[] items)
     {
         var lines = new List<string> { "SNF", " " };
@@ -272,16 +282,31 @@ public class SaleTrackerTests
     [Fact]
     public void A_new_table_that_shares_only_the_cover_is_a_new_sale()
     {
-        // Tavolo 5 non pagato (nessuna riga PAGATO, come il terzo conto del 20/10), poi il tavolo 7 parte dal coperto.
+        // Tavolo 5 (2 coperti) non pagato, come il terzo conto del 20/10; poi il tavolo 7 parte dai suoi 4 coperti.
         var tracker = new SaleTracker();
-        tracker.Apply(Bill("Coperto", "Tagliatelle", "Acqua"), T0);
-        var next = tracker.Apply(Bill("Coperto"), T0.AddSeconds(40));
+        tracker.Apply(Covers(2, "Tagliatelle", "Acqua"), T0);
+        var next = tracker.Apply(Covers(4), T0.AddSeconds(40));
         Assert.Equal(["sale.close", "sale.open", "sale.line", "sale.total"], next.Select(m => m.Type));
         Assert.DoesNotContain(next, m => m is SaleLineMessage { Line.Kind: LineKind.Void });
 
-        // Lo stesso tavolo che toglie un piatto resta la stessa vendita.
-        var same = tracker.Apply(Bill("Coperto", "Lasagne"), T0.AddSeconds(50));
-        Assert.DoesNotContain(same, m => m.Type == "sale.open");
+        // Lo stesso tavolo che aggiunge un piatto resta la stessa vendita.
+        Assert.DoesNotContain(tracker.Apply(Covers(4, "Lasagne"), T0.AddSeconds(50)), m => m.Type == "sale.open");
+
+        // Anche con lo stesso numero di coperti: il tavolo prima aveva due piatti, uno storno ne toglie uno solo.
+        tracker.Apply(Covers(2, "Tagliatelle", "Acqua"), T0.AddSeconds(60));
+        Assert.Contains(tracker.Apply(Covers(2), T0.AddSeconds(70)), m => m.Type == "sale.open");
+        tracker.Apply(Covers(2, "Tagliatelle"), T0.AddSeconds(80));
+        Assert.Contains(tracker.Apply(Covers(2, "Lasagne"), T0.AddSeconds(90)), m => m.Type == "sale.open");
+    }
+
+    [Fact]
+    public void Voiding_the_last_dish_of_a_table_is_a_void_not_a_new_sale()
+    {
+        var tracker = new SaleTracker();
+        tracker.Apply(Covers(2, "Tagliatelle"), T0);
+        var voided = tracker.Apply(Covers(2), T0.AddSeconds(10));
+        Assert.DoesNotContain(voided, m => m.Type == "sale.open");
+        Assert.Contains(voided, m => m is SaleLineMessage { Line.Kind: LineKind.Void, Line.Desc: "Tagliatelle" });
     }
 
     [Fact]
@@ -295,8 +320,9 @@ public class SaleTrackerTests
         var qr = Assert.IsType<PayQr>(Assert.Single(tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddSeconds(70))));
         Assert.Equal(1030, qr.Amount);   // il conto chiuso per inattività, non 0
         Assert.Empty(tracker.CheckIdle(T0.AddSeconds(70) + SaleTracker.MinimumWithQr - TimeSpan.FromSeconds(1), timeout));
-        Assert.Equal("pay.clear", Assert.Single(tracker.CheckIdle(T0.AddSeconds(70) + SaleTracker.MinimumWithQr, timeout)).Type);
+        Assert.Equal(["pay.clear", "sale.close"], tracker.CheckIdle(T0.AddSeconds(70) + SaleTracker.MinimumWithQr, timeout).Select(m => m.Type));
         Assert.Equal("idle", tracker.Phase);
+        Assert.NotEmpty(tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddMinutes(10)));   // rimandato: torna
     }
 
     [Fact]
@@ -308,6 +334,71 @@ public class SaleTrackerTests
         Assert.Empty(tracker.Apply(Bill("CAFFE"), T0.AddSeconds(50)));   // stesso conto: niente al display…
         Assert.Empty(tracker.CheckIdle(T0.AddSeconds(100), timeout));      // …ma la cassa ci sta lavorando
         Assert.Single(tracker.CheckIdle(T0.AddSeconds(110), timeout));
+    }
+
+    /// <summary>Lo scontrino digitale del vecchio monitor 6.0, con l'immagine del QR della registrazione.</summary>
+    static CashFile DigitalReceiptQr()
+    {
+        var base64 = Encoding.ASCII.GetString(Samples.Version("2026-10-20_075632", "0008")).Split("\r\n")[3];
+        return ReceiptParser.Parse(Encoding.ASCII.GetBytes($"SNF\r\n \r\nQRCODESD\r\n{base64}\r\nScarica il tuo scontrino digitale!\r\n"));
+    }
+
+    [Fact]
+    public void The_digital_receipt_qr_after_payment_is_a_message_of_its_own()
+    {
+        var tracker = new SaleTracker();
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007")), T0);
+        Assert.Contains(tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0010")), T0.AddSeconds(20)), m => m.Type == "sale.close");
+        var qr = Assert.IsType<ReceiptQr>(Assert.Single(tracker.Apply(DigitalReceiptQr(), T0.AddSeconds(21))));
+        Assert.Equal("Scarica il tuo scontrino digitale!", qr.Caption);
+        Assert.Equal("idle", tracker.Phase);
+    }
+
+    [Fact]
+    public void A_digital_receipt_qr_takes_the_place_of_the_payment_qr()
+    {
+        var tracker = new SaleTracker();
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007")), T0);
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddSeconds(5));
+        Assert.Equal(["pay.clear", "receipt.qr"], tracker.Apply(DigitalReceiptQr(), T0.AddSeconds(30)).Select(m => m.Type));
+    }
+
+    [Fact]
+    public void The_same_bill_resent_right_after_the_qr_keeps_it()
+    {
+        var tracker = new SaleTracker();
+        var bill = ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007"));
+        tracker.Apply(bill, T0);
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddSeconds(5));
+        Assert.Empty(tracker.Apply(bill, T0.AddSeconds(6)));
+        Assert.Empty(tracker.Apply(bill, T0.AddSeconds(10)));
+        Assert.Equal("payment", tracker.Phase);
+
+        // Più tardi lo stesso conto vuol dire che la cassa è tornata al conto: il QR va tolto.
+        Assert.Equal(["pay.clear"], tracker.Apply(bill, T0.AddSeconds(5) + SaleTracker.QrResendWindow).Select(m => m.Type));
+        Assert.Equal("sale", tracker.Phase);
+    }
+
+    [Fact]
+    public void Payment_right_after_the_qr_removes_it()
+    {
+        var tracker = new SaleTracker();
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007")), T0);
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddSeconds(5));
+        var paid = tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0010")), T0.AddSeconds(7)).Select(m => m.Type).ToList();
+        Assert.Equal("pay.clear", paid[0]);
+        Assert.Equal("sale.close", paid[^1]);
+    }
+
+    [Fact]
+    public void The_display_knows_when_the_bill_is_shown()
+    {
+        var tracker = new SaleTracker();
+        foreach (var (name, bytes) in Samples.Versions("2026-10-20_002138").Take(7))
+        {
+            tracker.Apply(ReceiptParser.Parse(bytes), T0.AddSeconds(int.Parse(name[..4])));
+            Assert.Equal(name.StartsWith("0007"), (bool)tracker.Snapshot()["bill"]!);
+        }
     }
 
     [Fact]

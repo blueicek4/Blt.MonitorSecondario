@@ -96,6 +96,10 @@ public sealed partial class AgentEngine(
             catch (OperationCanceledException)
             {
             }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Errore alla chiusura");   // allo stop non si esce con un codice d'errore
+            }
             _source?.Dispose();
         }
     }
@@ -108,9 +112,12 @@ public sealed partial class AgentEngine(
     {
         for (var attempt = 1; !stop.IsCancellationRequested; attempt++)
         {
-            var source = new CashFileSource(Options.FileCassa, CloseAfter, loggers.CreateLogger<CashFileSource>(), OnFile);
+            CashFileSource? source = null;
             try
             {
+                if (string.IsNullOrWhiteSpace(Options.FileCassa))
+                    throw new ArgumentException("in appsettings.json manca FileCassa.");
+                source = new CashFileSource(Options.FileCassa, CloseAfter, loggers.CreateLogger<CashFileSource>(), OnFile);
                 source.Start();
                 _source = source;
                 _problem = null;
@@ -120,7 +127,7 @@ public sealed partial class AgentEngine(
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                source.Dispose();
+                source?.Dispose();
                 _problem = $"Non riesco a sorvegliare {Options.FileCassa}: {ex.Message} Riprovo ogni 10 secondi.";
                 if (attempt == 1)
                     log.LogError(ex, "Non riesco a sorvegliare {Path}: riprovo ogni 10 s (da servizio i dischi di rete collegati con una lettera non si vedono)", Options.FileCassa);

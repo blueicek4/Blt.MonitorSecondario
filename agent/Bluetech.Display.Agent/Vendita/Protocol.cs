@@ -4,10 +4,11 @@ namespace Bluetech.Display.Agent.Vendita;
 
 /// <summary>
 /// I messaggi cassa → monitor di display/src/types/protocol.ts, in JSON. Importi in centesimi interi.
-/// Due aggiunte, documentate in design/ALLINEAMENTO.md:
+/// Le aggiunte, documentate in design/ALLINEAMENTO.md §8:
 /// - <c>sale.line</c> con un <c>id</c> già inviato aggiorna quella riga (quantità o importo cambiati);
 /// - <c>hb</c>, battito ogni pochi secondi: con una cassa a file il silenzio è normale e non deve far comparire
-///   "connessione assente".
+///   "connessione assente";
+/// - <c>sale.close.paid</c>, <c>sale.total.bill</c>, <c>pay.qr.caption</c> e <c>receipt.qr</c> (scontrino digitale).
 /// </summary>
 public abstract record CashIn
 {
@@ -39,13 +40,19 @@ public sealed record SaleLineMessage(SaleLine Line) : CashIn
     protected override void Fill(JsonObject json) => json["line"] = Line.ToJson();
 }
 
-public sealed record SaleTotal(long Total, int Cover) : CashIn
+/// <summary>
+/// <see cref="Bill"/> (estensione): la cassa mostra il conto (dettagli conto, preconto, scontrino), non la battuta. Con
+/// l'opzione "prezzi solo sul conto" (ShowPricesDuringOrder=false del vecchio monitor) il display nasconde importi e
+/// totale finché è falso.
+/// </summary>
+public sealed record SaleTotal(long Total, int Cover, bool Bill = false) : CashIn
 {
     public override string Type => "sale.total";
     protected override void Fill(JsonObject json)
     {
         json["total"] = Total;
         json["cover"] = Cover;
+        json["bill"] = Bill;
     }
 }
 
@@ -70,7 +77,8 @@ public sealed record DisplayMessage(string Text) : CashIn
     protected override void Fill(JsonObject json) => json["text"] = Text;
 }
 
-public sealed record PayQr(string Png, long Amount) : CashIn
+/// <summary><see cref="Caption"/> (estensione): la didascalia che la cassa scrive dopo l'immagine, se c'è.</summary>
+public sealed record PayQr(string Png, long Amount, string? Caption = null) : CashIn
 {
     public override string Type => "pay.qr";
     protected override void Fill(JsonObject json)
@@ -78,6 +86,23 @@ public sealed record PayQr(string Png, long Amount) : CashIn
         json["provider"] = "satispay";
         json["png"] = Png;
         json["amount"] = Amount;
+        if (Caption != null)
+            json["caption"] = Caption;
+    }
+}
+
+/// <summary>
+/// Estensione: il QR per scaricare lo scontrino digitale ("QRCODESD", vecchio monitor 6.0). Arriva a pagamento fatto:
+/// il display lo mostra nello stato Grazie al posto del QR di ringraziamento del pannello.
+/// </summary>
+public sealed record ReceiptQr(string Png, string? Caption) : CashIn
+{
+    public override string Type => "receipt.qr";
+    protected override void Fill(JsonObject json)
+    {
+        json["png"] = Png;
+        if (Caption != null)
+            json["caption"] = Caption;
     }
 }
 

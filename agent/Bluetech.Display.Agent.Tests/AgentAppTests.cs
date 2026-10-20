@@ -204,10 +204,10 @@ public sealed class AgentAppTests : IAsyncLifetime
             Assert.Contains("Diagnostica Agent", await http.GetStringAsync("/diagnostica"));   // il servizio è su
 
             File.Delete(blocker);   // il percorso torna valido: al prossimo tentativo (10 s) parte e crea la cartella
-            while (!Directory.Exists(blocker) && watch.Elapsed < TimeSpan.FromSeconds(20))
+            while (((problem = await Problem(http)) ?? "").Contains("Non riesco a sorvegliare") && watch.Elapsed < TimeSpan.FromSeconds(25))
                 await Task.Delay(200);
+            Assert.DoesNotContain("Non riesco a sorvegliare", problem ?? "");
             Assert.True(Directory.Exists(blocker));
-            Assert.DoesNotContain("Non riesco a sorvegliare", await Problem(http) ?? "");
         }
         finally
         {

@@ -10,7 +10,8 @@ Il servizio che gira sul PC cassa:
    WebSocket, solo con quello che cambia.
 
 La lettura e la cancellazione sono quelle del [registratore](../tools/README.md), già provate in cassa: il file si
-toglie solo se contiene ancora la versione letta.
+toglie solo se contiene ancora la versione letta. Si toglie **sempre**, anche con il QR a video: è il nostro modo di
+lavorare (il vecchio monitor, anche nella versione 6.0, lascia il file dov'è).
 
 ## Installazione
 
@@ -80,11 +81,12 @@ Le regole vengono dalle [registrazioni](../samples/registrazioni) (30 e 48 colon
 | Quantità o importo cambiati (`2 pz X 12,00 Euro`) | `sale.line` con lo **stesso id** |
 | Riga sparita, le altre uguali invariate | storno: `sale.line` `void` con `voidsId` |
 | Righe uguali unite in "dettagli conto", sconti spostati sotto le righe, ordine cambiato | `sync`, lo stato completo: niente storni finti |
-| `TOT. DA PAGARE` | `sale.total`, in centesimi (il display non somma mai) |
+| `TOT. DA PAGARE` | `sale.total`, in centesimi (il display non somma mai). `bill: true` quando la cassa mostra il conto (c'è l'intestazione: dettagli conto, preconto, scontrino), `false` durante la battuta |
 | `PAGATO …:` e `Resto:` | `sale.close` con `paid: { method, amount, change }`: Grazie con le righe, poi le slide. Pagamento misto (una riga per metodo): metodi uniti, `BUONI PASTO + CONTANTI`, importi sommati |
 | Conto dopo un `PAGATO`, o senza nessuna riga in comune con quello a video (il coperto non conta: c'è su ogni tavolo) | `sale.open`: vendita nuova |
-| QR in Base64 | `pay.qr` con l'ultimo totale, ridotto a un pixel per modulo (il display lo ingrandisce di un multiplo intero e aggiunge la quiet zone); il conto successivo lo toglie (`pay.clear`), altrimenti scade dopo 3 minuti |
-| Intestazione del locale, `SUBTOT.`, `EURO` | niente |
+| `QRCODE` e il QR in Base64 | `pay.qr` con l'ultimo totale, ridotto a un pixel per modulo (il display lo ingrandisce di un multiplo intero e aggiunge la quiet zone), e la didascalia se la cassa la scrive dopo l'immagine. Lo toglie (`pay.clear`) un conto cambiato o `PAGATO`; lo stesso conto rimandato entro 20 s no (il vecchio monitor 6.0 ignora i file per 20 s dopo il QR); altrimenti scade dopo 3 minuti |
+| `QRCODESD` e il QR in Base64 (scontrino digitale, vecchio monitor 6.0) | `receipt.qr` con la didascalia: il display lo mostra in Grazie |
+| Intestazione del locale, `SUBTOT.`, la valuta dopo i trattini (`EURO`) | niente |
 | Versione identica alla precedente | niente |
 | Accenti | UTF-8 o Windows-1252, riconosciuti da soli |
 
@@ -93,7 +95,11 @@ Le regole vengono dalle [registrazioni](../samples/registrazioni) (30 e 48 colon
 - `sale.line` con un id già ricevuto **aggiorna** quella riga;
 - `{ "t": "hb" }` ogni 3 s. Con una cassa a file il silenzio è normale: senza battito il display mostrerebbe
   "connessione assente" dopo 8 s;
-- `sale.close` può portare `paid`, per mostrare metodo e resto nello stato "Grazie".
+- `sale.close` può portare `paid`, per mostrare metodo e resto nello stato "Grazie";
+- `sale.total.bill` (e `bill` in `sync`): la cassa mostra il conto e non la battuta. Serve per l'opzione "prezzi solo
+  sul conto" (`ShowPricesDuringOrder=false` del vecchio monitor 6.0);
+- `pay.qr.caption`, se la cassa la scrive;
+- `receipt.qr { png, caption }`: il QR dello scontrino digitale.
 
 ## Cosa manca
 

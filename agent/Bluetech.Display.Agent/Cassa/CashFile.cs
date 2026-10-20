@@ -9,7 +9,10 @@ public enum CashFileKind
     Empty,
     /// <summary>Prima riga "SNF": scontrino.</summary>
     Receipt,
-    /// <summary>"SNF" e una riga "QRCODE" seguita dall'immagine in Base64: pagamento Satispay.</summary>
+    /// <summary>
+    /// "SNF", una riga "QRCODE" (pagamento Satispay) o "QRCODESD" (scontrino digitale, dalla versione 6.0 del vecchio
+    /// monitor) e l'immagine in Base64 sulla riga dopo.
+    /// </summary>
     Qr,
     /// <summary>Qualunque altro contenuto: messaggio del visore (mai visto finora sul campo).</summary>
     Message,
@@ -33,6 +36,14 @@ public sealed record NoteEntry(string Text) : ReceiptEntry;
 /// <summary>Righe "PAGATO CONTANTI:  87,00" e "Resto:  0,00": il conto è chiuso.</summary>
 public sealed record Payment(string Method, long Amount, long? Change);
 
+public enum QrPurpose
+{
+    /// <summary>"QRCODE": il cliente paga inquadrandolo (Satispay).</summary>
+    Payment,
+    /// <summary>"QRCODESD": il cliente scarica lo scontrino digitale, a pagamento fatto.</summary>
+    DigitalReceipt,
+}
+
 /// <summary>Una versione di Scontrino.txt, già interpretata.</summary>
 public sealed class CashFile
 {
@@ -46,8 +57,16 @@ public sealed class CashFile
     public long? Subtotal { get; init; }
     public long? Total { get; init; }
     public Payment? Payment { get; init; }
+    /// <summary>
+    /// Il conto vero e proprio ("dettagli conto", preconto, scontrino): ha l'intestazione fino alla riga di trattini.
+    /// Durante la battuta no. Il vecchio monitor 6.0 nasconde i prezzi finché non c'è (ShowPricesDuringOrder=false).
+    /// </summary>
+    public bool IsBill { get; init; }
     /// <summary>data:image/png;base64,… per il tipo <see cref="CashFileKind.Qr"/>.</summary>
     public string? QrDataUri { get; init; }
+    public QrPurpose QrPurpose { get; init; }
+    /// <summary>La riga dopo l'immagine, se non è vuota: il vecchio monitor 6.0 la scrive sopra il QR.</summary>
+    public string? QrCaption { get; init; }
     public string? MessageText { get; init; }
 
     public IEnumerable<ItemEntry> Items => Entries.OfType<ItemEntry>();
@@ -83,6 +102,10 @@ public static partial class ReceiptParser
     [GeneratedRegex(@"^Resto:\s*(?<amount>-?[\d.]+,\d{2})$", RegexOptions.IgnoreCase)]
     private static partial Regex ChangeLine();
 
+    /// <summary>La valuta in testa alla colonna degli importi, subito dopo i trattini: "EURO" o quella del config.</summary>
+    [GeneratedRegex(@"^[A-Za-z€$£]{1,6}$")]
+    private static partial Regex CurrencyLine();
+
     public static CashFile Parse(byte[] bytes)
     {
         var hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
@@ -101,14 +124,23 @@ public static partial class ReceiptParser
             return new CashFile { Kind = CashFileKind.Message, Hash = hash, Encoding = encoding, MessageText = message };
         }
 
-        var qrIndex = lines.FindIndex(l => l.Trim() == "QRCODE");
+        var qrIndex = lines.FindIndex(l => l.Trim() is "QRCODE" or "QRCODESD");
         if (qrIndex >= 0)
         {
             var payload = qrIndex + 1 < lines.Count ? lines[qrIndex + 1].Trim() : "";
+            var caption = qrIndex + 2 < lines.Count ? lines[qrIndex + 2].Trim() : "";
             var dataUri = ImageDataUri(payload);
             return dataUri == null
                 ? new CashFile { Kind = CashFileKind.Empty, Hash = hash, Encoding = encoding }
-                : new CashFile { Kind = CashFileKind.Qr, Hash = hash, Encoding = encoding, QrDataUri = dataUri };
+                : new CashFile
+                {
+                    Kind = CashFileKind.Qr,
+                    Hash = hash,
+                    Encoding = encoding,
+                    QrDataUri = dataUri,
+                    QrPurpose = lines[qrIndex].Trim() == "QRCODESD" ? QrPurpose.DigitalReceipt : QrPurpose.Payment,
+                    QrCaption = caption.Length > 0 ? caption : null,
+                };
         }
 
         return ParseReceipt(lines.Skip(1).ToList(), hash, encoding);
@@ -126,6 +158,7 @@ public static partial class ReceiptParser
         }
 
         var entries = new List<ReceiptEntry>();
+        var currencyNext = separator >= 0;
         long? subtotal = null, total = null, change = null;
         string? paidMethod = null;
         long paidAmount = 0;
@@ -135,7 +168,15 @@ public static partial class ReceiptParser
         {
             var line = raw.TrimEnd();
             var trimmed = line.Trim();
-            if (trimmed.Length == 0 || trimmed == "EURO")
+            if (trimmed.Length == 0)
+                continue;
+            if (currencyNext)
+            {
+                currencyNext = false;
+                if (CurrencyLine().IsMatch(trimmed))
+                    continue;
+            }
+            if (trimmed == "EURO")
                 continue;
 
             if (trimmed.StartsWith("SUBTOT", StringComparison.OrdinalIgnoreCase))
@@ -211,6 +252,7 @@ public static partial class ReceiptParser
             Encoding = encoding,
             Entries = entries,
             Header = header,
+            IsBill = separator >= 0,
             Subtotal = subtotal,
             Total = total,
             Payment = paidMethod == null ? null : new Payment(paidMethod, paidAmount, change),

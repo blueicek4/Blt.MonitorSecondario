@@ -40,6 +40,7 @@
   <h1>Bluetech Display Agent · diagnostica</h1>
   <span class="fact"><span id="dot" class="dot"></span><b id="link">collegamento…</b></span>
   <span class="fact">Fase <b id="phase">-</b></span>
+  <span class="fact">Cassa sul <b id="bill">-</b></span>
   <span class="fact">Ultimo battito <b id="beat">-</b></span>
   <span class="fact"><a href="/api/stato" style="color:var(--muted)">stato in JSON</a></span>
 </header>
@@ -50,7 +51,7 @@
     <p id="nolines" class="empty">Nessun conto in corso: il display mostra le slide.</p>
     <div class="total"><span>Totale</span><span id="total">€ 0,00</span></div>
     <p id="paid"></p>
-    <div id="qr"><h2>QR di pagamento</h2><img id="qrimg" alt="QR di pagamento"></div>
+    <div id="qr"><h2 id="qrtitle">QR di pagamento</h2><p id="qrcaption" class="empty"></p><img id="qrimg" alt="QR"></div>
   </section>
   <section aria-label="Messaggi">
     <h2>Ultimi messaggi dalla cassa</h2>
@@ -61,15 +62,23 @@
 "use strict";
 const euro = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const money = (cents) => (cents < 0 ? "−" : "") + "€ " + euro.format(Math.abs(cents) / 100);
-const state = { phase: "idle", lines: [], total: 0, payment: null, paid: null };
+const state = { phase: "idle", lines: [], total: 0, payment: null, paid: null, bill: false, receiptQr: null };
 const voidedAt = new Map();
-// Come il display: dopo PAGATO, Grazie con le righe per 8 s, poi l'attesa (le slide) senza il conto vecchio.
+// Come il display: dopo PAGATO, Grazie con le righe per 8 s (30 s con il QR dello scontrino digitale), poi l'attesa
+// (le slide) senza il conto vecchio.
 const THANKS_MS = 8000;
+const THANKS_WITH_QR_MS = 30000;
 let thanksTimer = 0;
 
 function clear(phase) {
   clearTimeout(thanksTimer);
   state.phase = phase; state.lines = []; state.total = 0; state.payment = null; state.paid = null;
+  state.bill = false; state.receiptQr = null;
+}
+
+function thanksFor(ms) {
+  clearTimeout(thanksTimer);
+  thanksTimer = setTimeout(() => { clear("idle"); render(); }, ms);
 }
 
 function apply(m) {
@@ -81,6 +90,8 @@ function apply(m) {
       state.lines = (m.state.lines || []).slice();
       state.total = m.state.total || 0;
       state.payment = m.state.payment || null;
+      state.bill = !!m.state.bill;
+      state.receiptQr = null;
       break;
     case "sale.open":
       clear("sale");
@@ -93,15 +104,22 @@ function apply(m) {
       if (state.phase === "idle") state.phase = "sale";
       break;
     }
-    case "sale.total": state.total = m.total; break;
+    case "sale.total": state.total = m.total; state.bill = !!m.bill; break;
     case "sale.close":
       if (!m.paid) { clear("idle"); break; }
-      clearTimeout(thanksTimer);
       state.phase = "thanks"; state.payment = null; state.paid = m.paid;
-      thanksTimer = setTimeout(() => { clear("idle"); render(); }, THANKS_MS);
+      thanksFor(state.receiptQr ? THANKS_WITH_QR_MS : THANKS_MS);
       break;
-    case "pay.qr": state.phase = "payment"; state.payment = { png: m.png, amount: m.amount }; break;
-    case "pay.clear": state.payment = null; if (state.phase === "payment") state.phase = "sale"; break;
+    case "pay.qr": state.phase = "payment"; state.payment = { png: m.png, amount: m.amount, caption: m.caption }; break;
+    case "receipt.qr":
+      state.receiptQr = { png: m.png, caption: m.caption };
+      state.payment = null;
+      if (state.phase !== "sale") { state.phase = "thanks"; thanksFor(THANKS_WITH_QR_MS); }
+      break;
+    case "pay.clear":
+      state.payment = null;
+      if (state.phase === "payment") state.phase = state.lines.length ? "sale" : "idle";   // QR senza conto: l'attesa
+      break;
   }
 }
 
@@ -141,10 +159,14 @@ function render() {
     paid.textContent = "Grazie · pagato " + state.paid.method + " " + money(state.paid.amount)
       + (state.paid.change > 0 ? " · resto " + money(state.paid.change) : "");
   }
+  document.getElementById("bill").textContent = state.phase === "idle" ? "-" : state.bill ? "conto" : "battuta";
+  const shown = state.payment || state.receiptQr;
   const qr = document.getElementById("qr");
-  qr.style.display = state.payment ? "block" : "none";
-  if (state.payment && typeof state.payment.png === "string" && state.payment.png.startsWith("data:image/")) {
-    document.getElementById("qrimg").src = state.payment.png;
+  qr.style.display = shown ? "block" : "none";
+  if (shown) {
+    document.getElementById("qrtitle").textContent = state.payment ? "QR di pagamento" : "Scontrino digitale";
+    document.getElementById("qrcaption").textContent = shown.caption || "";
+    if (typeof shown.png === "string" && shown.png.startsWith("data:image/")) document.getElementById("qrimg").src = shown.png;
   }
 }
 

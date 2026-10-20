@@ -46,6 +46,7 @@ public sealed class CashFileSource : IDisposable
     // Un contenuto da togliere senza mostrarlo: una versione già consegnata che non si è riusciti a togliere (si
     // riprova ogni 2 s) o l'avanzo trovato all'avvio. Lo usa solo il worker.
     string? _doNotDeliver;
+    FileMeta? _doNotDeliverMeta;
     long _retryAfter;
     // La sorveglianza della cartella si è interrotta: la riattiva il controllo periodico, mai il gestore dell'errore
     // (su una cartella che non la supporta si richiamerebbe da solo all'infinito).
@@ -213,7 +214,9 @@ public sealed class CashFileSource : IDisposable
         }
 
         var hash = Hash(read.Bytes);
-        var deliver = hash != _doNotDeliver;
+        // Lo stesso file rimasto lì non si mostra di nuovo; lo stesso contenuto riscritto da Passepartout sì (la data
+        // cambia): dice che la cassa sta lavorando e fa ripartire il tempo di chiusura.
+        var deliver = hash != _doNotDeliver || read.Meta != _doNotDeliverMeta;
         if (deliver)
         {
             FilesRead++;
@@ -222,12 +225,14 @@ public sealed class CashFileSource : IDisposable
         if (Consume(hash, warn: deliver))
         {
             _doNotDeliver = null;
+            _doNotDeliverMeta = null;
         }
         else
         {
             // Rimasto lì: Passepartout aspetterebbe 3 s a ogni battuta (o rinuncerebbe). Si riprova ogni 2 s, senza
             // mostrarlo di nuovo.
             _doNotDeliver = hash;
+            _doNotDeliverMeta = read.Meta;
             _retryPending = true;
             Interlocked.Exchange(ref _retryAfter, Environment.TickCount64 + LeftBehindRetryMilliseconds);
         }
@@ -258,6 +263,7 @@ public sealed class CashFileSource : IDisposable
             else
             {
                 _doNotDeliver = hash;   // il worker riprova a toglierlo, ma non lo mostra
+                _doNotDeliverMeta = meta;
                 _retryPending = true;
             }
         }
