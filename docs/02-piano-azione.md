@@ -126,7 +126,10 @@ riceve subito lo stato corrente.
 SignalR un WebSocket nativo con i messaggi di `protocol.ts` (decisione in `design/ALLINEAMENTO.md`). Il confronto tra
 versioni è stato riscritto per il protocollo: righe con id stabili, quantità cambiate come aggiornamento della stessa
 riga, righe unite e sconti spostati come stato completo (`sync`) invece di storni finti. Test su ogni versione delle
-registrazioni del 20/10.
+registrazioni del 20/10. Due revisioni avversarie, con le correzioni. Allineato al vecchio monitor 6.0 di Passepartout
+(`docs/01` §10): scontrino digitale (`QRCODESD`), QR che resta se la cassa rimanda lo stesso conto, prezzi solo sul
+conto. Il file di interscambio si toglie sempre appena letto, anche con il QR a video. Da importare dal vecchio `.config`
+anche le chiavi nuove della 6.0 (`TimeoutClearDisplay`, `HideHeader`, `ShowPricesDuringOrder`, `ReceiptFontSize`).
 
 ### Fase 2 — Design (1 settimana, in parallelo alla Fase 1)
 - Prompt pronto in [03-prompt-claude-design.md](03-prompt-claude-design.md).
@@ -211,4 +214,8 @@ registrazioni del 20/10.
 - **Promozioni contestuali** (es. pizza senza bevanda → promo birra): efficaci solo dove l'ordine si compone davanti al
   cliente (banco, fast food); al tavolo il conto arriva a cose fatte.
 - **QR nella schermata "Grazie"**: recensione Google, fidelity, menu digitale.
+- **Scontrino digitale a video e copia cartacea su richiesta** (opzionale): lo scontrino con il QR per scaricarlo e un
+  pulsante che chiede a Passepartout Menu di ristamparlo su una stampante non fiscale. Studio in
+  [`docs/03`](03-studio-copia-cartacea.md): richiede un monitor touch, il web service di ristampa e una prova sul
+  focus della cassa.
 - Testi fissi in più lingue a rotazione per le zone turistiche.
