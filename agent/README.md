@@ -20,8 +20,15 @@ Serve Windows 10 o 11 a 64 bit. L'exe contiene già .NET: non si installa niente
 1. Copia `BluetechDisplayAgent.exe` e `appsettings.json` in una cartella, per esempio `C:\Bluetech\Agent`.
 2. **Chiudi il vecchio `MonitorCliente.exe` e toglilo dall'avvio automatico.** L'Agent toglie il file dopo averlo letto:
    il vecchio monitor resterebbe senza conti. Se lo trova aperto, l'Agent lo dice nel back office e nel log.
-3. Avvia l'exe con un doppio clic e apri **sul PC dell'Agent** <http://localhost:5080/backoffice>: la prima volta
-   chiede di scegliere la password del back office. Dalla rete non si può: nessuno si prende il back office prima di te.
+3. **La password del back office**, diversa per ogni locale (non esiste una password uguale per tutti). Due modi:
+   - scrivila in `dati\nuova-password.txt` accanto all'exe (o fattene generare una: `BluetechDisplayAgent.exe
+     --genera-password`, che la mette in quel file e la scrive a video: annotala nella scheda del cliente). Al primo
+     avvio l'Agent ne tiene solo l'hash e toglie il file. È quello che farà l'installazione (Fase 5);
+   - oppure avvia l'exe con un doppio clic e apri **sul PC dell'Agent** <http://localhost:5080/backoffice>: la prima
+     volta chiede di scegliere la password. Dalla rete non si può: nessuno si prende il back office prima di te.
+
+   Il back office si apre solo dal PC dell'Agent, anche in desktop remoto. Per aprirlo anche dagli altri PC e dai
+   telefoni del locale c'è l'opzione "Back office anche dalla rete" (sotto).
 4. Nel back office:
    - **Casse**: per ogni punto cassa il file che Passepartout scrive per il monitor (è quello nella cartella del vecchio
      `MonitorCliente.exe`). La prima cassa c'è già, su `C:\MonitorSecondario\Scontrino.txt`;
@@ -112,7 +119,8 @@ avvio:
 
 | Sezione | |
 |---|---|
-| `Password` | L'hash della password del back office (PBKDF2): la password non c'è. **Password dimenticata**: ferma l'Agent, togli la sezione `Password`, riavvialo e impostala di nuovo dal PC dell'Agent |
+| `Password` | L'hash della password del back office (PBKDF2): la password non c'è, né in chiaro né cifrata (una password cifrata si decifra, e la chiave starebbe nell'exe di ogni cliente). **Password dimenticata**: da amministratore sul PC dell'Agent scrivi quella nuova in `dati\nuova-password.txt`, o fattene generare una con `BluetechDisplayAgent.exe --genera-password`, e riavvia il servizio: l'Agent la prende e toglie il file, anche se non va bene (sotto i 6 caratteri resta quella di prima, e il log lo dice). Oppure togli la sezione `Password` e impostala dal back office aperto sul PC dell'Agent |
+| `BackOfficeDallaRete` | `false`: il back office si apre solo dal PC dell'Agent, anche in desktop remoto. `true`: anche dagli altri PC e dai telefoni della rete del locale, che a volte è la stessa del Wi-Fi dei clienti. Vale subito; spegnendola, le sessioni aperte dalla rete finiscono |
 | `Rete` | `Porta` (5080), `ApertoInRete` (`false`: risponde solo a questo PC; `true`: anche alla rete, serve una regola nel firewall), `Https`. Valgono dal riavvio; una porta già usata da un altro programma viene rifiutata. Se all'avvio la porta è occupata lo stesso, l'Agent usa la 5080 (o parte senza HTTPS) e lo dice nel back office |
 | `ChiusuraVenditaDopoSecondi` | 60: conto aperto, senza `PAGATO`, e nessun file per un minuto: si chiude e il display torna alle slide. Con il QR Satispay a video almeno 3 minuti. All'avvio, un file più vecchio di così si toglie senza mostrarlo |
 | `ScontrinoDigitale` | `MostraScontrino`, `CopiaCartacea`, `SecondiAVideo` (45), `Dicitura`: vedi sotto |
@@ -152,8 +160,12 @@ quell'avvio), `--dati`, `--replay`, `--velocita`, `--ripeti`.
   chiusi senza `PAGATO`, QR di pagamento, scontrini digitali, copie cartacee (con la percentuale sugli scontrini
   digitali), copie non stampate, file letti. Sono quello che ha visto il monitor, non i dati fiscali.
 - **Log**: il log del giorno scelto, con il filtro "avvisi ed errori" e la ricerca.
+- Si apre solo dal PC dell'Agent (anche in desktop remoto), finché in Opzioni non si accende "Back office anche dalla
+  rete": chi entra dal back office può cambiare quello che vedono i clienti, compreso l'indirizzo del QR dopo il
+  pagamento. Dalla rete, senza l'opzione, la pagina lo spiega e la password non viene nemmeno provata.
 - La sessione dura finché si usa (12 ore di inattività al massimo) e finisce al riavvio dell'Agent; 5 password
-  sbagliate di fila fermano quel PC per un minuto.
+  sbagliate di fila fermano quel PC per un minuto. I cambi di password da file e l'apertura alla rete finiscono tra gli
+  avvisi del log.
 - Il cookie di un dispositivo dura 400 giorni (il massimo di Chrome) e si rinnova a ogni visita e ogni 6 ore a pagina
   aperta. Su HTTPS ha un altro nome: passare da HTTPS a HTTP, o il contrario, chiede solo un nuovo abbinamento.
 

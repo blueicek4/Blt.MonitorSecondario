@@ -157,7 +157,8 @@
       <label>Ripeti la password<input id="first2" type="password" autocomplete="new-password" required minlength="6"></label>
       <div class="actionsbar"><button class="btn primary" type="submit">Imposta e entra</button></div>
     </form>
-    <p id="remotefirst" class="muted" hidden>La password non è ancora impostata. Per sicurezza la prima volta si imposta dal PC dove gira l'Agent: apri lì <span class="mono">http://localhost:5080/backoffice</span>.</p>
+    <p id="remotefirst" class="muted" hidden>La password non è ancora impostata. Per sicurezza la prima volta si imposta dal PC dove gira l'Agent: apri lì <span class="mono localurl">http://localhost:5080/backoffice</span>.</p>
+    <p id="notreachable" class="muted" hidden>Il back office si apre dal PC dove gira l'Agent, anche in desktop remoto: lì è <span class="mono localurl">http://localhost:5080/backoffice</span>. Per aprirlo anche dagli altri PC e dai telefoni della rete: Opzioni, "Back office anche dalla rete", da quel PC.</p>
     <p id="loginmsg" class="message err"></p>
   </div>
   <footer class="brand">powered by Bluetech</footer>
@@ -505,6 +506,7 @@
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px 16px;align-items:start">
             <label>Porta HTTP<input name="Porta" type="number" min="1" max="65535"></label>
             <label class="check"><input name="ApertoInRete" type="checkbox"> Raggiungibile dalla rete <span class="hint">(serve una regola nel firewall)</span></label>
+            <label class="check" style="grid-column:1/-1"><input name="BackOfficeDallaRete" type="checkbox"> Back office anche dalla rete <span class="hint">(spento: si apre solo da questo PC, anche in desktop remoto; acceso: chi è nella rete del locale, a volte anche il Wi-Fi dei clienti, vede la pagina di accesso). Vale subito</span></label>
             <label class="check"><input name="HttpsAttivo" type="checkbox"> HTTPS</label>
             <label>Porta HTTPS<input name="HttpsPorta" type="number" min="1" max="65535"></label>
             <label style="grid-column:1/-1">Certificato .pfx<input name="Certificato" class="mono" placeholder="C:\certificati\agent.pfx"><span class="hint">vuoto = lo genera l'Agent, con un'autorità da installare sui dispositivi</span></label>
@@ -617,16 +619,19 @@ async function api(method, path, body) {
 async function boot() {
   clearInterval(state.timer);
   let session;
-  try { session = await api("GET", "/api/bo/sessione"); }
+  try { session = state.session = await api("GET", "/api/bo/sessione"); }
   catch (error) { $("login").hidden = false; say("loginmsg", "L'Agent non risponde: " + error.message, "err"); return; }
   if (session.autenticato) return enter();
   $("app").hidden = true;
   $("login").hidden = false;
-  $("loginform").hidden = !session.passwordImpostata;
-  $("firstform").hidden = session.passwordImpostata || !session.locale;
-  $("remotefirst").hidden = session.passwordImpostata || session.locale;
+  for (const span of document.querySelectorAll(".localurl")) span.textContent = location.protocol + "//localhost" + (location.port ? ":" + location.port : "") + "/backoffice";
+  const reachable = session.raggiungibile !== false;
+  $("notreachable").hidden = reachable;
+  $("loginform").hidden = !reachable || !session.passwordImpostata;
+  $("firstform").hidden = !reachable || session.passwordImpostata || !session.locale;
+  $("remotefirst").hidden = !reachable || session.passwordImpostata || session.locale;
   say("loginmsg", "");
-  (session.passwordImpostata ? $("password") : $("first1")).focus();
+  if (reachable) (session.passwordImpostata ? $("password") : $("first1")).focus();
 }
 
 $("loginform").addEventListener("submit", async (event) => {
@@ -1012,6 +1017,7 @@ function renderOptions() {
   form.Dicitura.value = s.ScontrinoDigitale.Dicitura;
   form.Porta.value = s.Rete.Porta;
   form.ApertoInRete.checked = s.Rete.ApertoInRete;
+  form.BackOfficeDallaRete.checked = !!s.BackOfficeDallaRete;
   form.HttpsAttivo.checked = s.Rete.Https.Attivo;
   form.HttpsPorta.value = s.Rete.Https.Porta;
   form.Certificato.value = s.Rete.Https.Certificato;
@@ -1032,7 +1038,10 @@ function renderOptions() {
 $("optionsform").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.target;
+  if (!form.BackOfficeDallaRete.checked && state.settings.BackOfficeDallaRete && state.session && !state.session.locale
+      && !confirm("Dopo il salvataggio il back office si aprirà solo dal PC dell'Agent: da questo dispositivo non potrai più entrare. Continuare?")) return;
   const body = {
+    BackOfficeDallaRete: form.BackOfficeDallaRete.checked,
     ChiusuraVenditaDopoSecondi: Number(form.ChiusuraVenditaDopoSecondi.value),
     ScontrinoDigitale: { MostraScontrino: form.MostraScontrino.checked, CopiaCartacea: form.CopiaCartacea.checked, SecondiAVideo: Number(form.SecondiAVideo.value), Dicitura: form.Dicitura.value },
     Rete: {

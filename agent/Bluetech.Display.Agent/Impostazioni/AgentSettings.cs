@@ -16,6 +16,12 @@ public sealed partial class AgentSettings
     public NetworkSettings Rete { get; set; } = new();
 
     /// <summary>
+    /// false (di default): il back office si apre solo dal PC dell'Agent, anche in desktop remoto. true: anche dagli altri
+    /// PC e dai telefoni della rete del locale, che a volte è la stessa del Wi-Fi dei clienti. Vale subito.
+    /// </summary>
+    public bool BackOfficeDallaRete { get; set; }
+
+    /// <summary>
     /// Vendita aperta e nessun file per tanto tempo: si chiude e il display torna alle slide. All'avvio un file più
     /// vecchio di così è un avanzo e si toglie senza mostrarlo. 0 = mai.
     /// </summary>

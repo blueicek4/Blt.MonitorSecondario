@@ -96,9 +96,10 @@ public static class AgentApp
 
         var options = builder.Configuration.GetSection("Agent").Get<AgentOptions>() ?? new AgentOptions();
         builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection("Agent"));
-        var dataFolder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, options.CartellaDati));
+        var dataFolder = DataFolder(options);
         var logFolder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, options.CartellaLog));
         var store = new SettingsStore(dataFolder);
+        var passwordFile = PasswordFile.Apply(dataFolder, store);   // dall'installazione o dal tecnico, prima di tutto
         var network = store.Current.Rete;
         if (!network.ApertoInRete && string.IsNullOrEmpty(builder.Configuration["AllowedHosts"]))
             builder.Configuration["AllowedHosts"] = "localhost;127.0.0.1;[::1]";   // niente DNS rebinding sul back office
@@ -163,6 +164,10 @@ public static class AgentApp
             startup.LogWarning("{Problem}", statsProblem);
         foreach (var note in app.Services.GetRequiredService<MediaLibrary>().Tidy())
             startup.LogWarning("Immagini e video: {Note}", note);
+        if (passwordFile is { Problem: true })
+            startup.LogError("{Note}", passwordFile.Note);
+        else if (passwordFile != null)
+            startup.LogWarning("{Note}", passwordFile.Note);   // un cambio di password si deve vedere tra gli avvisi
         if (httpsProblem != null)
             startup.LogError("{Problem}", httpsProblem);
         foreach (var problem in startupProblems)
@@ -174,6 +179,19 @@ public static class AgentApp
         MapPages(app, options, runtime);
         BackOfficeApi.Map(app);
         return app;
+    }
+
+    static string DataFolder(AgentOptions options) => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, options.CartellaDati));
+
+    /// <summary>La cartella dati come la vedrà l'Agent (appsettings.json e --dati), per i comandi da riga di comando.</summary>
+    public static string DataFolder(string[] args)
+    {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddCommandLine(args, Switches)
+            .Build();
+        return DataFolder(configuration.GetSection("Agent").Get<AgentOptions>() ?? new AgentOptions());
     }
 
     /// <summary>
