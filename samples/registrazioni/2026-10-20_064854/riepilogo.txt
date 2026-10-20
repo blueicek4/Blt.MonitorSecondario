@@ -1,0 +1,14 @@
+Riepilogo registrazione
+  Durata: 00:05:35
+  Versioni diverse registrate: 28
+    scontrino: 28
+  Riscritture identiche: 1
+  Notifiche doppie ignorate: 11
+  Letture prese durante la scrittura (messe da parte): 1
+  Letture ritentate (file bloccato): 0
+  Eventi della cartella: 41
+  File tolti in modalità consumo: 17
+  Passepartout ha sostituito da sé il file che c'era: sì
+  Tempo minimo tra due scritture: 3,31 s (con /consuma: 0,22 s)
+  Note: 4
+  Codifiche viste: ASCII

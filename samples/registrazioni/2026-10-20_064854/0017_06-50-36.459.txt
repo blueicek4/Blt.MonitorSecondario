@@ -1,0 +1,23 @@
+SNF
+ 
+ Insalata Vecchia Malga                    10,00
+ Insalata Vecchia Malga                    10,00
+ Cotoletta alla Bolognese                  15,00
+ Insalata Gran Reno                        14,00
+ Costine alla Birrina                      15,00
+ Insalata Greca                            12,00
+ Petto di Pollo                            11,00
+ Cotoletta Bolognese                       15,00
+ Tagliata Al Rosmarino                     15,50
+ Insalata Gran Reno                        14,00
+ Parma E Melone                            12,00
+ Caprese Vecchia Malga                     12,00
+ Polpettine Della Nonna                    12,50
+ Caesar Salad                              10,00
+ Brasato di Manzo                          15,00
+ Brasato di Manzo                          15,00
+SUBTOT.                                   208,00
+ 
+TOT. DA PAGARE                            208,00
+ 
+ 

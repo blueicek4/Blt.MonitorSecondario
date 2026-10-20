@@ -30,7 +30,7 @@ La selezione del testo col mouse nella finestra è disattivata: in Windows blocc
 
 ## Se non arrivano versioni nuove
 
-Cosa sappiamo dalle due prove sul campo (stesso PC):
+Cosa sappiamo dalle prove sul campo (stesso PC):
 
 - **19/10**: il file c'era già (scritto un minuto e mezzo prima, modello a 30 colonne) e per 2 minuti e mezzo di
   prove in cartella non è successo niente: nessuna eliminazione né creazione. Un tentativo fallito non lascia
@@ -38,11 +38,11 @@ Cosa sappiamo dalle due prove sul campo (stesso PC):
 - **20/10**: modello a 48 colonne, file assente all'avvio: [42 versioni](../samples/registrazioni/2026-10-20_002138/README.md).
   Passepartout **elimina il file e lo ricrea** a ogni aggiornamento, e mai prima di 3 s dalla scrittura precedente.
 
-Il perché della prima prova non è ancora noto. Un'ipotesi da verificare: con `SovrascriviSeEsistente=false`
-Passepartout aspetta fino a `NumeroTentativi` × `SecondiAttesa` (3 × 1 s nel modello che conosciamo, quello a
-30 colonne) che il file venga tolto. Poi, a seconda di
-come è configurato, lo sostituisce da sé (20/10) o rinuncia (19/10?). Se è così, oggi ogni aggiornamento arriva al
-display con circa 3 s di ritardo.
+- **20/10 alle 6:48**, [prova A/B/A](../samples/registrazioni/2026-10-20_064854/README.md): **confermato** che, se il
+  file c'è ancora, Passepartout aspetta circa 3 s (`NumeroTentativi` × `SecondiAttesa`) e lo toglie da sé; se è già
+  stato tolto, scrive subito. Con `/consuma` le battute arrivano dopo 0,23–0,85 s invece che dopo 3,3 s.
+
+Il perché della prima prova non è ancora noto: quel giorno Passepartout non ha nemmeno eliminato il file.
 
 Il registratore ti avvisa alla seconda nota se nel frattempo il file non è cambiato, e ti dice cosa può significare:
 file assente (percorso sbagliato), file mai riscritto (prova qui sotto), vecchio monitor che legge un'altra cartella.
