@@ -406,7 +406,7 @@ public sealed class RecordingSessionTests : IDisposable
 
         Assert.Equal(1, session.Versions);
         Assert.True(_log.Contains("Attenzione: dalla nota precedente"));
-        Assert.True(_log.Contains("da verificare"));   // è un'ipotesi, non una diagnosi
+        Assert.True(_log.Contains("SovrascriviSeEsistente=false"));
         Assert.Contains(IndexLines(session), l => l.Contains("\"tipo\":\"avviso\"") && l.Contains("\"caso\":\"mai-riscritto\""));
     }
 

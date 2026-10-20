@@ -81,13 +81,17 @@ riceve subito lo stato corrente.
 ### Fase 0 — Raccolta dati reali (2–3 giorni) — *bloccante per il parser*
 - **Registratore pronto**: [tools/](../tools/README.md) — `BluetechRecorder.exe` salva ogni versione di `Scontrino.txt`
   byte per byte, con note dell'operatore, differenze riga per riga e uno zip finale da inviare.
-- **Primo giro (19/10)**: una sola versione registrata, nessuna attività nella cartella; causa ancora da capire.
+- **Primo giro (19/10)**: una sola versione registrata, nessuna attività nella cartella. Causa: nel modello XML di
+  allora `SovrascriviSeEsistente=false`, quindi Passepartout non sostituisce un file che c'è già e, dopo 3 tentativi,
+  rinuncia ([modelli a confronto](01-analisi-monitorcliente.md#7-il-modello-xml-di-passepartout-xmlmonitorclientexml)).
 - **Secondo giro (20/10)**: 42 versioni, 6 conti ([registrazione](../samples/registrazioni/2026-10-20_002138/README.md)).
   Passepartout elimina e ricrea il file a ogni aggiornamento, mai prima di 3 s dal precedente.
 - **Prova A/B/A (20/10 alle 6:48)**: [confermato](../samples/registrazioni/2026-10-20_064854/README.md). Se il file c'è ancora Passepartout aspetta
   circa 3 s e lo toglie da sé; se è già stato tolto scrive subito (0,23–0,85 s tra due battute contro 3,3 s).
   **Decisione (20/10)**: l'Agent toglie **sempre** il file appena letto, come il registratore, che ora lo fa di
-  default per registrare nelle stesse condizioni della produzione. Il display del cliente
+  default per registrare nelle stesse condizioni della produzione. Nelle nostre installazioni anche
+  `SovrascriviSeEsistente=true`: se l'Agent si ferma, il display riceve gli aggiornamenti in ritardo invece di
+  perderli. Il display del cliente
   guadagna 3 s a battuta rispetto a oggi e non perde più stati intermedi.
 - Già chiarito dal secondo giro: formato a 48 colonne, intestazione e quantità unite in "dettagli conto", sconti sul
   subtotale e ripartiti, righe `PAGATO …` e `Resto:` a fine conto. Ancora da registrare: Satispay, messaggi del visore,
@@ -175,7 +179,7 @@ riceve subito lo stato corrente.
 | Rischio | Impatto | Mitigazione |
 |---|---|---|
 | Il formato del file cambia con un aggiornamento di Passepartout | Scontrino mal interpretato | Test golden, parser tollerante, ripiego "testo grezzo" sempre leggibile |
-| Passepartout aspetta che il file venga tolto prima di riscriverlo (confermato dalla prova A/B/A) | Senza nessuno che lo toglie, ogni battuta in ritardo di ~3 s; il 19/10 monitor fermo al primo conto (causa da capire) | L'Agent toglie il file dopo averlo letto, solo se è ancora la versione letta (come il registratore con `/consuma`); mai Agent e vecchio monitor insieme sullo stesso file: all'installazione il vecchio monitor si spegne |
+| Passepartout aspetta che il file venga tolto prima di riscriverlo (confermato dalla prova A/B/A) | Senza nessuno che lo toglie: con `SovrascriviSeEsistente=true` ogni battuta in ritardo di ~3 s, con `false` aggiornamenti persi (19/10) | L'Agent toglie il file dopo averlo letto, solo se è ancora la versione letta (come il registratore); `SovrascriviSeEsistente=true` nel modello, come rete di sicurezza; mai Agent e vecchio monitor insieme sullo stesso file: all'installazione il vecchio monitor si spegne |
 | Nessun segnale di esito Satispay | Niente animazione "pagato" | Non promettere l'esito; Fase 0 per cercare un segnale |
 | PC cassa lenti o Windows vecchi (7/8.1) | Effetti a scatti / player non installabile | Profili animazione automatici; censimento in Fase 0; Windows 10+ come requisito |
 | Monitor cliente staccato o cambio risoluzione | Display sulla cassa | Gestito dal Player (si nasconde e ricompare) |

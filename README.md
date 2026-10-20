@@ -10,7 +10,7 @@ personalizzabile con il brand del locale e sempre firmata "powered by Bluetech".
 | [docs/02-piano-azione.md](docs/02-piano-azione.md) | Architettura, fasi, rischi, decisioni aperte |
 | [docs/claude-design-brief.md](docs/claude-design-brief.md) | **Il brief da dare a Claude Design** (file da allegare o incollare) |
 | [docs/03-prompt-claude-design.md](docs/03-prompt-claude-design.md) | Cosa allegare al brief e come gestire le iterazioni |
-| [docs/reference/](docs/reference/) | Configurazione e modello XML originali, per i test di compatibilità |
+| [docs/reference/](docs/reference/) | Configurazione e modelli XML del monitor (a 30 colonne, quello originale; a 48, in uso dal 20/10) |
 | [samples/](samples/) | File reali scritti dalla cassa, usati nei test |
 | [design/](design/ALLINEAMENTO.md) | Pacchetto di handoff di Claude Design (`design/handoff/`, tale e quale) e allineamento con la cassa reale |
 
