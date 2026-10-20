@@ -184,19 +184,30 @@ public sealed class Statistics
                 : null;
     }
 
+    /// <summary>Le casse che hanno dei conteggi, anche tolte: i loro id non si riusano per una cassa nuova.</summary>
+    public HashSet<string> CashPointIds()
+    {
+        lock (_lock)
+            return _data.Giorni.Values.SelectMany(d => d.Keys).ToHashSet();
+    }
+
     public void Forget(string deviceId)
     {
         lock (_lock)
             _dirty |= _data.Dispositivi.Remove(deviceId);
     }
 
-    /// <summary>Gli ultimi <paramref name="days"/> giorni con qualcosa, dal più recente.</summary>
+    /// <summary>
+    /// I giorni del calendario da oggi indietro (1 = oggi, 7 = l'ultima settimana), dal più recente; quelli senza niente
+    /// non ci sono.
+    /// </summary>
     public JsonArray Report(int days)
     {
+        var from = DateTime.Today.AddDays(1 - Math.Clamp(days, 1, KeepDays)).ToString("yyyy-MM-dd");
         lock (_lock)
         {
             var result = new JsonArray();
-            foreach (var (day, cashPoints) in _data.Giorni.Reverse().Take(Math.Clamp(days, 1, KeepDays)))
+            foreach (var (day, cashPoints) in _data.Giorni.Reverse().Where(d => string.CompareOrdinal(d.Key, from) >= 0))
             {
                 var casse = new JsonObject();
                 foreach (var (id, counters) in cashPoints)

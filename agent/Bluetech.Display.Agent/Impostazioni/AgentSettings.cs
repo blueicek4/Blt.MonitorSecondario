@@ -113,6 +113,7 @@ public sealed partial class AgentSettings
                 device.Cassa = Casse[0].Id;
             }
         }
+        RepairAppearance(notes);
         return notes;
     }
 
@@ -148,6 +149,8 @@ public sealed partial class AgentSettings
             var file = cash.FileCassa ?? "";
             if (string.IsNullOrWhiteSpace(file) || !Path.IsPathFullyQualified(file) || Path.GetFileName(file).Length == 0)
                 yield return $"{cash.Nome}: il file deve essere un percorso completo, per esempio C:\\MonitorSecondario\\Scontrino.txt.";
+            else if (!string.Equals(Path.GetExtension(file), ".txt", StringComparison.OrdinalIgnoreCase))
+                yield return $"{cash.Nome}: il file del monitor di Passepartout è un .txt (per esempio Scontrino.txt). L'Agent lo cancella dopo averlo letto: un altro file non va bene.";
             else if (!files.Add(Path.GetFullPath(file)))
                 yield return $"{cash.Nome}: il file {file} è già di un'altra cassa. Ogni cassa ha il suo file.";
         }
@@ -190,6 +193,9 @@ public sealed partial class AgentSettings
             if (device.Stampante != null && Printer(device.Stampante) == null)
                 yield return $"{device.Nome}: la stampante scelta non c'è.";
         }
+
+        foreach (var problem in AppearanceProblems())
+            yield return problem;
     }
 
     static string? Name(string? name, string what) =>
@@ -198,7 +204,7 @@ public sealed partial class AgentSettings
         : null;
 
     [GeneratedRegex("^[a-z0-9-]{1,40}$")]
-    private static partial Regex IdPattern();
+    internal static partial Regex IdPattern();
 
     [GeneratedRegex(@"^[A-Za-z0-9.\-]+(:\d{1,5})?$")]
     private static partial Regex NetworkAddress();

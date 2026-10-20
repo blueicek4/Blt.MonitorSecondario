@@ -123,7 +123,7 @@ sealed class ConfigForm : DialogBase
     readonly TextBox _url = new() { Width = 420 };
     readonly ComboBox _screen = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 420 };
     readonly ComboBox _missing = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 420 };
-    readonly CheckBox _fullScreen = Check("Schermo intero senza bordi (senza la spunta: una finestra di Windows, che si sposta e si ingrandisce)");
+    readonly CheckBox _fullScreen = Check("Schermo intero senza bordi (senza: una finestra normale di Windows)");
     readonly CheckBox _topMost = Check("Sempre in primo piano");
     readonly CheckBox _hideCursor = Check("Nascondi il puntatore del mouse");
     readonly CheckBox _preventSleep = Check("Impedisci lo spegnimento dello schermo");
@@ -231,7 +231,7 @@ sealed class ConfigForm : DialogBase
         _url.Text = s.Url;
 
         _screen.Items.Add(new ScreenItem("", "Automatico — il primo schermo secondario"));
-        _screen.Items.Add(new ScreenItem(PlayerSettings.PrimaryScreen, "Principale — lo schermo principale di Windows (PC o tablet con un solo schermo)"));
+        _screen.Items.Add(new ScreenItem(PlayerSettings.PrimaryScreen, "Principale — lo schermo principale di Windows"));
         var screens = Screen.AllScreens;
         for (var i = 0; i < screens.Length; i++)
             _screen.Items.Add(new ScreenItem(screens[i].DeviceName, ScreenLocator.Describe(screens[i], i)));

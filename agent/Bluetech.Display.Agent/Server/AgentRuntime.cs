@@ -21,6 +21,9 @@ public sealed class AgentRuntime
     public string? AuthorityPath { get; init; }
     public string? HttpsProblem { get; init; }
 
+    /// <summary>Porte occupate all'avvio e il ripiego scelto.</summary>
+    public IReadOnlyList<string> StartupProblems { get; init; } = [];
+
     /// <summary>Porta, apertura in rete o HTTPS cambiati dal back office: valgono dal prossimo avvio.</summary>
     public bool RestartNeeded(AgentSettings now) =>
         JsonSerializer.Serialize(now.Rete, AgentSettings.Json) != JsonSerializer.Serialize(StartupNetwork, AgentSettings.Json);

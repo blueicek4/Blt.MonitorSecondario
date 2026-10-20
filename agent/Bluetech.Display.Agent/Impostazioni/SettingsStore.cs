@@ -74,30 +74,51 @@ public sealed class SettingsStore
 
     AgentSettings Load()
     {
-        if (!File.Exists(FilePath))
+        var read = ReadWithRetries(FilePath, out var settings, out var problem);
+        if (read == ReadResult.Ok)
+            return Repaired(settings);
+
+        if (read == ReadResult.Missing)
         {
+            // Senza impostazioni.json ma con la copia: il file è stato tolto (a mano, o da un errore): si riparte dalla
+            // copia, non dalle impostazioni iniziali, che perderebbero password, casse e dispositivi.
+            if (ReadWithRetries(FilePath + ".bak", out var backup, out _) == ReadResult.Ok)
+            {
+                LoadNotes.Add($"{FileName} mancava: ripristinato dalla copia di sicurezza (.bak)");
+                backup = Repaired(backup);
+                Save(backup);
+                return backup;
+            }
             var defaults = AgentSettings.Defaults();
             Save(defaults);
             LoadNotes.Add($"Primo avvio: creato {FilePath}");
             return defaults;
         }
-        if (TryRead(FilePath, out var settings, out var problem))
-            return Repaired(settings);
 
-        // File rotto (modificato a mano?): si mette da parte e si riparte dall'ultima copia buona.
+        if (read == ReadResult.Unreadable)   // bloccato o senza permessi anche dopo i tentativi: meglio non partire che perdere le impostazioni
+            throw new IOException($"Non riesco a leggere {FilePath}: {problem}");
+
+        // File rotto (modificato a mano?): se ne tiene una copia e si riparte dall'ultima copia buona.
         var broken = $"{FilePath}.errore-{DateTime.Now:yyyyMMdd-HHmmss}";
-        File.Move(FilePath, broken);
-        LoadNotes.Add($"{FileName} non è valido ({problem}): l'ho rinominato in {Path.GetFileName(broken)}");
-        if (TryRead(FilePath + ".bak", out var backup, out _))
+        try
+        {
+            File.Copy(FilePath, broken, overwrite: true);
+            LoadNotes.Add($"{FileName} non è valido ({problem}): una copia è in {Path.GetFileName(broken)}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            LoadNotes.Add($"{FileName} non è valido ({problem}) e non riesco a copiarlo: {ex.Message}");
+        }
+        if (ReadWithRetries(FilePath + ".bak", out var good, out _) == ReadResult.Ok)
         {
             LoadNotes.Add("Riparto dalla copia di sicurezza (.bak), cioè dalle impostazioni prima dell'ultima modifica");
-            backup = Repaired(backup);
-            Save(backup);
-            return backup;
+            good = Repaired(good);
+            Save(good, keepBackup: false);
+            return good;
         }
         LoadNotes.Add("Nessuna copia di sicurezza buona: riparto dalle impostazioni iniziali");
         var fresh = AgentSettings.Defaults();
-        Save(fresh);
+        Save(fresh, keepBackup: false);
         return fresh;
     }
 
@@ -106,47 +127,65 @@ public sealed class SettingsStore
         var notes = settings.Repair();
         foreach (var note in notes)
             LoadNotes.Add($"{FileName}: {note}");
-        if (settings.Validate() is { } invalid)
+        foreach (var invalid in settings.Problems())
             LoadNotes.Add($"{FileName}: {invalid} Correggilo dal back office.");
         return settings;
     }
 
-    static bool TryRead(string path, out AgentSettings settings, out string? problem)
+    enum ReadResult
+    {
+        Ok,
+        Missing,
+        Broken,
+        Unreadable,
+    }
+
+    /// <summary>Un file bloccato per un attimo (antivirus, copia di sicurezza) non è un file rotto: si riprova.</summary>
+    static ReadResult ReadWithRetries(string path, out AgentSettings settings, out string? problem)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            var result = TryRead(path, out settings, out problem);
+            if (result != ReadResult.Unreadable || attempt == 10)
+                return result;
+            Thread.Sleep(300);
+        }
+    }
+
+    static ReadResult TryRead(string path, out AgentSettings settings, out string? problem)
     {
         settings = null!;
         problem = null;
         try
         {
             if (!File.Exists(path))
-            {
-                problem = "il file non c'è";
-                return false;
-            }
+                return ReadResult.Missing;
             settings = JsonSerializer.Deserialize<AgentSettings>(File.ReadAllText(path, Utf8), AgentSettings.Json)!;
             if (settings == null)
             {
                 problem = "il file è vuoto";
-                return false;
+                return ReadResult.Broken;
             }
-            return true;
+            return ReadResult.Ok;
         }
         catch (JsonException ex)
         {
             problem = ex.LineNumber.HasValue ? $"riga {ex.LineNumber + 1}: {ex.Message}" : ex.Message;
-            return false;
+            return ReadResult.Broken;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             problem = ex.Message;
-            return false;
+            return ReadResult.Unreadable;
         }
     }
 
-    void Save(AgentSettings settings)
+    /// <param name="keepBackup">Falso quando il file attuale è rotto: la copia buona resta quella che c'è.</param>
+    void Save(AgentSettings settings, bool keepBackup = true)
     {
         var temp = FilePath + ".tmp";
         File.WriteAllText(temp, JsonSerializer.Serialize(settings, AgentSettings.Json), Utf8);
-        if (File.Exists(FilePath))
+        if (keepBackup && File.Exists(FilePath))
             File.Copy(FilePath, FilePath + ".bak", overwrite: true);
         File.Move(temp, FilePath, overwrite: true);
     }

@@ -49,6 +49,21 @@ public sealed class CashFileSourceTests : IDisposable
     }
 
     [Fact]
+    public void A_file_too_big_for_the_monitor_is_never_read_nor_removed()
+    {
+        // Un percorso sbagliato nelle impostazioni che punta a un file vero: l'Agent non deve cancellarlo.
+        File.WriteAllBytes(_target, new byte[CashFileSource.MaxFileBytes + 1]);
+        File.SetLastWriteTimeUtc(_target, DateTime.UtcNow.AddHours(-2));   // anche "vecchio": l'avanzo all'avvio non lo tocca
+        var received = new ConcurrentQueue<byte[]>();
+        using var source = new CashFileSource(_target, TimeSpan.FromMinutes(1), NullLogger.Instance, received.Enqueue);
+        source.Start();
+        WaitUntil(() => source.LastProblem?.Contains("troppo grande") == true, "il problema del file troppo grande");
+        Thread.Sleep(600);
+        Assert.True(File.Exists(_target));
+        Assert.Empty(received);
+    }
+
+    [Fact]
     public void Each_version_is_delivered_once_and_then_removed()
     {
         var received = new ConcurrentQueue<string>();

@@ -19,7 +19,7 @@ public sealed class AdminAccess(SettingsStore settings)
     static readonly TimeSpan LockFor = TimeSpan.FromMinutes(1);
 
     readonly ConcurrentDictionary<string, DateTimeOffset> _sessions = new();
-    readonly ConcurrentDictionary<string, (int Failures, DateTimeOffset LockedUntil)> _failures = new();
+    readonly Dictionary<string, (int Failures, DateTimeOffset LockedUntil)> _failures = [];
 
     public bool PasswordSet => settings.Current.Password != null;
 
@@ -61,21 +61,41 @@ public sealed class AdminAccess(SettingsStore settings)
         return remote == null || IPAddress.IsLoopback(remote) || (remote.IsIPv4MappedToIPv6 && IPAddress.IsLoopback(remote.MapToIPv4()));
     }
 
+    /// <summary>
+    /// Il nome del cookie: su HTTPS con "_s" in fondo. Un cookie Secure non viaggia su HTTP e il browser non lo lascia
+    /// sostituire da uno non Secure con lo stesso nome: con due nomi, chi passa da HTTPS a HTTP (o il contrario) non resta
+    /// chiuso fuori.
+    /// </summary>
+    internal static string CookieName(string name, HttpContext context) => context.Request.IsHttps ? name + "_s" : name;
+
+    /// <summary>I valori del cookie, prima quello HTTPS e poi l'altro (su HTTPS arrivano tutti e due).</summary>
+    internal static IEnumerable<string> CookieValues(HttpContext context, string name)
+    {
+        if (context.Request.Cookies.TryGetValue(name + "_s", out var secure) && secure.Length > 0)
+            yield return secure;
+        if (context.Request.Cookies.TryGetValue(name, out var plain) && plain.Length > 0)
+            yield return plain;
+    }
+
     public bool IsAuthenticated(HttpContext context)
     {
-        if (!context.Request.Cookies.TryGetValue(Cookie, out var token) || token.Length == 0)
-            return false;
-        var key = Sha256(token);
-        if (!_sessions.TryGetValue(key, out var lastUse))
+        if (!PasswordSet)
             return false;
         var now = DateTimeOffset.UtcNow;
-        if (now - lastUse > SessionIdle || !PasswordSet)
+        foreach (var token in CookieValues(context, Cookie))
         {
-            _sessions.TryRemove(key, out _);
-            return false;
+            var key = Sha256(token);
+            if (!_sessions.TryGetValue(key, out var lastUse))
+                continue;
+            if (now - lastUse > SessionIdle)
+            {
+                _sessions.TryRemove(key, out _);
+                continue;
+            }
+            _sessions[key] = now;
+            return true;
         }
-        _sessions[key] = now;
-        return true;
+        return false;
     }
 
     /// <summary>Controlla la password e apre la sessione. Restituisce l'errore o null.</summary>
@@ -83,17 +103,22 @@ public sealed class AdminAccess(SettingsStore settings)
     {
         var who = context.Connection.RemoteIpAddress?.ToString() ?? "?";
         var now = DateTimeOffset.UtcNow;
-        if (_failures.TryGetValue(who, out var record) && record.LockedUntil > now)
-            return "Troppi tentativi sbagliati: riprova tra un minuto.";
         if (settings.Current.Password is not { } stored)
             return "La password non è ancora impostata.";
-        if (string.IsNullOrEmpty(password) || !Verify(stored, password))
+        // Tentativi in parallelo dallo stesso indirizzo: ognuno prende il suo posto nel conto prima di controllare la
+        // password, così nessuno passa oltre il quinto.
+        lock (_failures)
         {
+            _failures.TryGetValue(who, out var record);
+            if (record.LockedUntil > now)
+                return "Troppi tentativi sbagliati: riprova tra un minuto.";
             var failures = record.Failures + 1;
             _failures[who] = failures >= FailuresBeforeLock ? (0, now + LockFor) : (failures, default);
-            return "Password sbagliata.";
         }
-        _failures.TryRemove(who, out _);
+        if (string.IsNullOrEmpty(password) || !Verify(stored, password))
+            return "Password sbagliata.";
+        lock (_failures)
+            _failures.Remove(who);
         StartSession(context);
         return null;
     }
@@ -102,7 +127,7 @@ public sealed class AdminAccess(SettingsStore settings)
     {
         var token = NewToken();
         _sessions[Sha256(token)] = DateTimeOffset.UtcNow;
-        context.Response.Cookies.Append(Cookie, token, new CookieOptions
+        context.Response.Cookies.Append(CookieName(Cookie, context), token, new CookieOptions
         {
             HttpOnly = true,
             SameSite = SameSiteMode.Strict,
@@ -114,9 +139,9 @@ public sealed class AdminAccess(SettingsStore settings)
 
     public void EndSession(HttpContext context)
     {
-        if (context.Request.Cookies.TryGetValue(Cookie, out var token))
+        foreach (var token in CookieValues(context, Cookie))
             _sessions.TryRemove(Sha256(token), out _);
-        context.Response.Cookies.Delete(Cookie, new CookieOptions { Path = "/" });
+        context.Response.Cookies.Delete(CookieName(Cookie, context), new CookieOptions { Path = "/" });
     }
 
     /// <summary>Dopo il cambio della password restano aperte solo le sessioni nuove.</summary>

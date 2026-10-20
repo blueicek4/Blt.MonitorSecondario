@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="it" data-format="1920x1080" data-layout="wide" data-motion="light" data-footer="dark" data-screen="idle">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Monitor cliente</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<script src="/aspetto/tema.js"></script>
+<style>
+/* Lo schermo del cliente dell'Agent, con l'aspetto del back office (messaggio cfg) e le misure del design
+   (design/handoff/SPEC.md, display/src/tokens/tokens.css). Quando c'è il display del design (M5) /cliente serve quello. */
+:root {
+  --e-spring: cubic-bezier(0.22, 1.2, 0.36, 1); --e-out: cubic-bezier(0.16, 1, 0.3, 1); --e-move: cubic-bezier(0.33, 1, 0.68, 1);
+  --d-row: 420ms; --d-total-pulse: 260ms; --d-state: 520ms; --d-msg: 320ms; --d-slide: 1200ms; --d-celebration: 900ms;
+  --footer-h: 56px; --footer-word: 17px; --footer-mark: 24px;
+  --c-bg: #0B1017; --c-surface: rgba(255,255,255,0.055); --c-surface-solid: #141B26; --c-line: rgba(255,255,255,0.09);
+  --c-text: #E6EAF2; --c-muted: #9AA6BA; --c-faint: #6F7E95; --c-primary: #1F6FEB; --c-on-primary: #FFFFFF;
+  --c-accent: #3DDC97; --c-secondary: #8FA3C0; --font-display: 'Archivo', 'Arial Narrow', sans-serif;
+  --font-text: 'IBM Plex Sans', 'Segoe UI', sans-serif; --radius: 24px; --glass-blur: 14px;
+  --total-fill: rgba(31,111,235,0.12); --total-border: rgba(31,111,235,0.42); --total-text: #E6EAF2;
+  --glow: rgba(31,111,235,0.30); --glow-2: rgba(61,220,151,0.14); --c-bg-rgb: 11,16,23; --c-text-rgb: 230,234,242;
+  --k-row: 1; --k-amount: 1; --k-total: 1;
+}
+:root[data-motion='light'] { --d-row: 300ms; --d-state: 320ms; --d-slide: 600ms; --e-spring: var(--e-out); --d-total-pulse: 0ms; }
+:root[data-motion='eco'] { --d-row: 160ms; --d-state: 160ms; --d-slide: 200ms; --d-celebration: 300ms; --e-spring: linear; --e-out: linear; --e-move: linear; --d-total-pulse: 0ms; }
+@media (prefers-reduced-motion: reduce) {
+  :root, :root[data-motion] { --d-row: 160ms; --d-state: 160ms; --d-slide: 200ms; --d-celebration: 300ms; --e-spring: linear; --e-out: linear; --d-total-pulse: 0ms; }
+  .ticker .track, .kenburns, .mesh, .ring, .halo, #offline i { animation: none !important; }
+}
+
+/* La tabella tipografica del design per formato (SPEC §7), più il palmare. Valori a 1:1 sul formato: lo schermo vero
+   ingrandisce o riduce tutto insieme (#stage). */
+:root[data-format='1920x1080'] {
+  --t-total: 150px; --t-pay: 150px; --t-row: 28px; --t-amount: 32px; --t-qty: 23px; --t-label: 17px; --t-msg: 104px; --t-note: 24px;
+  --pad-x: 64px; --pad-y: 56px; --head-h: 60px; --msg-h: 150px; --amount-col: 150px; --gap: 40px;
+  --receipt-w: 1180px; --receipt-narrow: 760px; --t-thanks: 124px; --t-promo: 42px; --t-promo-text: 20px;
+  --t-venue: 36px; --t-tagline: 17px; --t-ticker: 28px; --logo-h: 72px; --t-welcome: 60px;
+  --qr-beside: 488px; --qr-full: 404px; --qr-thanks: 252px; --t-hint: 30px;
+}
+:root[data-format='1366x768'] {
+  --t-total: 120px; --t-pay: 120px; --t-row: 23px; --t-amount: 25px; --t-qty: 18px; --t-label: 14px; --t-msg: 80px; --t-note: 20px;
+  --pad-x: 44px; --pad-y: 36px; --head-h: 44px; --msg-h: 112px; --amount-col: 110px; --gap: 28px;
+  --receipt-w: 820px; --receipt-narrow: 540px; --t-thanks: 86px; --t-promo: 30px; --t-promo-text: 16px;
+  --t-venue: 26px; --t-tagline: 13px; --t-ticker: 21px; --logo-h: 52px; --t-welcome: 44px;
+  --qr-beside: 336px; --qr-full: 300px; --qr-thanks: 180px; --t-hint: 22px;
+}
+:root[data-format='1280x800'] {
+  --t-total: 124px; --t-pay: 124px; --t-row: 24px; --t-amount: 26px; --t-qty: 19px; --t-label: 15px; --t-msg: 84px; --t-note: 21px;
+  --pad-x: 44px; --pad-y: 36px; --head-h: 44px; --msg-h: 116px; --amount-col: 112px; --gap: 28px;
+  --receipt-w: 760px; --receipt-narrow: 500px; --t-thanks: 82px; --t-promo: 28px; --t-promo-text: 15px;
+  --t-venue: 25px; --t-tagline: 13px; --t-ticker: 20px; --logo-h: 50px; --t-welcome: 42px;
+  --qr-beside: 340px; --qr-full: 310px; --qr-thanks: 180px; --t-hint: 22px;
+}
+:root[data-format='1024x768'] {
+  --t-total: 104px; --t-pay: 86px; --t-row: 23px; --t-amount: 25px; --t-qty: 19px; --t-label: 15px; --t-msg: 70px; --t-note: 20px;
+  --pad-x: 40px; --pad-y: 34px; --head-h: 44px; --msg-h: 104px; --amount-col: 110px; --gap: 24px;
+  --receipt-w: 100%; --receipt-narrow: 470px; --t-thanks: 68px; --t-promo: 28px; --t-promo-text: 15px;
+  --t-venue: 24px; --t-tagline: 12px; --t-ticker: 19px; --logo-h: 48px; --t-welcome: 42px;
+  --qr-beside: 300px; --qr-full: 300px; --qr-thanks: 196px; --t-hint: 21px;
+  --footer-h: 40px; --footer-word: 15px; --footer-mark: 20px;
+}
+:root[data-format='1024x768'][data-compact-rows='true'] { --t-row: 30px; --t-amount: 32px; }
+:root[data-format='1080x1920'] {
+  --t-total: 150px; --t-pay: 170px; --t-row: 32px; --t-amount: 34px; --t-qty: 24px; --t-label: 22px; --t-msg: 110px; --t-note: 28px;
+  --pad-x: 48px; --pad-y: 48px; --head-h: 64px; --msg-h: 160px; --amount-col: 170px; --gap: 32px;
+  --receipt-w: 100%; --receipt-narrow: 100%; --t-thanks: 104px; --t-promo: 44px; --t-promo-text: 24px;
+  --t-venue: 36px; --t-tagline: 18px; --t-ticker: 30px; --logo-h: 84px; --t-welcome: 64px;
+  --qr-beside: 660px; --qr-full: 660px; --qr-thanks: 300px; --t-hint: 34px;
+}
+:root[data-format='palmare'] {
+  --t-total: 58px; --t-pay: 62px; --t-row: 18px; --t-amount: 19px; --t-qty: 14px; --t-label: 12px; --t-msg: 38px; --t-note: 15px;
+  --pad-x: 18px; --pad-y: 18px; --head-h: 36px; --msg-h: 64px; --amount-col: 78px; --gap: 14px;
+  --receipt-w: 100%; --receipt-narrow: 100%; --t-thanks: 40px; --t-promo: 20px; --t-promo-text: 14px;
+  --t-venue: 20px; --t-tagline: 11px; --t-ticker: 16px; --logo-h: 44px; --t-welcome: 30px;
+  --qr-beside: 300px; --qr-full: 300px; --qr-thanks: 220px; --t-hint: 17px;
+  --footer-h: 32px; --footer-word: 12px; --footer-mark: 16px;
+}
+
+@keyframes bt-row-in { 0% { opacity: 0; transform: translateY(18px) scale(0.985); } 45% { opacity: 1; transform: translateY(-3px) scale(1.004); } 100% { opacity: 1; transform: none; } }
+@keyframes bt-total-pulse { 0%, 100% { transform: scale(1); } 45% { transform: scale(1.035); } }
+@keyframes bt-msg-in { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: none; } }
+@keyframes bt-halo { from { opacity: 0.5; transform: scale(0.94); } to { opacity: 0; transform: scale(1.14); } }
+@keyframes bt-ring { from { opacity: 0.85; transform: scale(0.6); } to { opacity: 0; transform: scale(1.9); } }
+@keyframes bt-rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes bt-kenburns { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.08) translate3d(-14px, -10px, 0); } }
+@keyframes bt-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes bt-breathe { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+@keyframes bt-mesh { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(40px, -30px, 0) scale(1.1); } }
+
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--c-bg); color: var(--c-text); font-family: var(--font-text);
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; }
+html.nocursor, html.nocursor * { cursor: none !important; }
+#stage { position: absolute; left: 0; top: 0; overflow: hidden; transform-origin: 0 0; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+.screen { position: absolute; inset: 0; box-sizing: border-box; opacity: 0; visibility: hidden;
+  transition: opacity var(--d-state) var(--e-out), visibility 0s linear var(--d-state); }
+.screen.on { opacity: 1; visibility: visible; transition: opacity var(--d-state) var(--e-out), visibility 0s; }
+.label { font-family: var(--font-display); font-size: var(--t-label); font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--c-muted); }
+
+/* Il fondo: tinta, sfumato, luci (mesh), immagine o video del locale. */
+#bg { position: absolute; inset: 0; overflow: hidden; background: var(--c-bg); }
+#bg .mesh { position: absolute; inset: -10%; background: radial-gradient(ellipse 50% 45% at 18% 22%, var(--glow) 0%, transparent 62%),
+  radial-gradient(ellipse 45% 40% at 86% 78%, var(--glow-2) 0%, transparent 60%); animation: bt-mesh 24s ease-in-out infinite alternate; }
+:root[data-motion='eco'] #bg .mesh { animation: none; }
+#bg .gradient { position: absolute; inset: 0; background: linear-gradient(165deg, var(--c-surface-solid) 0%, var(--c-bg) 62%); }
+#bg img, #bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#bg .veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(var(--c-bg-rgb), 0.55) 0%, rgba(var(--c-bg-rgb), 0.82) 100%); }
+
+/* Attesa: le slide del locale a tutto schermo, il logo, il testo scorrevole. Senza slide il benvenuto. */
+#idle .slides { position: absolute; inset: 0; overflow: hidden; background: #050709; display: none; }
+#idle.has-slides .slides { display: block; }
+#idle .slide { position: absolute; inset: 0; opacity: 0; transition: opacity var(--d-slide) var(--e-out); }
+#idle .slide.on { opacity: 1; }
+#idle .slide img, #idle .slide video { display: block; width: 100%; height: 100%; object-fit: cover; }
+:root[data-motion='full'] #idle .slide.on img { animation: bt-kenburns 9s linear both; }
+#idle .scrim { position: absolute; inset: 0; display: none;
+  background: linear-gradient(180deg, rgba(5,7,9,0.72) 0%, rgba(5,7,9,0) 26%, rgba(5,7,9,0) 58%, rgba(5,7,9,0.88) 100%); }
+#idle.has-slides .scrim { display: block; }
+.venue { display: flex; align-items: center; gap: calc(var(--t-venue) * 0.55); min-width: 0; }
+.venue img { display: block; height: var(--logo-h); max-width: calc(var(--logo-h) * 4); object-fit: contain; }
+.venue .words { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.venue .name { font-family: var(--font-display); font-size: var(--t-venue); font-weight: 700; letter-spacing: 0.04em; line-height: 1.05; }
+.venue .tagline { font-size: var(--t-tagline); letter-spacing: 0.22em; text-transform: uppercase; opacity: 0.72; }
+#idle .venue { position: absolute; left: var(--pad-x); top: var(--pad-y); right: 40%; display: none; color: #F4F6FA; }
+#idle.has-slides .venue { display: flex; }
+:root[data-layout='portrait'] #idle .venue { left: var(--pad-x); right: var(--pad-x); justify-content: center; text-align: center; }
+#idle .dots { position: absolute; right: var(--pad-x); top: calc(var(--pad-y) + 10px); display: none; gap: 10px; }
+#idle.has-slides .dots { display: flex; }
+:root[data-layout='portrait'] #idle .dots { top: auto; bottom: calc(var(--pad-y) + var(--footer-h) + 24px); right: 50%; transform: translateX(50%); }
+#idle .dots i { width: 20px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.3); transition: width 400ms var(--e-out), background 400ms; }
+#idle .dots i.on { width: 44px; background: #E6EAF2; }
+#welcome { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: calc(var(--t-welcome) * 0.45); text-align: center; padding: 0 var(--pad-x) calc(var(--footer-h) + var(--pad-y)); box-sizing: border-box; }
+#idle.has-slides #welcome { display: none; }
+#welcome img { display: block; max-height: calc(var(--logo-h) * 2.4); max-width: 60%; object-fit: contain; }
+#welcome .name { font-family: var(--font-display); font-size: calc(var(--t-welcome) * 1.25); font-weight: 700; letter-spacing: 0.02em; line-height: 1; }
+#welcome .tagline { font-size: calc(var(--t-tagline) * 1.2); letter-spacing: 0.24em; text-transform: uppercase; color: var(--c-muted); }
+#welcome .text { font-family: var(--font-display); font-size: var(--t-welcome); font-weight: 600; color: var(--c-text); margin-top: calc(var(--t-welcome) * 0.3); }
+#welcome .rule { width: 72px; height: 3px; border-radius: 2px; background: var(--c-primary); }
+.ticker { position: absolute; left: 0; right: 0; bottom: calc(var(--pad-y) + var(--footer-h) + 24px); overflow: hidden;
+  padding: calc(var(--t-ticker) * 0.64) 0; border-top: 1px solid var(--c-line); border-bottom: 1px solid var(--c-line); background: rgba(var(--c-text-rgb), 0.035); }
+#idle.has-slides .ticker { color: #E6EAF2; border-color: rgba(255,255,255,0.1); background: rgba(5,7,9,0.32); }
+:root[data-layout='portrait'] .ticker { bottom: calc(var(--pad-y) + var(--footer-h) + 56px); }
+.ticker .track { display: flex; gap: 80px; width: max-content; white-space: nowrap; padding-left: var(--pad-x); font-size: var(--t-ticker);
+  font-weight: 500; animation: bt-ticker var(--ticker-s, 24s) linear infinite; }
+
+/* Conto: la card dello scontrino e la colonna laterale (promozione, QR del pagamento, Grazie). */
+#bill { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.7); padding: var(--pad-y) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); }
+#bill .head { height: var(--head-h); flex-shrink: 0; display: flex; align-items: center; }
+#bill .head .venue { gap: 16px; }
+#bill .head .venue img { height: calc(var(--head-h) * 0.72); }
+#bill .head .venue .name { font-size: calc(var(--head-h) * 0.43); letter-spacing: 0.06em; }
+#bill .head .venue .tagline { display: none; }
+#msg { flex-shrink: 0; display: none; align-items: center; justify-content: center; gap: 0.4em; height: var(--msg-h); padding: 0 var(--pad-x);
+  border-radius: var(--radius); background: var(--c-primary); color: var(--c-on-primary); font-family: var(--font-display); font-weight: 700;
+  font-size: calc(var(--t-msg) * 0.62); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; animation: bt-msg-in var(--d-msg) var(--e-out) both; }
+#msg.on { display: flex; }
+#msg .label { color: inherit; opacity: 0.8; font-size: calc(var(--t-msg) * 0.24); margin-right: 0.8em; }
+#msg .value { font-size: var(--t-msg); line-height: 1; }
+#bill .body { flex: 1; min-height: 0; display: flex; gap: var(--gap); }
+:root[data-layout='portrait'] #bill .body { flex-direction: column-reverse; }
+.card { border-radius: var(--radius); background: var(--c-surface); border: 1px solid var(--c-line); box-sizing: border-box; }
+:root.blur .card { -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); }
+:root[data-mode='giorno'] .card { box-shadow: 0 2px 24px rgba(var(--c-text-rgb), 0.06); }
+.receipt { width: var(--receipt-w); flex-shrink: 0; display: flex; flex-direction: column; gap: 18px; min-height: 0; padding: calc(var(--pad-x) * 0.62); }
+:root[data-layout='portrait'] .receipt { flex: 1; width: auto; }
+:root[data-side='qr'] .receipt, :root[data-side='thanks'] .receipt { width: var(--receipt-narrow); --k-row: 0.79; --k-amount: 0.75; --k-total: 0.61; }
+:root[data-layout='narrow'][data-side='none'] .receipt { width: 100%; }
+.receipt .top { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-shrink: 0; }
+.receipt .count { font-size: calc(var(--t-label) * 1.12); color: var(--c-muted); }
+.receipt .more { font-size: calc(var(--t-qty) * 0.8); color: var(--c-faint); flex-shrink: 0; display: none; }
+.receipt .more.on { display: block; }
+.lines { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+.lines.cut { -webkit-mask-image: linear-gradient(transparent 0, #000 70px); mask-image: linear-gradient(transparent 0, #000 70px); }
+.row { display: flex; align-items: baseline; gap: 20px; padding: calc(var(--t-row) * var(--k-row) * 0.46) 0; border-bottom: 1px solid var(--c-line); flex-shrink: 0; }
+.row .desc { flex: 1; min-width: 0; font-size: calc(var(--t-row) * var(--k-row)); font-weight: 500; overflow-wrap: anywhere; }
+.row .qty { font-size: calc(var(--t-qty) * var(--k-row)); color: var(--c-muted); }
+.row .amount { width: calc(var(--amount-col) * var(--k-amount)); flex-shrink: 0; text-align: right; font-size: calc(var(--t-amount) * var(--k-amount)); font-weight: 600; }
+/* "Prezzi solo sul conto": durante la battuta le descrizioni, senza importi e senza totale. */
+:root.noprices .row .amount, :root.noprices .total { display: none; }
+.row.discount, .row.surcharge { color: var(--c-accent); }
+.row.void { color: var(--c-faint); }
+.row.void .desc, .row.void .amount { text-decoration: line-through; text-decoration-thickness: 2px; }
+.row .pill { border: 1px solid currentColor; border-radius: 999px; padding: 3px 12px; font-size: calc(var(--t-qty) * 0.6); letter-spacing: 0.14em; }
+.row.note { padding-left: 28px; }
+.row.note .desc { font-size: calc(var(--t-note) * var(--k-row)); font-style: italic; font-weight: 400; color: var(--c-muted); }
+.row.enter { animation: bt-row-in var(--d-row) var(--e-spring) both; }
+.total { flex-shrink: 0; border-radius: calc(var(--radius) * 0.75); padding: calc(var(--t-total) * var(--k-total) * 0.17) calc(var(--t-total) * var(--k-total) * 0.21);
+  background: var(--total-fill); border: 1px solid var(--total-border); color: var(--total-text);
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+:root[data-layout='narrow'] .total, :root[data-format='palmare'] .total { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-on-primary); }
+.total .label { color: inherit; opacity: 0.78; padding-bottom: calc(var(--t-total) * var(--k-total) * 0.1); font-size: calc(var(--t-label) * 1.12); }
+.total .value { font-family: var(--font-display); font-size: calc(var(--t-total) * var(--k-total)); font-weight: 700; line-height: 0.9; letter-spacing: -0.035em; white-space: nowrap; }
+.total .value.pulse { animation: bt-total-pulse var(--d-total-pulse) var(--e-out); }
+.side { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 24px; }
+:root[data-side='none'] .side { display: none; }
+:root[data-layout='portrait'] .side { flex: 0 0 auto; max-height: 42%; }
+.side > section { display: none; flex: 1; min-height: 0; }
+:root[data-side='promo'] .side .promo, :root[data-side='venue'] .side .venuecard, :root[data-side='qr'] .side .paycard,
+:root[data-side='thanks'] .side .thanks { display: flex; }
+.promo { flex-direction: column; overflow: hidden; border-radius: var(--radius); background: rgba(var(--c-text-rgb), 0.04); border: 1px solid var(--c-line); }
+/* L'immagine com'è fatta per le slide, 16:9: tagliata a colonna perderebbe le scritte. */
+.promo .pic { flex: 0 0 auto; aspect-ratio: 16 / 9; background: center / cover no-repeat; }
+.promo.only-pic { justify-content: center; }
+.promo .copy { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: calc(var(--t-promo) * 0.76); }
+.promo.only-text .copy { justify-content: center; }
+.promo.only-pic .copy { display: none; }
+:root[data-layout='portrait'] .promo { flex-direction: row; align-items: center; }
+:root[data-layout='portrait'] .promo .pic { width: 46%; }
+:root[data-layout='portrait'] .promo .copy { justify-content: center; }
+.promo .label { color: var(--c-accent); font-size: calc(var(--t-label) * 0.9); }
+.promo h3 { margin: 0; font-family: var(--font-display); font-size: var(--t-promo); font-weight: 700; line-height: 1.08; letter-spacing: -0.01em; }
+.promo p { margin: 0; font-size: var(--t-promo-text); line-height: 1.5; color: var(--c-muted); }
+.venuecard { flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; border-radius: var(--radius);
+  background: rgba(var(--c-text-rgb), 0.03); border: 1px solid var(--c-line); padding: 32px; }
+.venuecard img { max-width: 70%; max-height: 40%; object-fit: contain; }
+.venuecard .name { font-family: var(--font-display); font-size: var(--t-promo); font-weight: 700; }
+.venuecard .tagline { font-size: var(--t-promo-text); letter-spacing: 0.2em; text-transform: uppercase; color: var(--c-muted); }
+.qrbox { position: relative; background: #FFFFFF; border-radius: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.qrbox img { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.qrbox img { image-rendering: pixelated; }
+.qrbox .halo { position: absolute; inset: 0; border-radius: inherit; border: 2px solid var(--c-primary); animation: bt-halo 2.4s var(--e-out) infinite; pointer-events: none; }
+.qrbox .halo:nth-child(3) { animation-delay: 0.8s; }
+.qrbox .halo:nth-child(4) { animation-delay: 1.6s; }
+:root[data-motion='eco'] .qrbox .halo { display: none; }
+.paycard { flex-direction: column; align-items: center; justify-content: center; gap: 26px; text-align: center; }
+.paycard .hint { font-size: var(--t-hint); font-weight: 600; }
+.paycard .caption { font-size: calc(var(--t-hint) * 0.66); color: var(--c-muted); max-width: 90%; }
+.thanks { position: relative; flex-direction: column; justify-content: center; gap: calc(var(--t-thanks) * 0.2); padding-left: 12px; animation: bt-rise 520ms var(--e-out) both; }
+.thanks h2 { margin: 0; font-family: var(--font-display); font-size: var(--t-thanks); font-weight: 700; line-height: 0.98; letter-spacing: -0.035em; }
+.thanks .paid { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 20px; }
+.thanks .paid .value { font-family: var(--font-display); font-size: calc(var(--t-thanks) * 0.47); font-weight: 700; }
+.thanks .paid .method { font-size: calc(var(--t-hint) * 0.8); color: var(--c-muted); }
+.thanks .qr { display: none; align-items: center; gap: 28px; margin-top: calc(var(--t-thanks) * 0.15); animation: bt-rise 520ms var(--e-out) 120ms both; }
+.thanks .qr.on { display: flex; }
+.thanks .qr .words { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.thanks .qr .title { font-size: calc(var(--t-hint) * 1.0); font-weight: 600; }
+.thanks .qr .caption { font-size: calc(var(--t-hint) * 0.66); line-height: 1.45; color: var(--c-muted); }
+.rings { position: absolute; left: 30%; top: 50%; width: calc(var(--t-thanks) * 3.4); height: calc(var(--t-thanks) * 3.4); transform: translate(-50%, -50%); pointer-events: none; }
+.ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--c-primary); opacity: 0; animation: bt-ring var(--d-celebration) var(--e-out) both; }
+.ring:nth-child(2) { border-color: var(--c-accent); animation-delay: 140ms; }
+.ring:nth-child(3) { border-color: rgba(var(--c-text-rgb), 0.25); animation-delay: 280ms; }
+:root[data-layout='portrait'] .thanks h2, :root[data-format='palmare'] .thanks h2 { font-size: calc(var(--t-thanks) * 0.8); }
+
+/* Pagamento a tutto schermo: importo e istruzione, il QR grande (SPEC §2.4). */
+#pay { display: flex; align-items: center; justify-content: center; gap: 110px; padding: var(--pad-y) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); }
+:root[data-layout='narrow'] #pay { gap: 56px; }
+:root[data-layout='portrait'] #pay { flex-direction: column; gap: 40px; text-align: center; }
+#pay .left { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+#pay .amount { font-family: var(--font-display); font-size: var(--t-pay); font-weight: 700; line-height: 0.9; letter-spacing: -0.035em; white-space: nowrap; }
+#pay .hint { font-size: var(--t-hint); font-weight: 600; max-width: 14em; }
+:root[data-layout='portrait'] #pay .hint { max-width: none; }
+#pay .caption { font-size: calc(var(--t-hint) * 0.66); color: var(--c-muted); }
+
+/* Scontrino digitale (docs/03): lo scontrino come sulla carta, il QR grande, il pulsante della copia. */
+#digital { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap); align-items: center;
+  padding: var(--pad-y) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); overflow: auto; }
+:root[data-layout='portrait'] #digital, :root[data-layout='narrow'] #digital { grid-template-columns: 1fr; align-content: start; }
+:root[data-layout='portrait'] #digital .scan, :root[data-layout='narrow'] #digital .scan { order: -1; }
+.paper { background: #FBFAF7; color: #1D232C; border-radius: 6px; padding: 24px 22px; font: calc(var(--t-row) * 0.62) / 1.5 ui-monospace, Consolas, "Courier New", monospace;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35); max-width: 520px; width: 100%; justify-self: center; box-sizing: border-box; }
+.paper .center { text-align: center; }
+.paper .sep { border-top: 1px dashed #9AA3AE; margin: 8px 0; }
+.paper .pair { display: flex; gap: 12px; justify-content: space-between; }
+.paper .pair span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.paper .pair span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.paper .under { padding-left: 2.5em; }
+.paper .muted { color: #5B6573; }
+.paper .big { font-size: 1.5em; font-weight: 700; margin-top: 6px; }
+.paper img { display: block; margin: 14px auto 6px; width: 112px; height: 112px; image-rendering: pixelated; background: #FFF; padding: 8px; }
+.scan { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.scan h2 { margin: 0; font-family: var(--font-display); font-size: calc(var(--t-hint) * 1.15); }
+.scan .caption { color: var(--c-muted); font-size: calc(var(--t-hint) * 0.7); }
+#paperbtn { font: 600 calc(var(--t-hint) * 0.85) / 1.2 var(--font-text); min-height: 88px; width: min(440px, 100%); padding: 18px 24px; border-radius: 16px; border: 0;
+  background: var(--c-primary); color: var(--c-on-primary); cursor: pointer; touch-action: manipulation; }
+#paperbtn:active { transform: scale(0.98); }
+#paperstatus { font-size: calc(var(--t-hint) * 0.8); font-weight: 600; margin: 0; min-height: 1.4em; }
+
+/* La firma Bluetech, sempre presente; l'unica scelta del tema è chiara o scura. */
+.powered { position: absolute; right: var(--pad-x); bottom: calc(var(--pad-y) * 0.6); height: var(--footer-h); display: flex; align-items: center; gap: 12px; z-index: 5; pointer-events: none; }
+:root[data-layout='portrait'] .powered { left: 0; right: 0; justify-content: center; }
+.powered .by { font-size: calc(var(--footer-word) * 0.88); color: var(--bt-by); }
+.powered svg { width: var(--footer-mark); height: var(--footer-mark); }
+.powered .word { font-family: 'Archivo', 'Arial Narrow', sans-serif; font-size: var(--footer-word); font-weight: 600; letter-spacing: 0.16em; color: var(--bt-word); }
+:root[data-footer='dark'], :root.over-slides { --bt-by: #8FA3C0; --bt-word: #E6EAF2; --bt-mark: #1F6FEB; }
+:root[data-footer='light']:not(.over-slides) { --bt-by: #5A6679; --bt-word: #10151D; --bt-mark: #1757C2; }
+
+/* Connessione assente: una pillola discreta, l'ultima schermata resta com'è (SPEC §2.6). */
+#offline { position: absolute; left: var(--pad-x); bottom: calc(var(--pad-y) * 0.6); height: var(--footer-h); display: flex; align-items: center; gap: 10px;
+  padding: 0 18px; border-radius: 999px; background: rgba(128,128,128,0.2); color: var(--c-muted); font-size: var(--footer-word); z-index: 6;
+  opacity: 0; transition: opacity 300ms var(--e-out); pointer-events: none; }
+:root.over-slides #offline { color: #C9D1DD; }
+#offline.on { opacity: 1; }
+#offline i { width: 10px; height: 10px; border-radius: 50%; background: currentColor; animation: bt-breathe 2s ease-in-out infinite; }
+:root[data-layout='portrait'] #offline { bottom: calc(var(--pad-y) * 0.6 + var(--footer-h) + 8px); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg"></div>
+
+  <section id="idle" class="screen" aria-label="Attesa">
+    <div class="slides"><div class="slide"></div><div class="slide"></div></div>
+    <div class="scrim"></div>
+    <div id="welcome"></div>
+    <div class="venue" data-venue></div>
+    <div class="dots"></div>
+    <div class="ticker" hidden><div class="track"></div></div>
+  </section>
+
+  <section id="bill" class="screen" aria-label="Il tuo conto">
+    <div class="head"><div class="venue" data-venue="small"></div></div>
+    <div id="msg" role="status"></div>
+    <div class="body">
+      <div class="receipt card">
+        <div class="top"><span class="label" id="receipttitle">Il tuo conto</span><span class="count num" id="count"></span></div>
+        <div class="more" id="more"></div>
+        <div class="lines" id="lines"></div>
+        <div class="total"><span class="label" id="totallabel">Totale</span><span class="value num" id="total">€ 0,00</span></div>
+      </div>
+      <div class="side">
+        <section class="promo" id="promo"><div class="pic"></div><div class="copy"><span class="label">Promozione</span><h3></h3><p></p></div></section>
+        <section class="venuecard" id="venuecard"></section>
+        <section class="paycard"><div class="qrbox" id="besideqr"><img alt="QR per pagare con Satispay"><i class="halo"></i><i class="halo"></i><i class="halo"></i></div>
+          <div class="hint">Inquadra il QR con l'app Satispay</div><div class="caption" id="besidecaption"></div></section>
+        <section class="thanks" id="thanks">
+          <div class="rings"><i class="ring"></i><i class="ring"></i><i class="ring"></i></div>
+          <h2 id="thankstext">Grazie e arrivederci</h2>
+          <div class="paid"><span class="label">Pagato</span><span class="value num" id="paidamount"></span><span class="method" id="paidmethod"></span></div>
+          <div class="qr" id="thanksqr"><div class="qrbox"><img alt=""></div><div class="words"><div class="title"></div><div class="caption"></div></div></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="pay" class="screen" aria-label="Pagamento">
+    <div class="left"><span class="label">Da pagare</span><span class="amount num" id="payamount"></span>
+      <span class="hint">Inquadra il QR con l'app Satispay</span><span class="caption" id="paycaption"></span></div>
+    <div class="qrbox" id="fullqr"><img alt="QR per pagare con Satispay"><i class="halo"></i><i class="halo"></i><i class="halo"></i></div>
+  </section>
+
+  <section id="digital" class="screen" aria-label="Scontrino digitale">
+    <div class="paper" id="paper"></div>
+    <div class="scan">
+      <h2>Il tuo scontrino digitale</h2>
+      <div class="qrbox" id="digitalqr"><img alt="QR per scaricare lo scontrino digitale"></div>
+      <p class="caption" id="bigcaption"></p>
+      <button id="paperbtn" type="button">Preferisci la copia di carta? Tocca qui</button>
+      <p id="paperstatus"></p>
+    </div>
+  </section>
+
+  <div class="powered" aria-label="powered by Bluetech">
+    <span class="by">powered by</span>
+    <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="var(--bt-mark)" stroke-width="2.6"></rect>
+      <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="var(--bt-word)" stroke-width="3" stroke-linecap="round"></path></svg>
+    <span class="word">BLUETECH</span>
+  </div>
+  <div id="offline" role="status"><i></i><span>Connessione assente</span></div>
+</div>
+<script>
+"use strict";
+const T = window.BluetechTema;
+const root = document.documentElement;
+const stage = document.getElementById("stage");
+const query = new URLSearchParams(location.search);
+// ?anteprima=demo: un conto finto per il back office; ?anteprima=cassa1: dal vivo, con la sessione del back office.
+const preview = query.get("anteprima");
+const demo = preview === "demo";
+const STORE = "bluetech.monitor.aspetto";
+const $ = (id) => document.getElementById(id);
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined && text !== null) node.textContent = text;
+  return node;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Formato: il layout si sceglie dal rapporto d'aspetto (SPEC §9), poi la tela del formato si adatta allo schermo.
+// ---------------------------------------------------------------------------------------------------------------
+const FORMATS = {
+  "1920x1080": { width: 1920, layout: "wide" }, "1366x768": { width: 1366, layout: "wide" }, "1280x800": { width: 1280, layout: "wide" },
+  "1024x768": { width: 1024, layout: "narrow" }, "1080x1920": { width: 1080, layout: "portrait" }, "palmare": { width: 430, layout: "portrait" },
+};
+
+function pickFormat(width, height) {
+  const ratio = width / height;
+  if (ratio < 1) return width < 700 ? "palmare" : "1080x1920";
+  if (ratio < 1.5) return "1024x768";
+  return width >= 1650 ? "1920x1080" : width >= 1330 ? "1366x768" : "1280x800";
+}
+
+function layout() {
+  const width = window.innerWidth, height = window.innerHeight;
+  const key = FORMATS[query.get("formato")] ? query.get("formato") : pickFormat(width, height);
+  const format = FORMATS[key];
+  const scale = width / format.width;
+  root.dataset.format = key;
+  root.dataset.layout = format.layout;
+  stage.style.width = format.width + "px";
+  stage.style.height = height / scale + "px";
+  stage.style.transform = "scale(" + scale + ")";
+  render();
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Aspetto: il messaggio cfg dell'Agent (tema, slide, promozioni, scritte, QR del Grazie).
+// ---------------------------------------------------------------------------------------------------------------
+let cfg = null;
+try { cfg = demo ? null : JSON.parse(localStorage.getItem(STORE) || "null"); } catch (e) { cfg = null; }
+
+function rgbOf(color, fallback) {
+  const c = T.parseColor(color);
+  return c ? c.rgb.join(",") : fallback;
+}
+
+function applyTheme() {
+  if (!cfg) return;
+  const resolved = T.resolve(cfg, new Date());
+  const p = resolved.palette;
+  T.apply(root, p);
+  root.style.setProperty("--c-bg-rgb", rgbOf(p.bg, "11,16,23"));
+  root.style.setProperty("--c-text-rgb", rgbOf(p.text, "230,234,242"));
+  root.dataset.mode = resolved.mode;
+  lightBackground = (T.contrast(p.bg, "#000000") || 0) > 8;   // luminanza oltre 0,35: un fondo chiaro
+  root.dataset.footer = p.footerVariant === "light" ? "light" : "dark";
+  const motion = cfg.theme && cfg.theme.motion;
+  root.dataset.motion = motion === "full" || motion === "eco" ? motion : "light";
+  root.dataset.compactRows = cfg.theme && cfg.theme.compactRows ? "true" : "false";
+  // Sopra 40 il blur solo con le animazioni piene (SPEC §6): costa sulle grafiche integrate.
+  root.classList.toggle("blur", p.glass > 0 && (p.glass <= 40 || root.dataset.motion === "full"));
+  if (resolved.fallback) console.warn("Tema illeggibile, uso bluetech-notte", resolved.problems);
+}
+
+let backgroundKey = "";
+let lightBackground = false;
+
+/** Il logo per quel fondo: sopra le slide c'è sempre il velo scuro; sui fondi chiari quello chiaro, se c'è. */
+function logoFor(overSlides) {
+  const v = (cfg && cfg.venue) || {};
+  return !overSlides && lightBackground && v.logoLight ? v.logoLight : v.logo;
+}
+function applyBackground() {
+  const t = (cfg && cfg.theme) || {};
+  const key = (t.bgStyle || "mesh") + "|" + (t.bgAsset || "");
+  if (key === backgroundKey) return;
+  backgroundKey = key;
+  const bg = $("bg");
+  bg.replaceChildren();
+  const style = t.bgStyle || "mesh";
+  if (style === "mesh") bg.append(el("div", "mesh"));
+  else if (style === "gradient") bg.append(el("div", "gradient"));
+  else if ((style === "image" || style === "video") && t.bgAsset) {
+    const media = el(style === "image" ? "img" : "video");
+    media.src = t.bgAsset;
+    if (style === "video") { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; media.setAttribute("muted", ""); }
+    else media.alt = "";
+    bg.append(media, el("div", "veil"));
+  }
+}
+
+function venueBlock(container, small, overSlides) {
+  const v = (cfg && cfg.venue) || {};
+  const logo = logoFor(overSlides);
+  container.replaceChildren();
+  if (logo) { const img = el("img"); img.src = logo; img.alt = v.name || "Logo del locale"; container.append(img); }
+  const words = el("div", "words");
+  if (v.name) words.append(el("div", "name", v.name));
+  if (v.tagline && !small) words.append(el("div", "tagline", v.tagline));
+  if (words.childNodes.length) container.append(words);
+}
+
+function applyTexts() {
+  const texts = (cfg && cfg.texts) || {};
+  const v = (cfg && cfg.venue) || {};
+  document.querySelectorAll("[data-venue]").forEach((node) => venueBlock(node, node.dataset.venue === "small", node.dataset.venue === ""));
+  const welcome = $("welcome");
+  welcome.replaceChildren();
+  const logo = logoFor(false);
+  if (logo) { const img = el("img"); img.src = logo; img.alt = v.name || "Logo del locale"; welcome.append(img); }
+  if (v.name) welcome.append(el("div", "name", v.name));
+  if (v.tagline) welcome.append(el("div", "tagline", v.tagline));
+  if (v.logo || v.name) welcome.append(el("div", "rule"));
+  welcome.append(el("div", "text", texts.welcome || (v.logo || v.name ? "" : "Benvenuti")));
+  $("receipttitle").textContent = texts.receipt || "Il tuo conto";
+  $("thankstext").textContent = texts.thanks || "Grazie e arrivederci";
+  const ticker = document.querySelector(".ticker");
+  const track = ticker.querySelector(".track");
+  track.replaceChildren();
+  if (cfg && cfg.ticker) {
+    ticker.hidden = false;
+    track.append(el("span", "", cfg.ticker), el("span", "", cfg.ticker));   // contenuto doppio: giro senza salti
+    track.style.setProperty("--ticker-s", Math.max(12, cfg.ticker.length * 0.32) + "s");
+  } else {
+    ticker.hidden = true;
+  }
+  const venueCard = $("venuecard");
+  venueCard.replaceChildren();
+  if (logo) { const img = el("img"); img.src = logo; img.alt = ""; venueCard.append(img); }
+  if (v.name) venueCard.append(el("div", "name", v.name));
+  if (v.tagline) venueCard.append(el("div", "tagline", v.tagline));
+}
+
+function applyConfig(next, persist) {
+  if (!next || !next.theme) return;
+  cfg = next;
+  if (persist) { try { localStorage.setItem(STORE, JSON.stringify(cfg)); } catch (e) { /* senza memoria si aspetta l'Agent */ } }
+  applyTheme();
+  applyBackground();
+  applyTexts();
+  playlist(cfg.ads || []);
+  render();
+}
+
+// Con giorno e notte automatici si ricontrolla ogni minuto; il cambio aspetta la fine del pagamento (il QR non si copre).
+setInterval(() => { if (cfg && cfg.theme && cfg.theme.mode === "auto" && state.phase !== "payment") { applyTheme(); applyTexts(); } }, 60000);
+
+// ---------------------------------------------------------------------------------------------------------------
+// Le slide dell'attesa: due livelli, uno visibile e uno pronto, mai tre (SPEC §2.1).
+// ---------------------------------------------------------------------------------------------------------------
+let slides = [];
+let slideIndex = -1;
+let slideTimer = 0;
+let slideKey = "";
+const layers = Array.from(document.querySelectorAll("#idle .slide"));
+let activeLayer = 0;
+
+function playlist(ads) {
+  const usable = ads.filter((a) => a && typeof a.src === "string" && (a.media === "image" || a.media === "video"));
+  const key = usable.map((a) => a.id + "|" + a.src + "|" + (a.durationMs || "")).join(",");
+  if (key === slideKey) return;
+  slideKey = key;
+  slides = usable;
+  slideIndex = -1;
+  clearTimeout(slideTimer);
+  layers.forEach((layer) => { layer.classList.remove("on"); layer.replaceChildren(); });
+  const dots = document.querySelector("#idle .dots");
+  dots.replaceChildren(...slides.map(() => el("i")));
+  $("idle").classList.toggle("has-slides", slides.length > 0);
+  if (screenNow === "idle") nextSlide();
+}
+
+function nextSlide() {
+  clearTimeout(slideTimer);
+  if (!slides.length || screenNow !== "idle") return;
+  slideIndex = (slideIndex + 1) % slides.length;
+  const slide = slides[slideIndex];
+  const next = layers[1 - activeLayer];
+  const current = layers[activeLayer];
+  next.replaceChildren();
+  let media;
+  if (slide.media === "video") {
+    media = el("video");
+    media.muted = true; media.playsInline = true; media.autoplay = true; media.setAttribute("muted", ""); media.preload = "auto";
+    media.addEventListener("ended", () => nextSlide());
+    media.addEventListener("error", () => { slideTimer = setTimeout(nextSlide, 1500); });
+    media.src = slide.src;
+    slideTimer = setTimeout(nextSlide, 5 * 60 * 1000);   // un video bloccato non ferma la playlist
+  } else {
+    media = el("img");
+    media.alt = "";
+    media.src = slide.src;
+    media.addEventListener("error", () => { slideTimer = setTimeout(nextSlide, 1500); });
+    slideTimer = setTimeout(nextSlide, slide.durationMs || 7000);
+  }
+  next.append(media);
+  next.classList.add("on");
+  current.classList.remove("on");
+  activeLayer = 1 - activeLayer;
+  const old = current;
+  setTimeout(() => { if (!old.classList.contains("on")) { const v = old.querySelector("video"); if (v) v.pause(); old.replaceChildren(); } }, 1400);
+  document.querySelectorAll("#idle .dots i").forEach((dot, i) => dot.classList.toggle("on", i === slideIndex));
+  if (slide.media === "video") { const p = media.play(); if (p && p.catch) p.catch(() => {}); }
+}
+
+function pauseSlides() {
+  clearTimeout(slideTimer);
+  layers.forEach((layer) => { const v = layer.querySelector("video"); if (v) v.pause(); });
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Lo stato del conto, dai messaggi dell'Agent (protocol.ts più design/ALLINEAMENTO.md §8).
+// ---------------------------------------------------------------------------------------------------------------
+const state = { phase: "idle", lines: [], total: 0, cover: 0, bill: false, payment: null, paid: null, receiptQr: null, receipt: null, message: null };
+const voidedAt = new Map();
+const seenLines = new Set();
+const THANKS_MS = 8000;
+let thanksTimer = 0;
+let messageTimer = 0;
+let saleCount = 0;
+let promoIndex = 0;
+let lastTotal = null;
+
+function clearSale(phase) {
+  clearTimeout(thanksTimer);
+  state.phase = phase; state.lines = []; state.total = 0; state.cover = 0; state.payment = null; state.paid = null;
+  state.bill = false; state.receiptQr = null; state.receipt = null;
+}
+
+function thanksFor(ms) {
+  clearTimeout(thanksTimer);
+  thanksTimer = setTimeout(() => { clearSale("idle"); render(); }, ms);
+}
+
+function thanksDuration() {
+  if (state.receiptQr) return 30000;
+  if (cfg && cfg.thanks && cfg.thanks.png) return Math.max(10, Math.min(120, cfg.thanks.seconds || 30)) * 1000;
+  return THANKS_MS;
+}
+
+function newSale() {
+  saleCount++;
+  const promos = (cfg && cfg.promos) || [];
+  promoIndex = promos.length ? (saleCount - 1) % promos.length : 0;   // una promozione per conto, a rotazione
+}
+
+function apply(m) {
+  switch (m.t) {
+    case "cfg":
+      if (!draft) applyConfig(m, !preview);   // nell'anteprima vince la bozza del back office
+      return;
+    case "sync": {
+      clearTimeout(thanksTimer);
+      const s = m.state || {};
+      const fresh = (s.lines || []).length && !state.lines.length;
+      state.paid = null;
+      state.phase = s.phase || "idle";
+      state.lines = (s.lines || []).slice();
+      state.total = s.total || 0;
+      state.cover = s.cover || 0;
+      state.payment = s.payment || null;
+      state.bill = !!s.bill;
+      state.receiptQr = null;
+      state.receipt = s.receipt || null;
+      if (fresh) newSale();
+      state.lines.forEach((l) => seenLines.add(l.id));   // dopo un sync si anima solo ciò che arriva dopo
+      break;
+    }
+    case "sale.open":
+      clearSale("sale");
+      newSale();
+      break;
+    case "sale.line": {
+      if (state.phase === "thanks" || state.phase === "receipt") { clearSale("sale"); newSale(); }
+      if (state.phase === "idle") { state.phase = "sale"; if (!state.lines.length) newSale(); }
+      const i = state.lines.findIndex((l) => l.id === m.line.id);
+      if (i >= 0) state.lines[i] = m.line; else state.lines.push(m.line);
+      if (m.line.kind === "void") voidedAt.set(m.line.id, Date.now());
+      break;
+    }
+    case "sale.total": state.total = m.total; state.cover = m.cover || 0; state.bill = !!m.bill; break;
+    case "sale.close":
+      if (!m.paid) { clearSale(state.receipt ? "receipt" : "idle"); break; }
+      state.phase = "thanks"; state.payment = null; state.paid = m.paid;
+      thanksFor(thanksDuration());
+      break;
+    case "pay.qr": state.phase = "payment"; state.payment = { png: m.png, amount: m.amount, caption: m.caption }; break;
+    case "pay.clear":
+      state.payment = null;
+      if (state.phase === "payment") state.phase = state.lines.length ? "sale" : "idle";
+      break;
+    case "receipt.qr":
+      state.receiptQr = { png: m.png, caption: m.caption };
+      state.payment = null;
+      if (state.phase !== "sale") { state.phase = "thanks"; thanksFor(thanksDuration()); }
+      break;
+    case "receipt.digital":
+      clearTimeout(thanksTimer);
+      state.payment = null;
+      state.receipt = m;
+      state.phase = "receipt";
+      break;
+    case "receipt.paper.status":
+      if (state.receipt && state.receipt.id === m.id) {
+        state.receipt.paper = m.state === "already" ? "requested" : m.state;
+        state.receipt.paperMessage = m.message || (m.state === "already" ? "La copia è già stata chiesta: ritirala alla cassa" : null);
+      }
+      break;
+    case "receipt.clear":
+      if (state.receipt && state.receipt.id === m.id) {
+        state.receipt = null;
+        if (state.phase === "receipt") clearSale("idle");
+      }
+      break;
+    case "display.msg":
+      state.message = { text: String(m.text || ""), until: Date.now() + (m.ttl || 6000) };
+      clearTimeout(messageTimer);
+      messageTimer = setTimeout(() => { state.message = null; render(); }, m.ttl || 6000);
+      break;
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Disegno.
+// ---------------------------------------------------------------------------------------------------------------
+const numbers = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const plain = (cents) => (cents < 0 ? "−" : "") + numbers.format(Math.abs(cents) / 100);
+const money = (cents) => (cents < 0 ? "−" : "") + "€ " + numbers.format(Math.abs(cents) / 100);
+const plainPaper = (cents) => (cents < 0 ? "-" : "") + numbers.format(Math.abs(cents) / 100);
+
+function method(text) {
+  const t = String(text || "").toUpperCase();
+  if (/CREDITO|CARTA|POS|AMEX|VISA|MASTERCARD/.test(t)) return "Carta";
+  if (/BANCOMAT|DEBITO/.test(t)) return "Bancomat";
+  if (/CONTANT/.test(t)) return "Contanti";
+  if (/SATISPAY/.test(t)) return "Satispay";
+  if (/BUONO|TICKET/.test(t)) return "Buono pasto";
+  return t ? t.charAt(0) + t.slice(1).toLowerCase() : "";
+}
+
+function cssNumber(name) {
+  return parseFloat(getComputedStyle(root).getPropertyValue(name)) || 300;
+}
+
+/** Il QR a un pixel per modulo, ingrandito di un multiplo intero con 4 moduli di margine bianco (SPEC §2.4). */
+function showQr(box, png, target) {
+  const img = box.querySelector("img");
+  if (typeof png !== "string" || !png.startsWith("data:image/")) { img.removeAttribute("src"); return; }
+  const size = () => {
+    const modules = img.naturalWidth || 49;
+    const scale = Math.max(1, Math.floor(target / modules));
+    img.style.width = img.style.height = modules * scale + "px";
+    box.style.padding = Math.max(4 * scale, 16) + "px";
+  };
+  if (img.getAttribute("src") !== png) { img.onload = size; img.src = png; }
+  if (img.complete) size();
+}
+
+let screenNow = "";
+function screen() {
+  if (state.receipt) return "receipt";
+  if (state.phase === "payment" && state.payment && (root.dataset.layout !== "wide" || !cfg || !cfg.theme || cfg.theme.qrLayout === "fullscreen")) return "pay";
+  if (state.phase === "idle") return "idle";
+  return "bill";
+}
+
+function side() {
+  const promos = (cfg && cfg.promos) || [];
+  if (state.phase === "thanks") return "thanks";
+  if (state.phase === "payment" && state.payment) return "qr";
+  // Sul 4:3 niente colonna (le promozioni stanno nelle slide), sul palmare il conto prende tutto lo spazio.
+  if (root.dataset.layout === "narrow" || root.dataset.format === "palmare") return "none";
+  if (promos.length) return "promo";
+  return root.dataset.layout === "portrait" ? "none" : "venue";
+}
+
+function renderLines() {
+  const voided = new Set(state.lines.filter((l) => l.kind === "void" && l.voidsId).map((l) => l.voidsId));
+  const list = $("lines");
+  list.replaceChildren();
+  let items = 0;
+  for (const line of state.lines) {
+    if (voided.has(line.id)) continue;
+    if (line.kind === "void" && Date.now() - (voidedAt.get(line.id) || 0) > 6000) continue;
+    if (line.kind === "item") items += Number.isInteger(line.qty) ? line.qty : 1;
+    const row = el("div", "row " + line.kind);
+    if (!seenLines.has(line.id)) { row.classList.add("enter"); seenLines.add(line.id); }
+    row.append(el("span", "desc", line.kind === "note" ? line.text : line.desc));
+    if (line.kind === "item" && line.qty !== 1) row.append(el("span", "qty num", "×" + String(line.qty).replace(".", ",")));
+    if (line.kind === "void") row.append(el("span", "pill", "STORNO"));
+    if (line.kind !== "note") row.append(el("span", "amount num", (line.kind === "surcharge" ? "+" : "") + plain(line.amount)));
+    list.append(row);
+  }
+  // Con tante righe restano le ultime, vicino al totale, e si dice quante ce ne sono sopra (SPEC §2.2). Le altezze vere
+  // delle righe, non scrollHeight: la riga che entra è spostata in basso dall'animazione e sembrerebbe non starci.
+  let hidden = 0;
+  const rows = Array.from(list.children);
+  let used = rows.reduce((sum, row) => sum + row.offsetHeight, 0);
+  while (used > list.clientHeight + 1 && hidden < rows.length - 1) { used -= rows[hidden].offsetHeight; rows[hidden].style.display = "none"; hidden++; }
+  list.classList.toggle("cut", hidden > 0);
+  $("more").classList.toggle("on", hidden > 0);
+  $("more").textContent = hidden === 1 ? "un'altra riga sopra" : "altre " + hidden + " righe sopra";
+  const parts = [];
+  if (items) parts.push(items === 1 ? "1 articolo" : items + " articoli");
+  if (state.cover) parts.push(state.cover === 1 ? "1 coperto" : state.cover + " coperti");
+  $("count").textContent = parts.join(" · ");
+}
+
+function renderMessage() {
+  const band = $("msg");
+  const message = state.message;
+  band.classList.toggle("on", !!message && screenNow === "bill");
+  band.replaceChildren();
+  if (!message) return;
+  // "TOTALE € 23,50", "RESTO 1,50": etichetta e importo; altrimenti il testo com'è (SPEC §2.3).
+  const match = /^(.*?)[\s:]*(?:€|EUR|EURO)?\s*(-?\d{1,3}(?:\.\d{3})*,\d{2}|-?\d+,\d{2})\s*(?:€|EUR|EURO)?$/i.exec(message.text.trim());
+  if (match && match[1]) {
+    band.append(el("span", "label", match[1].trim()), el("span", "value num", "€ " + match[2].replace("-", "−")));
+  } else {
+    band.append(el("span", "value", message.text));
+  }
+}
+
+function renderPromo() {
+  const promos = (cfg && cfg.promos) || [];
+  const promo = promos[promoIndex % Math.max(1, promos.length)];
+  const card = $("promo");
+  if (!promo) return;
+  card.querySelector(".pic").style.backgroundImage = promo.image ? "url(\"" + promo.image.replace(/"/g, "") + "\")" : "";
+  card.querySelector(".pic").style.display = promo.image ? "" : "none";
+  card.querySelector("h3").textContent = promo.title || "";
+  card.querySelector("p").textContent = promo.text || "";
+  card.querySelector("h3").style.display = promo.title ? "" : "none";
+  card.querySelector("p").style.display = promo.text ? "" : "none";
+  card.classList.toggle("only-pic", !!promo.image && !promo.title && !promo.text);
+  card.classList.toggle("only-text", !promo.image);
+}
+
+function renderThanks() {
+  const paid = state.paid;
+  $("paidamount").textContent = paid ? money(paid.amount) : money(state.total);
+  $("paidmethod").textContent = paid ? [method(paid.method), paid.change > 0 ? "resto " + money(paid.change) : ""].filter(Boolean).join(" · ") : "";
+  const box = $("thanksqr");
+  const qr = state.receiptQr
+    ? { png: state.receiptQr.png, title: "Il tuo scontrino digitale", caption: state.receiptQr.caption || "Scarica il tuo scontrino digitale" }
+    : cfg && cfg.thanks && cfg.thanks.png ? cfg.thanks : null;
+  box.classList.toggle("on", !!qr);
+  if (qr) {
+    showQr(box.querySelector(".qrbox"), qr.png, cssNumber("--qr-thanks"));
+    box.querySelector(".title").textContent = qr.title || "";
+    box.querySelector(".caption").textContent = qr.caption || "";
+  }
+}
+
+function pair(left, right, className) {
+  const row = el("div", "pair" + (className ? " " + className : ""));
+  row.append(el("span", "", left), el("span", "", right));
+  return row;
+}
+
+/** Lo scontrino come uscirà sulla carta: intestazione, righe, sconti, totale, pagamenti, data, QR piccolo, dicitura. */
+function renderPaper(r) {
+  const paper = $("paper");
+  paper.replaceChildren();
+  const bill = r.receipt;
+  if (bill) {
+    for (const h of bill.header || []) paper.append(el("div", "center", h));
+    paper.append(el("div", "sep"), el("div", "muted", "EURO"));
+    for (const line of bill.lines || []) {
+      if (line.kind === "item") {
+        if (line.qty !== 1) paper.append(el("div", "muted", "  " + String(line.qty).replace(".", ",") + (line.unit != null ? " x " + plainPaper(line.unit) : "")));
+        paper.append(pair(line.desc, plainPaper(line.amount)));
+      } else if (line.kind === "note") {
+        paper.append(el("div", "muted", line.text));
+      } else {
+        paper.append(pair(line.desc, plainPaper(line.amount), line.underItem ? "under" : ""));
+      }
+    }
+    paper.append(el("div", "sep"));
+    if (bill.total != null) paper.append(pair("TOTALE", plainPaper(bill.total), "big"));
+    if (bill.paid) {
+      paper.append(pair("Pagato " + bill.paid.method, plainPaper(bill.paid.amount)));
+      if (bill.paid.change != null) paper.append(pair("Resto", plainPaper(bill.paid.change)));
+    }
+  } else {
+    paper.append(el("div", "center", r.caption || "Scontrino digitale"));
+  }
+  const when = new Date(r.issuedAt);
+  if (!isNaN(when)) paper.append(el("div", "muted", when.toLocaleDateString("it-IT") + " " + when.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })));
+  const small = el("img");
+  small.alt = "QR per scaricare il documento commerciale";
+  if (typeof r.png === "string" && r.png.startsWith("data:image/")) small.src = r.png;
+  paper.append(small);
+  if (r.notice) paper.append(el("div", "center muted", r.notice));
+}
+
+function renderDigital() {
+  const r = state.receipt;
+  if (!r) return;
+  renderPaper(r);
+  showQr($("digitalqr"), r.png, cssNumber("--qr-thanks") * 1.3);
+  $("bigcaption").textContent = r.caption || "Inquadra per scaricarlo";
+  const button = $("paperbtn");
+  const paper = r.paper || "none";
+  button.style.display = r.paperCopy && (paper === "none" || paper === "failed") ? "" : "none";
+  button.textContent = paper === "failed" ? "Riprova a stampare la copia" : "Preferisci la copia di carta? Tocca qui";
+  $("paperstatus").textContent = !r.paperCopy ? "Vuoi la copia di carta? Chiedila alla cassa"
+    : paper === "printing" ? "Sto stampando la tua copia…"
+    : paper === "requested" ? (r.paperMessage || "Ritira la copia alla cassa")
+    : paper === "failed" ? "Non riesco a stampare: chiedi la copia alla cassa"
+    : "";
+}
+
+function render() {
+  const now = screen();
+  if (now !== screenNow) {
+    const before = screenNow;
+    screenNow = now;
+    document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("on", s.id === { idle: "idle", bill: "bill", pay: "pay", receipt: "digital" }[now]));
+    if (now === "idle") nextSlide(); else if (before === "idle") pauseSlides();
+  }
+  root.dataset.screen = now;
+  root.classList.toggle("over-slides", now === "idle" && slides.length > 0);
+  root.classList.toggle("noprices", !!(cfg && cfg.pricesOnlyOnBill) && !state.bill && state.phase === "sale");
+  const sideBefore = root.dataset.side;
+  root.dataset.side = side();
+  if (root.dataset.side === "thanks" && sideBefore !== "thanks") {
+    // La celebrazione una volta sola, all'arrivo del Grazie.
+    document.querySelectorAll("#thanks, #thanks .ring, #thanksqr").forEach((node) => { node.style.animation = "none"; void node.offsetWidth; node.style.animation = ""; });
+  }
+  if (now === "bill") {
+    renderLines();
+    renderMessage();
+    if (root.dataset.side === "promo") renderPromo();
+    if (root.dataset.side === "thanks") renderThanks();
+    if (root.dataset.side === "qr") { showQr($("besideqr"), state.payment.png, cssNumber("--qr-beside")); $("besidecaption").textContent = state.payment.caption || ""; }
+    $("totallabel").textContent = state.phase === "payment" ? "Da pagare" : "Totale";
+    const total = $("total");
+    total.textContent = money(state.total);
+    if (lastTotal !== null && lastTotal !== state.total && root.dataset.motion === "full") {
+      total.classList.remove("pulse"); void total.offsetWidth; total.classList.add("pulse");
+    }
+    lastTotal = state.total;
+  } else {
+    renderMessage();
+  }
+  if (now === "pay") {
+    $("payamount").textContent = money(state.payment.amount || state.total);
+    $("paycaption").textContent = state.payment.caption || "";
+    showQr($("fullqr"), state.payment.png, cssNumber("--qr-full"));
+  }
+  if (now === "receipt") renderDigital();
+}
+
+$("paperbtn").addEventListener("click", () => {
+  const r = state.receipt;
+  if (!r || !socket || socket.readyState !== WebSocket.OPEN) return;
+  socket.send(JSON.stringify({ t: "receipt.paper", id: r.id }));
+  r.paper = "printing";
+  render();
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// Collegamento con l'Agent: battito ogni 3 s; dopo 8 s di silenzio la pillola, l'ultima schermata resta (SPEC §2.6).
+// ---------------------------------------------------------------------------------------------------------------
+let socket = null;
+let lastMessage = Date.now();
+let delay = 1000;
+
+function connect() {
+  const cash = preview && !demo ? "?cassa=" + encodeURIComponent(preview) : "";
+  socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws" + cash);
+  socket.onopen = () => { delay = 1000; lastMessage = Date.now(); };
+  socket.onmessage = (event) => {
+    lastMessage = Date.now();
+    let message;
+    try { message = JSON.parse(event.data); } catch (e) { return; }
+    if (message.t === "hb") return;
+    apply(message);
+    render();
+  };
+  socket.onclose = async () => {
+    // Dispositivo revocato o spostato, sessione del back office scaduta: la pagina ricaricata dice cosa succede.
+    try {
+      const check = await fetch(preview ? "/api/bo/sessione" : "/api/abbinamento", { cache: "no-store" });
+      const answer = await check.json();
+      if (preview ? !answer.autenticato : answer.stato !== "autorizzato") { location.reload(); return; }
+    } catch (e) { /* Agent fermo: si riprova */ }
+    setTimeout(connect, delay);
+    delay = Math.min(delay * 2, 8000);
+  };
+}
+
+setInterval(() => {
+  const silent = !demo && (Date.now() - lastMessage > 8000 || !socket || socket.readyState !== WebSocket.OPEN);
+  $("offline").classList.toggle("on", silent);
+  if (screenNow === "bill" && state.lines.some((l) => l.kind === "void")) render();   // le righe stornate escono dopo 6 s
+}, 1000);
+
+// Il cursore sparisce dopo 3 s fermo (Player, monitor con il mouse attaccato); non nell'anteprima.
+let cursorTimer = 0;
+if (!preview) {
+  const hide = () => root.classList.add("nocursor");
+  document.addEventListener("mousemove", () => { root.classList.remove("nocursor"); clearTimeout(cursorTimer); cursorTimer = setTimeout(hide, 3000); });
+  cursorTimer = setTimeout(hide, 3000);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Anteprima dal back office: la bozza dell'aspetto arriva con postMessage, il conto finto lo fa la pagina.
+// ---------------------------------------------------------------------------------------------------------------
+const DEMO_LINES = [
+  { id: "d1", kind: "item", desc: "Coperto", qty: 2, amount: 400 },
+  { id: "d2", kind: "item", desc: "Pizza Margherita", qty: 1, amount: 850 },
+  { id: "d3", kind: "note", text: "Ben cotta, poco sale" },
+  { id: "d4", kind: "item", desc: "Acqua naturale 0,75 l", qty: 1, amount: 250 },
+  { id: "d5", kind: "item", desc: "Calice di Lugana", qty: 2, amount: 1200 },
+  { id: "d6", kind: "discount", desc: "Sconto 10%", amount: -270 },
+  { id: "d7", kind: "item", desc: "Tiramisù", qty: 1, amount: 600 },
+];
+const DEMO_TOTAL = 3030;
+let demoQr = null;
+let demoTimer = 0;
+let draft = false;
+
+function demoPhase(phase) {
+  clearTimeout(demoTimer);
+  clearTimeout(thanksTimer);
+  seenLines.clear();
+  if (phase === "attesa") { clearSale("idle"); }
+  else if (phase === "conto") { clearSale("sale"); newSale(); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2; }
+  else if (phase === "pagamento") {
+    clearSale("payment"); newSale(); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2;
+    state.payment = { png: demoQr, amount: DEMO_TOTAL };
+  } else if (phase === "grazie") {
+    clearSale("thanks"); newSale(); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2;
+    state.paid = { method: "C.CREDITO", amount: DEMO_TOTAL };
+  } else if (phase === "auto") {
+    // Il giro completo: attesa, righe battute una alla volta, pagamento, Grazie, di nuovo l'attesa.
+    clearSale("idle");
+    let step = 0;
+    const run = () => {
+      if (step === 0) { clearSale("idle"); render(); step++; demoTimer = setTimeout(run, 9000); return; }
+      if (step <= DEMO_LINES.length) {
+        if (step === 1) { clearSale("sale"); newSale(); }
+        state.lines.push(DEMO_LINES[step - 1]);
+        state.total = DEMO_LINES.slice(0, step).reduce((s, l) => s + (l.amount || 0), 0);
+        state.cover = 2;
+        render(); step++; demoTimer = setTimeout(run, 1300); return;
+      }
+      if (step === DEMO_LINES.length + 1 && demoQr) { state.phase = "payment"; state.payment = { png: demoQr, amount: state.total }; render(); step++; demoTimer = setTimeout(run, 6000); return; }
+      state.phase = "thanks"; state.payment = null; state.paid = { method: "C.CREDITO", amount: state.total };
+      render(); step = 0; demoTimer = setTimeout(run, Math.min(thanksDuration(), 10000));
+    };
+    run();
+    return;
+  }
+  render();
+}
+
+if (preview) {
+  window.addEventListener("message", (event) => {
+    if (event.origin !== location.origin || !event.data) return;
+    const m = event.data;
+    if (m.t === "cfg") { draft = true; applyConfig(m, false); }
+    if (m.t === "demo") { if (m.qr) demoQr = m.qr; if (demo) demoPhase(m.fase || "auto"); }
+  });
+  if (window.parent !== window) window.parent.postMessage({ t: "pronto" }, location.origin);
+}
+
+window.addEventListener("resize", layout);
+if (cfg) { applyTheme(); applyBackground(); applyTexts(); playlist(cfg.ads || []); } else { applyTexts(); }
+layout();
+if (!demo) connect();
+</script>
+</body>
+</html>

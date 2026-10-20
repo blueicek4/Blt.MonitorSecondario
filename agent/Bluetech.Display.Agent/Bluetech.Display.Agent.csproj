@@ -20,13 +20,14 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.13" />
+    <PackageReference Include="Net.Codecrete.QrCodeGenerator" Version="3.2.1" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Bluetech.Display.Agent.Tests" />
   </ItemGroup>
 
-  <!-- Le pagine stanno dentro l'exe: /cliente e /diagnostica, /auth, /backoffice e l'errore per chi non è autorizzato. -->
+  <!-- Le pagine stanno dentro l'exe: /cliente, /diagnostica, /auth, /backoffice e l'errore per chi non è autorizzato. -->
   <ItemGroup>
     <Content Remove="Server\*.html" />
     <None Remove="Server\*.html" />
@@ -34,6 +35,16 @@
     <EmbeddedResource Include="Server\auth.html" LogicalName="auth.html" />
     <EmbeddedResource Include="Server\backoffice.html" LogicalName="backoffice.html" />
     <EmbeddedResource Include="Server\negato.html" LogicalName="negato.html" />
+    <EmbeddedResource Include="Server\cliente.html" LogicalName="cliente.html" />
+    <!-- Palette, contrasto e variabili CSS del tema, per /cliente e per il back office: /aspetto/tema.js. -->
+    <Content Remove="Server\tema.js" />
+    <None Remove="Server\tema.js" />
+    <EmbeddedResource Include="Server\tema.js" LogicalName="tema.js" />
+    <!-- I font del design (OFL), serviti a /fonts: il monitor non chiede niente a internet. Le licenze vanno accanto all'exe. -->
+    <Content Remove="Server\fonts\**" />
+    <None Remove="Server\fonts\**" />
+    <EmbeddedResource Include="Server\fonts\*.woff2;Server\fonts\fonts.css" LogicalName="fonts/%(Filename)%(Extension)" />
+    <None Include="Server\fonts\licenze\*" Link="licenze-font\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <!-- La PWA di /cliente: manifest, service worker, pagina di attesa, script dell'installazione, icone. -->
     <Content Remove="Server\pwa\**" />
     <None Remove="Server\pwa\**" />

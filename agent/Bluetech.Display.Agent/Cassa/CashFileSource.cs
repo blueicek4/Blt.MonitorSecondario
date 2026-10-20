@@ -27,6 +27,12 @@ public sealed class CashFileSource : IDisposable
     const int LeftBehindRetryMilliseconds = 2000;
     const int WatcherRetryMilliseconds = 10_000;
 
+    /// <summary>
+    /// Il file del monitor è di pochi KB (un conto lungo, un QR in Base64). Uno più grande non è lui: un percorso
+    /// sbagliato nelle impostazioni non deve far cancellare un file qualunque.
+    /// </summary>
+    public const long MaxFileBytes = 256 * 1024;
+
     readonly string _path;
     readonly string _folder;
     readonly string _fileName;
@@ -202,6 +208,8 @@ public sealed class CashFileSource : IDisposable
 
     void Snapshot()
     {
+        if (TooBig())
+            return;
         var read = ReadStable();
         _observed = read.Meta;
         _retryPending = !read.Missing && !read.Stable;
@@ -246,9 +254,21 @@ public sealed class CashFileSource : IDisposable
             _onFile(read.Bytes);
     }
 
+    bool TooBig()
+    {
+        var meta = FileMeta.Read(_path);
+        if (!meta.Exists || meta.Length <= MaxFileBytes)
+            return false;
+        var problem = $"{_fileName} è di {meta.Length / 1024} KB: troppo grande per essere il file del monitor di Passepartout. Non lo leggo e non lo tolgo: controlla il percorso della cassa.";
+        if (LastProblem != problem)
+            _log.LogWarning("{Problem}", problem);
+        LastProblem = problem;
+        return true;
+    }
+
     void RemoveStaleFile()
     {
-        if (_staleAfter <= TimeSpan.Zero)
+        if (_staleAfter <= TimeSpan.Zero || TooBig())
             return;
         try
         {
