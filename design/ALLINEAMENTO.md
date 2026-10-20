@@ -128,7 +128,11 @@ vanno aggiunte con il trasporto WebSocket (M5).
 | `sale.close` con `paid?: { method: string; amount: Cents; change?: Cents }` | La cassa scrive metodo e resto | Grazie mostra l'importo pagato, il metodo (`C.CREDITO` → "Carta") e il resto solo se > 0 |
 | `sync` durante la vendita, non solo alla riconnessione | Righe unite, sconti spostati sotto le righe, ordine cambiato: con i soli messaggi incrementali il cliente vedrebbe storni finti | Sostituisce le righe confrontando gli id: anima solo quelle davvero nuove, nessuna uscita di massa |
 
-`pay.qr.amount` è l'ultimo totale ricevuto: il file del QR non porta l'importo.
+`pay.qr.amount` è l'ultimo totale ricevuto: il file del QR non porta l'importo. Il PNG arriva già ridotto a un pixel
+per modulo (49×49 per il QR Satispay), senza quiet zone.
+
+Per M5 in sviluppo: l'Agent accetta su `/ws` solo le pagine servite da lui stesso. Il display servito da Vite
+(`http://localhost:5173`) si collega se nell'`appsettings.json` dell'Agent c'è `"AltreOrigini": ["http://localhost:5173"]`.
 
 **Il vecchio monitor sullo scontrino pagato** (foto del 20/10, [`samples/scontrino-bar-pagato-carta.txt`](../samples/scontrino-bar-pagato-carta.txt)):
 mostra ragione sociale, indirizzo e partita IVA, `EURO`, le righe con `SCONTO`, `PAGATO C.CREDITO:` e `Resto:` nel
