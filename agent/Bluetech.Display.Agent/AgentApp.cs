@@ -172,36 +172,33 @@ public static class AgentApp
         return app;
     }
 
-    /// <summary>La porta è libera come la vorrà Kestrel: su tutte le interfacce (IPv4 e IPv6) o solo su localhost.</summary>
+    /// <summary>
+    /// La porta è libera come la vorrà Kestrel: su tutte le interfacce (IPv4 e IPv6) o solo su localhost. Un indirizzo
+    /// alla volta: su Windows un socket IPv6 "dual mode" si lega anche se un altro programma ascolta solo in IPv4.
+    /// </summary>
     internal static bool PortAvailable(int port, bool open)
     {
-        try
+        foreach (var address in open ? new[] { IPAddress.Any, IPAddress.IPv6Any } : [IPAddress.Loopback, IPAddress.IPv6Loopback])
         {
-            if (open && Socket.OSSupportsIPv6)
+            if (address.AddressFamily == AddressFamily.InterNetworkV6 && !Socket.OSSupportsIPv6)
+                continue;
+            try
             {
-                using var dual = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp) { DualMode = true };
-                dual.Bind(new IPEndPoint(IPAddress.IPv6Any, port));
+                using var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                if (address.Equals(IPAddress.IPv6Any))
+                    socket.DualMode = true;   // come Kestrel
+                socket.Bind(new IPEndPoint(address, port));
             }
-            else
+            catch (SocketException ex) when (ex.SocketErrorCode is SocketError.AddressAlreadyInUse or SocketError.AccessDenied)
             {
-                using var v4 = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                v4.Bind(new IPEndPoint(open ? IPAddress.Any : IPAddress.Loopback, port));
+                return false;
             }
-            if (!open && Socket.OSSupportsIPv6)
+            catch (SocketException)
             {
-                using var v6 = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
-                v6.Bind(new IPEndPoint(IPAddress.IPv6Loopback, port));
+                // IPv6 non disponibile e simili: decide Kestrel
             }
-            return true;
         }
-        catch (SocketException ex) when (ex.SocketErrorCode is SocketError.AddressAlreadyInUse or SocketError.AccessDenied)
-        {
-            return false;
-        }
-        catch (SocketException)
-        {
-            return true;   // IPv6 non disponibile e simili: decide Kestrel
-        }
+        return true;
     }
 
     static void Listen(KestrelServerOptions kestrel, bool open, int port, X509Certificate2? certificate)

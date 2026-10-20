@@ -807,6 +807,12 @@ public sealed class RecordingSession : IDisposable
                 Thread.Sleep(WriterWaitMilliseconds);
                 continue;
             }
+            // Lo scrittore può aver finito proprio tra il controllo dei metadati e quello qui sopra (su Windows le attese
+            // finiscono allo stesso scatto del timer, ogni 15,6 ms): a file chiuso il contenuto deve essere ancora quello letto.
+            var again = ReadShared(out retries, out _);
+            result.Retries += retries;
+            if (again == null || !again.SequenceEqual(bytes))
+                continue;
             result.Stable = true;
             return result;
         }

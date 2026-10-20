@@ -329,6 +329,16 @@ public sealed class AgentAppTests
         {
             busy.Stop();
         }
+        var ipv4Only = new TcpListener(IPAddress.Any, 0);   // su Windows il socket IPv6 "dual mode" non lo vede
+        ipv4Only.Start();
+        try
+        {
+            Assert.False(AgentApp.PortAvailable(((IPEndPoint)ipv4Only.LocalEndpoint).Port, open: true));
+        }
+        finally
+        {
+            ipv4Only.Stop();
+        }
         var probe = new TcpListener(IPAddress.Loopback, 0);
         probe.Start();
         var free = ((IPEndPoint)probe.LocalEndpoint).Port;
