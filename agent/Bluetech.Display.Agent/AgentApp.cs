@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using Bluetech.Display.Agent.Accesso;
@@ -102,11 +103,28 @@ public static class AgentApp
             builder.Configuration["AllowedHosts"] = "localhost;127.0.0.1;[::1]";   // niente DNS rebinding sul back office
         builder.Logging.AddProvider(new FileLoggerProvider(logFolder, options.GiorniLog));
 
+        // Una porta occupata (da un altro programma, o cambiata a mano) non deve tenere spento l'Agent: si ripiega sulla
+        // 5080, o si parte senza HTTPS, e lo si dice nel back office.
+        var startupProblems = new List<string>();
+        var port = options.Porta ?? network.Porta;
+        if (port != 0 && !PortAvailable(port, network.ApertoInRete))
+        {
+            if (port != 5080 && PortAvailable(5080, network.ApertoInRete))
+            {
+                startupProblems.Add($"La porta {port} è occupata da un altro programma: l'Agent ha usato la 5080. Libera la porta o cambiala in Opzioni.");
+                port = 5080;
+            }
+            else
+            {
+                startupProblems.Add($"La porta {port} è occupata da un altro programma.");
+            }
+        }
         HttpsCertificate.Loaded? https = null;
         string? httpsProblem = null;
-        if (network.Https.Attivo)
+        if (network.Https.Attivo && network.Https.Porta != 0 && (network.Https.Porta == port || !PortAvailable(network.Https.Porta, network.ApertoInRete)))
+            httpsProblem = $"HTTPS non attivo: la porta {network.Https.Porta} è occupata. Liberala o cambiala in Opzioni.";
+        else if (network.Https.Attivo)
             https = HttpsCertificate.Load(network.Https, dataFolder, out httpsProblem);
-        var port = options.Porta ?? network.Porta;
         builder.WebHost.ConfigureKestrel(kestrel =>
         {
             Listen(kestrel, network.ApertoInRete, port, null);
@@ -124,6 +142,7 @@ public static class AgentApp
             Certificate = https?.Certificate,
             AuthorityPath = https?.AuthorityPath,
             HttpsProblem = httpsProblem,
+            StartupProblems = startupProblems,
         };
         builder.Services.AddSingleton(store);
         builder.Services.AddSingleton(new Statistics(dataFolder));
@@ -142,6 +161,8 @@ public static class AgentApp
             startup.LogWarning("{Problem}", statsProblem);
         if (httpsProblem != null)
             startup.LogError("{Problem}", httpsProblem);
+        foreach (var problem in startupProblems)
+            startup.LogError("{Problem}", problem);
         if (options.Porta.HasValue && options.Porta != network.Porta)
             startup.LogInformation("Porta {Port} dalla riga di comando, al posto della {Configured} delle impostazioni", options.Porta, network.Porta);
 
@@ -149,6 +170,38 @@ public static class AgentApp
         MapPages(app, options, runtime);
         BackOfficeApi.Map(app);
         return app;
+    }
+
+    /// <summary>La porta è libera come la vorrà Kestrel: su tutte le interfacce (IPv4 e IPv6) o solo su localhost.</summary>
+    internal static bool PortAvailable(int port, bool open)
+    {
+        try
+        {
+            if (open && Socket.OSSupportsIPv6)
+            {
+                using var dual = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp) { DualMode = true };
+                dual.Bind(new IPEndPoint(IPAddress.IPv6Any, port));
+            }
+            else
+            {
+                using var v4 = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                v4.Bind(new IPEndPoint(open ? IPAddress.Any : IPAddress.Loopback, port));
+            }
+            if (!open && Socket.OSSupportsIPv6)
+            {
+                using var v6 = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+                v6.Bind(new IPEndPoint(IPAddress.IPv6Loopback, port));
+            }
+            return true;
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode is SocketError.AddressAlreadyInUse or SocketError.AccessDenied)
+        {
+            return false;
+        }
+        catch (SocketException)
+        {
+            return true;   // IPv6 non disponibile e simili: decide Kestrel
+        }
     }
 
     static void Listen(KestrelServerOptions kestrel, bool open, int port, X509Certificate2? certificate)
@@ -189,6 +242,7 @@ public static class AgentApp
         {
             if (devices.Find(context) is not { } device)
                 return Denied();
+            devices.Refresh(context);
             stats.Seen(device.Id, Remote(context), connected: false);
             NoCache(context);
             var display = Path.Combine(runtime.DisplayFolder, "index.html");
@@ -224,7 +278,10 @@ public static class AgentApp
         app.MapGet("/auth", (HttpContext context, DeviceAccess devices) =>
         {
             if (devices.Find(context) != null)
+            {
+                devices.Refresh(context);
                 return Results.Redirect("/cliente");
+            }
             NoCache(context);
             return Html("auth.html");
         });
@@ -239,7 +296,10 @@ public static class AgentApp
         app.MapGet("/api/abbinamento", (HttpContext context, DeviceAccess devices) =>
         {
             NoCache(context);
-            return Results.Json(new { stato = devices.Find(context) != null ? "autorizzato" : devices.Poll(context) });
+            if (devices.Find(context) == null)
+                return Results.Json(new { stato = devices.Poll(context) });
+            devices.Refresh(context);   // la pagina aperta per mesi lo chiede ogni tanto: il cookie non scade
+            return Results.Json(new { stato = "autorizzato" });
         });
 
         app.MapGet("/backoffice", (HttpContext context) =>

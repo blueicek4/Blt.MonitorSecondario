@@ -414,7 +414,7 @@ async function refreshStatus() {
   $("version").textContent = "versione " + (state.status.versione || "?") + " · avviato " + when(state.status.avviato);
   renderNotices();
   if (state.tab === "stato") renderStatus();
-  if (state.tab === "dispositivi") renderDevices();
+  if (state.tab === "dispositivi" && !state.editingDevice) renderDevices();   // durante una modifica la riga resta com'è
   if (state.tab === "casse") renderCash();
 }
 

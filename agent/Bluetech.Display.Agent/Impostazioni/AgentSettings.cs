@@ -148,6 +148,8 @@ public sealed partial class AgentSettings
             var file = cash.FileCassa ?? "";
             if (string.IsNullOrWhiteSpace(file) || !Path.IsPathFullyQualified(file) || Path.GetFileName(file).Length == 0)
                 yield return $"{cash.Nome}: il file deve essere un percorso completo, per esempio C:\\MonitorSecondario\\Scontrino.txt.";
+            else if (!string.Equals(Path.GetExtension(file), ".txt", StringComparison.OrdinalIgnoreCase))
+                yield return $"{cash.Nome}: il file del monitor di Passepartout è un .txt (per esempio Scontrino.txt). L'Agent lo cancella dopo averlo letto: un altro file non va bene.";
             else if (!files.Add(Path.GetFullPath(file)))
                 yield return $"{cash.Nome}: il file {file} è già di un'altra cassa. Ogni cassa ha il suo file.";
         }

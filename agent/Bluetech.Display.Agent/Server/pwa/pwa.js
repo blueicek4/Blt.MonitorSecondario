@@ -28,6 +28,11 @@
   document.addEventListener("visibilitychange", keepAwake);
   keepAwake();
 
+  // Il cookie del dispositivo dura 400 giorni e si rinnova a ogni visita: una pagina aperta per mesi lo rinnova da sé.
+  setInterval(function () {
+    fetch("/api/abbinamento", { cache: "no-store", credentials: "same-origin" }).catch(function () {});
+  }, 6 * 60 * 60 * 1000);
+
   function dismissed() {
     try { return localStorage.getItem(KEY) === "no"; } catch (e) { return false; }
   }

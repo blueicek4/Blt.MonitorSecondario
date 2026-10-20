@@ -3,6 +3,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json.Nodes;
 using Bluetech.Display.Agent.Impostazioni;
@@ -279,6 +281,81 @@ public sealed class AgentAppTests
     }
 
     [Fact]
+    public async Task Parallel_wrong_passwords_get_five_tries_at_most()
+    {
+        await using var agent = await TestAgent.Start(login: false);
+        var attempts = Enumerable.Range(0, 30).Select(i => agent.NewBrowser().Http.PostAsJsonAsync("/api/bo/accesso", new { password = "sbagliata" + i }));
+        var answers = await Task.WhenAll(attempts);
+        Assert.True(answers.Count(a => a.StatusCode == HttpStatusCode.Unauthorized) <= 5, string.Join(",", answers.Select(a => (int)a.StatusCode)));
+        Assert.Contains(answers, a => a.StatusCode == (HttpStatusCode)429);
+    }
+
+    [Fact]
+    public async Task The_device_cookie_is_renewed_on_every_visit()
+    {
+        await using var agent = await TestAgent.Start();
+        var device = await agent.Pair("Palmare");
+        foreach (var path in new[] { "/cliente", "/api/abbinamento" })
+        {
+            var visit = await device.Http.GetAsync(path);
+            var cookie = Assert.Single(visit.Headers.GetValues("Set-Cookie"), c => c.StartsWith("bluetech_dispositivo=", StringComparison.Ordinal));
+            var expires = DateTimeOffset.Parse(cookie.Split("expires=", StringSplitOptions.None)[1].Split(';')[0]);
+            Assert.InRange(expires - DateTimeOffset.UtcNow, TimeSpan.FromDays(399), TimeSpan.FromDays(401));   // il limite di Chrome, rinnovato
+        }
+    }
+
+    [Fact]
+    public async Task An_approved_code_survives_a_flood_of_new_codes()
+    {
+        await using var agent = await TestAgent.Start();
+        var device = agent.NewBrowser();
+        var code = (string)(await Json(await device.Http.PostAsync("/api/abbinamento", null)))["codice"]!;
+        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/dispositivi", new { codice = code, nome = "Palmare", cassa = "cassa1" })).StatusCode);
+        for (var i = 0; i < 60; i++)   // qualcuno chiede codici a raffica dallo stesso indirizzo
+            await agent.NewBrowser().Http.PostAsync("/api/abbinamento", null);
+        Assert.Equal("autorizzato", (string)(await Json(await device.Http.GetAsync("/api/abbinamento")))["stato"]!);
+    }
+
+    [Fact]
+    public void A_port_in_use_is_seen_before_starting()
+    {
+        var busy = new TcpListener(IPAddress.Loopback, 0);
+        busy.Start();
+        try
+        {
+            Assert.False(AgentApp.PortAvailable(((IPEndPoint)busy.LocalEndpoint).Port, open: false));
+        }
+        finally
+        {
+            busy.Stop();
+        }
+        var probe = new TcpListener(IPAddress.Loopback, 0);
+        probe.Start();
+        var free = ((IPEndPoint)probe.LocalEndpoint).Port;
+        probe.Stop();
+        Assert.True(AgentApp.PortAvailable(free, open: false));
+    }
+
+    [Fact]
+    public async Task A_busy_https_port_leaves_http_up_and_says_why()
+    {
+        var busy = new TcpListener(IPAddress.Loopback, 0);
+        busy.Start();
+        try
+        {
+            var port = ((IPEndPoint)busy.LocalEndpoint).Port;
+            await using var agent = await TestAgent.Start(s => s.Rete.Https = new HttpsSettings { Attivo = true, Porta = port });
+            Assert.DoesNotContain(agent.App.Urls, u => u.StartsWith("https:", StringComparison.Ordinal));
+            var status = await agent.Status();
+            Assert.Contains(status["avvisi"]!.AsArray(), a => ((string)a!).Contains($"porta {port} è occupata"));
+        }
+        finally
+        {
+            busy.Stop();
+        }
+    }
+
+    [Fact]
     public void The_first_password_cannot_be_set_from_the_network()
     {
         var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -321,6 +398,70 @@ public sealed class AgentAppTests
         var renamed = await agent.Admin.PutAsJsonAsync("/api/bo/casse/cassa1", new { Nome = "Cassa sala", FileCassa = agent.CashFile() });
         Assert.Equal(HttpStatusCode.OK, renamed.StatusCode);
         Assert.Equal("Cassa sala", (string)(await agent.Status())["casse"]![0]!["nome"]!);
+    }
+
+    [Fact]
+    public async Task The_cash_file_can_never_be_a_file_the_agent_would_wrongly_delete()
+    {
+        await using var agent = await TestAgent.Start();
+        var settingsFile = Path.Combine(agent.DataFolder, SettingsStore.FileName);
+        var notes = Path.Combine(agent.Root, "documenti", "appunti.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(notes)!);
+        await File.WriteAllTextAsync(notes, "Appunti del locale: da non cancellare");
+        var monitor = Path.Combine(agent.Root, "cassa9", "Scontrino.txt");
+        await Write(monitor, Coffee);
+
+        foreach (var (file, error) in new[]
+        {
+            (settingsFile, "cartelle dell'Agent"),                           // le impostazioni: la revisione le ha fatte cancellare così
+            (Path.Combine(agent.Root, "gestionale", "Monitor.xml"), ".txt"),   // un file di Passepartout, per sbaglio
+            (Path.Combine(agent.DataFolder, "Scontrino.txt"), "cartelle dell'Agent"),
+            (Path.Combine(agent.Root, "log", "copie", "x.txt"), "cartelle dell'Agent"),
+            (notes, "non sembra quello del monitor"),
+        })
+        {
+            var refused = await agent.Admin.PostAsJsonAsync("/api/bo/casse", new { Nome = "Sbagliata", FileCassa = file });
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            Assert.Contains(error, (string)(await Json(refused))["errore"]!);
+        }
+        await Task.Delay(500);
+        Assert.True(File.Exists(settingsFile));
+        Assert.True(File.Exists(notes));
+
+        // Un file del monitor già lì va bene; tolta la cassa, una cassa nuova non ne eredita i conteggi.
+        var added = await agent.Admin.PostAsJsonAsync("/api/bo/casse", new { Nome = "Cassa 9", FileCassa = monitor });
+        Assert.Equal(HttpStatusCode.OK, added.StatusCode);
+        var id = (string)(await Json(added))["id"]!;
+        var watch = Stopwatch.StartNew();
+        while (File.Exists(monitor) && watch.Elapsed < TimeSpan.FromSeconds(10))
+            await Task.Delay(20);
+        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.DeleteAsync($"/api/bo/casse/{id}")).StatusCode);
+        var again = await agent.Admin.PostAsJsonAsync("/api/bo/casse", new { Nome = "Terrazza", FileCassa = Path.Combine(agent.Root, "terrazza", "Scontrino.txt") });
+        Assert.NotEqual(id, (string)(await Json(again))["id"]!);
+    }
+
+    [Fact]
+    public async Task The_statistics_period_is_counted_in_calendar_days()
+    {
+        await using var agent = await TestAgent.Start();
+        await Write(agent.CashFile(), Coffee);
+        var watch = Stopwatch.StartNew();
+        while (File.Exists(agent.CashFile()) && watch.Elapsed < TimeSpan.FromSeconds(10))
+            await Task.Delay(20);
+        await agent.App.StopAsync();   // salva statistiche.json
+        var file = Path.Combine(agent.DataFolder, "statistiche.json");
+        var data = JsonNode.Parse(await File.ReadAllTextAsync(file))!;
+        var old = DateTime.Today.AddDays(-10).ToString("yyyy-MM-dd");
+        data["Giorni"]![old] = new JsonObject { ["cassa1"] = new JsonObject { ["Vendite"] = 9 } };
+        await File.WriteAllTextAsync(file, data.ToJsonString());
+
+        await agent.Restart();
+        await agent.Login();
+        JsonArray Days(string json) => JsonNode.Parse(json)!["giorni"]!.AsArray();
+        var today = Days(await agent.Admin.GetStringAsync("/api/bo/statistiche?giorni=1"));
+        Assert.Equal(DateTime.Today.ToString("yyyy-MM-dd"), (string)Assert.Single(today)!["giorno"]!);
+        Assert.Single(Days(await agent.Admin.GetStringAsync("/api/bo/statistiche?giorni=7")));   // 10 giorni fa non è "7 giorni"
+        Assert.Equal(2, Days(await agent.Admin.GetStringAsync("/api/bo/statistiche?giorni=31")).Count);
     }
 
     [Fact]
@@ -414,36 +555,81 @@ public sealed class AgentAppTests
         var https = new Uri(agent.App.Urls.First(u => u.StartsWith("https:", StringComparison.Ordinal)));
         var authorityFile = Path.Combine(agent.DataFolder, "https", Server.HttpsCertificate.AuthorityFile);
         Assert.True(File.Exists(authorityFile));
-        using var authority = System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadCertificateFromFile(authorityFile);
+        using var authority = X509CertificateLoader.LoadCertificateFromFile(authorityFile);
+
+        bool Trusted(X509Certificate2 certificate)
+        {
+            using var chain = new X509Chain();
+            chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+            chain.ChainPolicy.CustomTrustStore.Add(authority);
+            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+            return chain.Build(certificate);
+        }
 
         string? seenThumbprint = null;
-        using var handler = new HttpClientHandler
+        HttpClientHandler Device(CookieContainer? cookies = null) => new()
         {
+            CookieContainer = cookies ?? new CookieContainer(),
+            AllowAutoRedirect = false,
             // Come un dispositivo con l'autorità installata: il nome deve tornare e la catena arrivare all'autorità.
             ServerCertificateCustomValidationCallback = (_, certificate, _, errors) =>
             {
                 seenThumbprint = certificate!.Thumbprint;
-                using var chain = new System.Security.Cryptography.X509Certificates.X509Chain();
-                chain.ChainPolicy.TrustMode = System.Security.Cryptography.X509Certificates.X509ChainTrustMode.CustomRootTrust;
-                chain.ChainPolicy.CustomTrustStore.Add(authority);
-                chain.ChainPolicy.RevocationMode = System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck;
-                return (errors & ~System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors) == 0 && chain.Build(certificate);
+                return (errors & ~System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors) == 0 && Trusted(certificate);
             },
         };
-        using var secure = new HttpClient(handler) { BaseAddress = https };
-        Assert.Contains("Back office", await secure.GetStringAsync("/backoffice"));
+        using (var secure = new HttpClient(Device()) { BaseAddress = https })
+            Assert.Contains("Back office", await secure.GetStringAsync("/backoffice"));
 
         var status = await agent.Status();
         Assert.True((bool)status["https"]!["generato"]!);
         var download = await agent.Admin.GetAsync("/api/bo/https/autorita");
         Assert.Equal(await File.ReadAllBytesAsync(authorityFile), await download.Content.ReadAsByteArrayAsync());
 
+        // L'autorità vale solo per la rete locale: con la sua chiave non si garantisce un sito vero.
+        using (var withKey = X509CertificateLoader.LoadPkcs12FromFile(Path.Combine(agent.DataFolder, "https", "autorita.pfx"), null))
+        {
+            X509Certificate2 Issue(string name)
+            {
+                using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+                var request = new CertificateRequest($"CN={name}", key, HashAlgorithmName.SHA256);
+                var names = new SubjectAlternativeNameBuilder();
+                names.AddDnsName(name);
+                request.CertificateExtensions.Add(names.Build());
+                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension([new Oid("1.3.6.1.5.5.7.3.1")], false));
+                return request.Create(withKey, DateTimeOffset.Now.AddDays(-1), DateTimeOffset.Now.AddDays(30), RandomNumberGenerator.GetBytes(16));
+            }
+            using var real = Issue("www.example.com");
+            using var local = Issue("cassa.local");
+            Assert.False(Trusted(real));
+            Assert.True(Trusted(local));
+        }
+
+        // Un dispositivo abbinato su HTTPS ha il suo cookie ("_s"): su HTTP non viaggia, e abbinandolo anche lì non litiga.
+        var cookies = new CookieContainer();
+        using (var deviceHttps = new HttpClient(Device(cookies)) { BaseAddress = https })
+        {
+            var code = (string)(await Json(await deviceHttps.PostAsync("/api/abbinamento", null)))["codice"]!;
+            Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/dispositivi", new { codice = code, nome = "Tablet HTTPS", cassa = "cassa1" })).StatusCode);
+            var poll = await deviceHttps.GetAsync("/api/abbinamento");
+            Assert.Contains(poll.Headers.GetValues("Set-Cookie"), c => c.StartsWith("bluetech_dispositivo_s=", StringComparison.Ordinal) && c.Contains("secure", StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(HttpStatusCode.OK, (await deviceHttps.GetAsync("/cliente")).StatusCode);
+        }
+        using (var deviceHttp = new HttpClient(new HttpClientHandler { CookieContainer = cookies, AllowAutoRedirect = false }) { BaseAddress = agent.Base })
+        {
+            Assert.Equal(HttpStatusCode.Forbidden, (await deviceHttp.GetAsync("/cliente")).StatusCode);
+            var code = (string)(await Json(await deviceHttp.PostAsync("/api/abbinamento", null)))["codice"]!;
+            Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/dispositivi", new { codice = code, nome = "Tablet HTTP", cassa = "cassa1" })).StatusCode);
+            Assert.Equal("autorizzato", (string)(await Json(await deviceHttp.GetAsync("/api/abbinamento")))["stato"]!);
+            Assert.Equal(HttpStatusCode.OK, (await deviceHttp.GetAsync("/cliente")).StatusCode);
+        }
+
         // Al riavvio lo stesso certificato: i dispositivi non devono rifidarsi.
         var first = seenThumbprint;
         await agent.Restart();
         https = new Uri(agent.App.Urls.First(u => u.StartsWith("https:", StringComparison.Ordinal)));
-        using var again = new HttpClient(handler, disposeHandler: false) { BaseAddress = https };
-        Assert.Contains("Back office", await again.GetStringAsync("/backoffice"));
+        using (var again = new HttpClient(Device()) { BaseAddress = https })
+            Assert.Contains("Back office", await again.GetStringAsync("/backoffice"));
         Assert.Equal(first, seenThumbprint);
     }
 

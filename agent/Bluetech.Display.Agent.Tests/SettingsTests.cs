@@ -152,6 +152,51 @@ public sealed class SettingsTests : IDisposable
     }
 
     [Fact]
+    public void A_missing_file_comes_back_from_the_backup_not_from_the_defaults()
+    {
+        var store = new SettingsStore(_folder);
+        store.Update(s =>
+        {
+            s.Casse[0].FileCassa = LocalFile(_folder, "cassa1");
+            s.Password = AdminAccess.Hash("la-mia-password");
+            return null;
+        });
+        store.Update(s =>
+        {
+            s.ChiusuraVenditaDopoSecondi = 90;
+            return null;
+        });
+        File.Delete(FilePath);   // tolto per errore
+
+        var reloaded = new SettingsStore(_folder);
+        Assert.NotNull(reloaded.Current.Password);   // non le impostazioni iniziali, senza password
+        Assert.Contains(reloaded.LoadNotes, n => n.Contains("ripristinato dalla copia"));
+        Assert.True(File.Exists(FilePath));
+    }
+
+    [Fact]
+    public async Task A_file_locked_for_a_moment_is_read_again_not_thrown_away()
+    {
+        var store = new SettingsStore(_folder);
+        store.Update(s =>
+        {
+            s.Casse[0].FileCassa = LocalFile(_folder, "cassa1");
+            s.ChiusuraVenditaDopoSecondi = 77;
+            return null;
+        });
+        var locked = new FileStream(FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);   // un antivirus, una copia
+        var release = Task.Run(async () =>
+        {
+            await Task.Delay(700);
+            locked.Dispose();
+        });
+        var reloaded = new SettingsStore(_folder);
+        await release;
+        Assert.Equal(77, reloaded.Current.ChiusuraVenditaDopoSecondi);
+        Assert.Empty(Directory.GetFiles(_folder, SettingsStore.FileName + ".errore-*"));
+    }
+
+    [Fact]
     public void A_hand_written_file_is_repaired_where_it_can()
     {
         Directory.CreateDirectory(_folder);

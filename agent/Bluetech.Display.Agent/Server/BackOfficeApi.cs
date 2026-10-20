@@ -127,7 +127,7 @@ public static class BackOfficeApi
             var bound = BoundPorts(server);
             foreach (var (port, name) in new[] { (network.Porta, "HTTP"), (network.Https.Attivo ? network.Https.Porta : 0, "HTTPS") })
             {
-                if (port != 0 && !bound.Contains(port) && !PortFree(port))
+                if (port != 0 && !bound.Contains(port) && !AgentApp.PortAvailable(port, network.ApertoInRete))
                     return Error($"La porta {name} {port} è già usata da un altro programma su questo PC.");
             }
             var error = settings.Update(s =>
@@ -147,28 +147,33 @@ public static class BackOfficeApi
             return Ok();
         });
 
-        bo.MapPost("/casse", async (HttpContext context, SettingsStore settings) =>
+        bo.MapPost("/casse", async (HttpContext context, SettingsStore settings, Statistics stats, AgentRuntime runtime) =>
         {
             if (await Read<CashPointConfig>(context) is not { } cash)
                 return Error("Dati non validi.");
+            Tidy(cash);
+            if (UnsafeCashFile(cash.FileCassa, runtime, settings.Current, null) is { } unsafeFile)
+                return Error(unsafeFile);
+            var used = stats.CashPointIds();
             var error = settings.Update(s =>
             {
-                cash.Id = AgentSettings.NextId("cassa", s.Casse.Select(c => c.Id));
-                Tidy(cash);
+                cash.Id = AgentSettings.NextId("cassa", s.Casse.Select(c => c.Id).Concat(used));   // un id nuovo non eredita i conteggi di una cassa tolta
                 s.Casse.Add(cash);
                 return null;
             });
             return error == null ? Ok(new JsonObject { ["id"] = cash.Id }) : Error(error);   // il motore scrive nel log la cassa nuova
         });
-        bo.MapPut("/casse/{id}", async (string id, HttpContext context, SettingsStore settings) =>
+        bo.MapPut("/casse/{id}", async (string id, HttpContext context, SettingsStore settings, AgentRuntime runtime) =>
         {
             if (await Read<CashPointConfig>(context) is not { } changed)
                 return Error("Dati non validi.");
+            Tidy(changed);
+            if (UnsafeCashFile(changed.FileCassa, runtime, settings.Current, id) is { } unsafeFile)
+                return Error(unsafeFile);
             return Result(settings.Update(s =>
             {
                 if (s.CashPoint(id) is not { } cash)
                     return "La cassa non c'è più.";
-                Tidy(changed);
                 cash.Nome = changed.Nome;
                 cash.FileCassa = changed.FileCassa;
                 return null;
@@ -344,6 +349,39 @@ public static class BackOfficeApi
         public NetworkSettings? Rete { get; set; }
     }
 
+    /// <summary>
+    /// L'Agent cancella il file della cassa dopo averlo letto: non deve poter essere un suo file (impostazioni, log,
+    /// display) né un file che c'è già e non sembra quello del monitor (un percorso sbagliato lo cancellerebbe).
+    /// </summary>
+    static string? UnsafeCashFile(string file, AgentRuntime runtime, AgentSettings current, string? cashId)
+    {
+        if (string.IsNullOrWhiteSpace(file) || !Path.IsPathFullyQualified(file))
+            return null;   // lo dice la validazione
+        var full = Path.GetFullPath(file);
+        if (current.CashPoint(cashId)?.FileCassa is { } unchanged && string.Equals(Path.GetFullPath(unchanged), full, StringComparison.OrdinalIgnoreCase))
+            return null;   // il file di prima: è già sorvegliato
+        foreach (var folder in new[] { runtime.DataFolder, runtime.LogFolder, runtime.DisplayFolder })
+        {
+            var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder)) + Path.DirectorySeparatorChar;
+            if (full.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                return $"Il file della cassa non può stare nelle cartelle dell'Agent ({root.TrimEnd(Path.DirectorySeparatorChar)}): l'Agent lo cancella dopo averlo letto.";
+        }
+        try
+        {
+            if (!File.Exists(full))
+                return null;
+            var length = new FileInfo(full).Length;
+            if (length > CashFileSource.MaxFileBytes
+                || (length > 0 && ReceiptParser.Parse(File.ReadAllBytes(full)).Kind == CashFileKind.Message))
+                return $"C'è già un file {full} che non sembra quello del monitor di Passepartout: l'Agent lo cancellerebbe. Controlla il percorso.";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return $"Non riesco a leggere {full}: {ex.Message}";
+        }
+        return null;
+    }
+
     static void Tidy(CashPointConfig cash)
     {
         cash.Nome = (cash.Nome ?? "").Trim();
@@ -406,6 +444,8 @@ public static class BackOfficeApi
             notes.Add(note);
         if (runtime.HttpsProblem != null)
             notes.Add(runtime.HttpsProblem);
+        foreach (var problem in runtime.StartupProblems)
+            notes.Add(problem);
         if (stats.LoadProblem != null)
             notes.Add(stats.LoadProblem);
         foreach (var old in engine.OldMonitors)
@@ -450,21 +490,6 @@ public static class BackOfficeApi
         (server.Features.Get<IServerAddressesFeature>()?.Addresses ?? [])
             .Select(a => Uri.TryCreate(a.Replace("[::]", "localhost").Replace("0.0.0.0", "localhost"), UriKind.Absolute, out var uri) ? uri.Port : -1)
             .ToHashSet();
-
-    static bool PortFree(int port)
-    {
-        try
-        {
-            var listener = new TcpListener(IPAddress.Any, port);
-            listener.Start();
-            listener.Stop();
-            return true;
-        }
-        catch (SocketException)
-        {
-            return false;
-        }
-    }
 
     /// <summary>Gli indirizzi da aprire sui dispositivi: con l'Agent aperto in rete, quelli del PC; altrimenti localhost.</summary>
     static JsonArray Addresses(IServer server, bool open)

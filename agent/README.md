@@ -110,14 +110,15 @@ avvio:
 | Sezione | |
 |---|---|
 | `Password` | L'hash della password del back office (PBKDF2): la password non c'è. **Password dimenticata**: ferma l'Agent, togli la sezione `Password`, riavvialo e impostala di nuovo dal PC dell'Agent |
-| `Rete` | `Porta` (5080), `ApertoInRete` (`false`: risponde solo a questo PC; `true`: anche alla rete, serve una regola nel firewall), `Https`. Valgono dal riavvio; una porta già usata da un altro programma viene rifiutata |
+| `Rete` | `Porta` (5080), `ApertoInRete` (`false`: risponde solo a questo PC; `true`: anche alla rete, serve una regola nel firewall), `Https`. Valgono dal riavvio; una porta già usata da un altro programma viene rifiutata. Se all'avvio la porta è occupata lo stesso, l'Agent usa la 5080 (o parte senza HTTPS) e lo dice nel back office |
 | `ChiusuraVenditaDopoSecondi` | 60: conto aperto, senza `PAGATO`, e nessun file per un minuto: si chiude e il display torna alle slide. Con il QR Satispay a video almeno 3 minuti. All'avvio, un file più vecchio di così si toglie senza mostrarlo |
 | `ScontrinoDigitale` | `MostraScontrino`, `CopiaCartacea`, `SecondiAVideo` (45), `Dicitura`: vedi sotto |
-| `Casse` | `Id`, `Nome`, `FileCassa` |
+| `Casse` | `Id`, `Nome`, `FileCassa`: un `.txt`, fuori dalle cartelle dell'Agent. L'Agent lo cancella dopo averlo letto, quindi il back office rifiuta anche un file che c'è già e non sembra quello del monitor, e l'Agent non tocca mai un file di oltre 256 KB |
 | `Stampanti` | `Id`, `Nome`, `Collegamento` (`rete`, `windows`, `prova`), `Indirizzo`, `LarghezzaMm`, `Colonne`, `TabellaCaratteri`, `QrPuntiPerModulo`, `Taglio`, `TestoRitiro`, `TimeoutSecondi` |
 | `Dispositivi` | `Id`, `Nome`, `Cassa`, `Stampante`, `AutorizzatoIl` e l'hash del token del dispositivo: il token vero lo ha solo il dispositivo, in un cookie |
 
-Ogni modifica si salva subito e la versione prima resta in `impostazioni.json.bak`. Il file si può copiare come copia di
+Ogni modifica si salva subito e la versione prima resta in `impostazioni.json.bak`; se `impostazioni.json` sparisce,
+all'avvio torna dalla copia. Il file si può copiare come copia di
 sicurezza. Se lo modifichi a mano fallo ad Agent fermo: un file rotto viene messo da parte (`.errore-…`) e l'Agent
 riparte dalla copia `.bak`; un errore dentro un file valido (una stampante senza indirizzo) si vede nel back office e non
 impedisce di cambiare il resto.
@@ -147,6 +148,8 @@ quell'avvio), `--dati`, `--replay`, `--velocita`, `--ripeti`.
 - **Log**: il log del giorno scelto, con il filtro "avvisi ed errori" e la ricerca.
 - La sessione dura finché si usa (12 ore di inattività al massimo) e finisce al riavvio dell'Agent; 5 password
   sbagliate di fila fermano quel PC per un minuto.
+- Il cookie di un dispositivo dura 400 giorni (il massimo di Chrome) e si rinnova a ogni visita e ogni 6 ore a pagina
+  aperta. Su HTTPS ha un altro nome: passare da HTTPS a HTTP, o il contrario, chiede solo un nuovo abbinamento.
 
 ## HTTPS (opzionale)
 
@@ -156,7 +159,9 @@ In **Opzioni → Rete**: HTTPS su una seconda porta (5443), accanto a HTTP. Due 
   (`dati\https\autorita.pfx`) e un certificato per `localhost`, il nome del PC e i suoi indirizzi IP, rifatto da solo
   all'avvio quando cambiano o sta per scadere. Sui dispositivi si installa una volta l'autorità
   (`bluetech-agent-ca.cer`, da scaricare in Opzioni): poi il browser si fida senza avvisi anche dei certificati rifatti.
-  Senza installarla il browser chiede di accettare il rischio;
+  Senza installarla il browser chiede di accettare il rischio. L'autorità ha i **vincoli di nome**: vale solo per gli
+  indirizzi delle reti private e per i nomi di questo PC (anche `.local`), così chi ne copiasse la chiave non potrebbe
+  garantire nessun sito vero;
 - **un certificato tuo**: un `.pfx` con la chiave privata e la sua password, per esempio di un dominio del cliente.
 
 Il Player sullo stesso PC può restare su `http://localhost`. Con HTTPS la password del back office e i cookie dei
