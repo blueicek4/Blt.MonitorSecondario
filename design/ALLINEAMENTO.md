@@ -179,3 +179,13 @@ la partita IVA).
     link alle recensioni di Google no);
   - legare la registrazione allo scontrino (punti fidelity sull'acquisto appena fatto) oggi non si può: nel file non c'è
     il numero del documento.
+
+## 10. Proposta: scontrino digitale a video e copia cartacea (da decidere)
+
+Studio in [`docs/03`](../docs/03-studio-copia-cartacea.md). Funzione opzionale che **cambia lo scopo** della SPEC
+§13 ("lo schermo non è touch e non ha controlli"; "la stampa resta sulla cassa"): un nuovo stato `receipt` dopo Grazie,
+con lo scontrino, il QR dello scontrino digitale e un pulsante per chiedere la copia di carta, che stampa Passepartout.
+Per il design: un `<button>` vero in un solo stato e solo se il locale lo attiva, e una deroga all'invariante del
+totale come elemento più grande (in questo stato il protagonista è il QR). Prima di disegnarlo va fatto il prototipo
+sul focus della cassa (§7 dello studio).
+
