@@ -42,7 +42,7 @@ Il Player apre `http://localhost:5080/display`, che rimanda al display.
 | `Porta` | `5080` | |
 | `ApertoInRete` | `false` | `false`: risponde solo a questo PC. `true`: anche a tablet e TV della rete (serve una regola nel firewall). I conti viaggiano in chiaro |
 | `CartellaDisplay` | `display` | La build del display (`display/dist`), accanto all'exe |
-| `ChiusuraVenditaDopoSecondi` | `120` | Conto aperto, senza `PAGATO`, e nessun file per 2 minuti: si chiude e il display torna alle slide. Nelle registrazioni il pagamento più lento è arrivato 80 s dopo l'ultimo file (QR Satispay a video): con i 20 s del vecchio monitor il totale sarebbe sparito mentre il cliente pagava in 6 conti su 9. All'avvio, un file più vecchio di così si toglie senza mostrarlo |
+| `ChiusuraVenditaDopoSecondi` | `60` | Conto aperto, senza `PAGATO`, e nessun file per un minuto: si chiude e il display torna alle slide. Con il QR Satispay a video almeno 3 minuti: il cliente sta pagando. Nelle registrazioni la riga `PAGATO` è arrivata 9–67 s dopo l'ultimo file con contanti e POS: oltre i 60 s il display va alle slide e torna con Grazie e le righe quando arriva `PAGATO`. All'avvio, un file più vecchio di così si toglie senza mostrarlo |
 | `CartellaLog`, `GiorniLog` | `log`, `14` | Un file al giorno |
 
 Dalla riga di comando: `--file`, `--porta`, `--replay`, `--velocita`, `--ripeti`.

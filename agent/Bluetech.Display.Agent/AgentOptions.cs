@@ -18,7 +18,7 @@ public sealed class AgentOptions
     /// Vendita aperta e nessun file per tanto tempo: si chiude. All'avvio un file più vecchio di così è un avanzo e
     /// si toglie senza mostrarlo. 0 = mai.
     /// </summary>
-    public int ChiusuraVenditaDopoSecondi { get; set; } = 120;
+    public int ChiusuraVenditaDopoSecondi { get; set; } = 60;
 
     public string CartellaLog { get; set; } = "log";
     public int GiorniLog { get; set; } = 14;
