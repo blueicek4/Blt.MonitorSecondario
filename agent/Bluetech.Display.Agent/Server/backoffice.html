@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Back office</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { color-scheme: dark; --bg: #0b1017; --card: #141b26; --card2: #1a2331; --line: rgba(255,255,255,.09); --text: #e6eaf2; --muted: #9aa6ba; --faint: #6f7e95; --ok: #3ddc97; --warn: #f5b84a; --err: #ff7a7a; --accent: #3ddc97; --ink: #062417; --focus: #8fb8ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, "Segoe UI", sans-serif; }
+  [hidden] { display: none !important; }
+  a { color: var(--focus); }
+  h1 { font-size: 18px; margin: 0; font-weight: 650; }
+  h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  h3 { font-size: 16px; margin: 0 0 4px; }
+  p { margin: 0 0 10px; }
+  .muted { color: var(--muted); } .faint { color: var(--faint); } .ok { color: var(--ok); } .warn { color: var(--warn); } .err { color: var(--err); }
+  .mono { font-family: ui-monospace, Consolas, monospace; font-size: 13px; overflow-wrap: anywhere; }
+
+  header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 14px 24px; border-bottom: 1px solid var(--line); }
+  header.top .spacer { flex: 1; }
+  nav { display: flex; gap: 4px; padding: 10px 20px 0; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+  nav button { background: none; border: 0; color: var(--muted); font: inherit; font-weight: 600; padding: 10px 12px 12px; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+  nav button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+  main { padding: 20px 24px 48px; max-width: 1200px; margin: 0 auto; }
+  @media (max-width: 700px) { header.top { padding: 12px 16px; } nav { padding: 6px 8px 0; } main { padding: 16px 16px 40px; } }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 16px; min-width: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px; }
+  .grid .card { margin: 0; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .row .grow { flex: 1; min-width: 0; }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 10px 0 0; }
+  .facts dt { color: var(--muted); } .facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--card2); color: var(--muted); border: 1px solid var(--line); }
+  .badge.on { color: var(--ok); border-color: rgba(61,220,151,.35); } .badge.warn { color: var(--warn); border-color: rgba(245,184,74,.35); }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--faint); margin-right: 6px; vertical-align: 1px; }
+  .dot.on { background: var(--ok); }
+  .notice { border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid rgba(245,184,74,.35); background: rgba(245,184,74,.08); }
+  .notice.info { border-color: rgba(143,184,255,.35); background: rgba(143,184,255,.08); }
+
+  .table { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.actions { white-space: nowrap; text-align: right; }
+  tr:last-child td { border-bottom: 0; }
+  tfoot td { font-weight: 650; border-top: 1px solid var(--line); }
+
+  form.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 16px; align-items: start; }
+  form.fields .wide { grid-column: 1 / -1; }
+  label { display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 13px; font-weight: 600; min-width: 0; }
+  label.check { flex-direction: row; align-items: center; gap: 10px; color: var(--text); font-size: 15px; font-weight: 500; }
+  label .hint { font-weight: 400; color: var(--faint); }
+  input, select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; min-width: 0; width: 100%; }
+  input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
+  input:focus, select:focus, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  input.code { font: 700 28px/1.2 ui-monospace, Consolas, monospace; letter-spacing: .2em; text-align: center; }
+  button.btn { font: inherit; font-weight: 600; border-radius: 9px; padding: 9px 14px; border: 1px solid var(--line); background: var(--card2); color: var(--text); cursor: pointer; white-space: nowrap; }
+  button.btn:hover { border-color: rgba(255,255,255,.22); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+  button.danger { color: var(--err); }
+  button.small { padding: 5px 10px; font-size: 13px; }
+  button:disabled { opacity: .55; cursor: default; }
+  .actionsbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; grid-column: 1 / -1; }
+  .message { min-height: 1.4em; margin: 8px 0 0; font-weight: 600; }
+  pre.preview { background: #fbfaf7; color: #1d232c; border-radius: 6px; padding: 14px; font: 13px/1.35 ui-monospace, Consolas, monospace; overflow-x: auto; max-width: 100%; margin: 10px 0 0; }
+
+  #log { font: 12px/1.5 ui-monospace, Consolas, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; max-height: 65vh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 12px; }
+  #log .AVV { color: var(--warn); } #log .ERR, #log .CRT { color: var(--err); } #log .DBG { color: var(--faint); }
+
+  #login { max-width: 420px; margin: 12vh auto 0; padding: 0 16px; }
+  #login .card { padding: 26px; }
+  #login h1 { margin-bottom: 6px; }
+  footer.brand { color: var(--faint); font-size: 13px; text-align: center; padding: 8px 0 20px; }
+</style>
+</head>
+<body>
+
+<section id="login" hidden>
+  <div class="card">
+    <h1>Bluetech Display Agent</h1>
+    <p class="muted">Back office</p>
+    <form id="loginform" class="fields" style="grid-template-columns: 1fr; margin-top: 14px;" hidden>
+      <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
+      <div class="actionsbar"><button class="btn primary" type="submit">Entra</button></div>
+    </form>
+    <form id="firstform" class="fields" style="grid-template-columns: 1fr; margin-top: 14px;" hidden>
+      <p class="muted" style="margin:0">È il primo accesso: scegli la password del back office (almeno 6 caratteri). Nel file delle impostazioni resta solo un hash.</p>
+      <label>Nuova password<input id="first1" type="password" autocomplete="new-password" required minlength="6"></label>
+      <label>Ripeti la password<input id="first2" type="password" autocomplete="new-password" required minlength="6"></label>
+      <div class="actionsbar"><button class="btn primary" type="submit">Imposta e entra</button></div>
+    </form>
+    <p id="remotefirst" class="muted" hidden>La password non è ancora impostata. Per sicurezza la prima volta si imposta dal PC dove gira l'Agent: apri lì <span class="mono">http://localhost:5080/backoffice</span>.</p>
+    <p id="loginmsg" class="message err"></p>
+  </div>
+  <footer class="brand">powered by Bluetech</footer>
+</section>
+
+<div id="app" hidden>
+  <header class="top">
+    <h1>Bluetech Display Agent · Back office</h1>
+    <span class="spacer"></span>
+    <span id="version" class="faint"></span>
+    <button id="logout" class="btn small" type="button">Esci</button>
+  </header>
+  <nav role="tablist" aria-label="Sezioni">
+    <button role="tab" data-tab="stato">Stato</button>
+    <button role="tab" data-tab="casse">Casse</button>
+    <button role="tab" data-tab="dispositivi">Dispositivi</button>
+    <button role="tab" data-tab="stampanti">Stampanti</button>
+    <button role="tab" data-tab="opzioni">Opzioni</button>
+    <button role="tab" data-tab="statistiche">Statistiche</button>
+    <button role="tab" data-tab="log">Log</button>
+  </nav>
+  <main>
+    <div id="notices"></div>
+
+    <section data-panel="stato">
+      <div id="cashcards" class="grid"></div>
+      <div class="card">
+        <h2>Indirizzi per i dispositivi</h2>
+        <p class="muted">Su un dispositivo nuovo apri <b>/auth</b>: compare il codice da scrivere in <b>Dispositivi</b>. Il Player di questo PC usa <span class="mono">localhost</span>.</p>
+        <div id="addresses" class="mono"></div>
+      </div>
+      <div class="card">
+        <h2>Display collegati adesso</h2>
+        <div class="table"><table><thead><tr><th>Dispositivo</th><th>Cassa</th><th>Indirizzo</th></tr></thead><tbody id="connected"></tbody></table></div>
+      </div>
+      <div class="card">
+        <h2>Ultime copie cartacee</h2>
+        <div class="table"><table><thead><tr><th>Ora</th><th>Cassa</th><th>Dispositivo</th><th>Stampante</th><th>Esito</th><th class="num">ms</th></tr></thead><tbody id="prints"></tbody></table></div>
+      </div>
+    </section>
+
+    <section data-panel="casse" hidden>
+      <div class="card">
+        <h2>Casse</h2>
+        <p class="muted">Ogni cassa ha il suo file: quello che Passepartout scrive per il monitor di quella postazione. L'Agent lo legge e lo toglie subito. Il file deve stare su un disco di questo PC: le casse su altri PC lo scrivono in una cartella condivisa da qui.</p>
+        <div class="table"><table><thead><tr><th>Nome</th><th>File</th><th>Stato</th><th></th></tr></thead><tbody id="cashlist"></tbody></table></div>
+      </div>
+      <div class="card">
+        <h2 id="cashformtitle">Aggiungi una cassa</h2>
+        <form id="cashform" class="fields">
+          <label>Nome<input name="Nome" required maxlength="40" placeholder="Cassa bar"></label>
+          <label class="wide">File di Passepartout<input name="FileCassa" required class="mono" placeholder="C:\MonitorSecondario\Cassa2\Scontrino.txt"></label>
+          <div class="actionsbar">
+            <button class="btn primary" type="submit">Salva</button>
+            <button class="btn" type="button" data-cancel hidden>Annulla</button>
+          </div>
+        </form>
+        <p class="message" id="cashmsg"></p>
+      </div>
+    </section>
+
+    <section data-panel="dispositivi" hidden>
+      <div class="card">
+        <h2>Autorizza un dispositivo</h2>
+        <p class="muted">Sul dispositivo (Player, palmare, tablet, schermo touch) apri l'indirizzo dell'Agent con <b>/auth</b>: compare un codice di 6 cifre che vale 10 minuti. Scrivilo qui.</p>
+        <p id="waiting" class="muted"></p>
+        <form id="pairform" class="fields">
+          <label>Codice<input name="codice" class="code" inputmode="numeric" autocomplete="off" required placeholder="000 000" maxlength="7"></label>
+          <label>Nome del dispositivo<input name="nome" required maxlength="40" placeholder="Palmare sala"></label>
+          <label>Cassa da mostrare<select name="cassa" data-cash required></select></label>
+          <label>Stampante della copia<select name="stampante" data-printer></select></label>
+          <div class="actionsbar"><button class="btn primary" type="submit">Autorizza</button></div>
+        </form>
+        <p class="message" id="pairmsg"></p>
+      </div>
+      <div class="card">
+        <h2>Dispositivi autorizzati</h2>
+        <div class="table"><table><thead><tr><th>Nome</th><th>Cassa</th><th>Stampante</th><th>Collegato</th><th>Ultimo accesso</th><th class="num">Copie</th><th></th></tr></thead><tbody id="devicelist"></tbody></table></div>
+        <p class="message" id="devicemsg"></p>
+      </div>
+    </section>
+
+    <section data-panel="stampanti" hidden>
+      <div class="card">
+        <h2>Stampanti della copia cartacea</h2>
+        <p class="muted">Stampanti comande termiche ESC/POS. Ogni dispositivo stampa sulla sua; un dispositivo senza stampante non mostra il pulsante della copia. "Prova" stampa uno scontrino finto con accenti, euro e un QR di prova.</p>
+        <div class="table"><table><thead><tr><th>Nome</th><th>Collegamento</th><th>Indirizzo</th><th>Rotolo</th><th></th></tr></thead><tbody id="printerlist"></tbody></table></div>
+        <p class="message" id="testmsg"></p>
+        <pre class="preview" id="testpreview" hidden></pre>
+      </div>
+      <div class="card">
+        <h2 id="printerformtitle">Aggiungi una stampante</h2>
+        <form id="printerform" class="fields">
+          <label>Nome<input name="Nome" required maxlength="40" placeholder="Stampante cassa"></label>
+          <label>Collegamento
+            <select name="Collegamento">
+              <option value="rete">In rete (porta 9100)</option>
+              <option value="windows">Coda di stampa di Windows</option>
+              <option value="prova">Prova (file in log\copie)</option>
+            </select>
+          </label>
+          <label class="wide"><span id="addresslabel">Indirizzo</span><input name="Indirizzo" class="mono" placeholder="192.168.1.50"><span class="hint" id="addresshint">IP o nome, con la porta se non è 9100</span></label>
+          <label>Rotolo<select name="LarghezzaMm"><option value="80">80 mm</option><option value="58">58 mm</option></select></label>
+          <label>Colonne<input name="Colonne" type="number" min="24" max="64" value="42"><span class="hint">32 su 58 mm, 42 o 48 su 80 mm</span></label>
+          <label>Tabella caratteri
+            <select name="TabellaCaratteri">
+              <option value="1252">1252 (Epson e compatibili)</option>
+              <option value="858">858 (se gli accenti escono sbagliati)</option>
+              <option value="ascii">Senza accenti</option>
+            </select>
+          </label>
+          <label>Punti per modulo del QR<input name="QrPuntiPerModulo" type="number" min="1" max="10" value="4"></label>
+          <label>Attesa massima (s)<input name="TimeoutSecondi" type="number" min="1" max="60" value="8"></label>
+          <label class="wide">Testo a video quando la copia è partita<input name="TestoRitiro" maxlength="80" placeholder="Ritira la copia alla cassa"></label>
+          <label class="check"><input name="Taglio" type="checkbox" checked> Taglia la carta</label>
+          <div class="actionsbar">
+            <button class="btn primary" type="submit">Salva</button>
+            <button class="btn" type="button" data-cancel hidden>Annulla</button>
+          </div>
+        </form>
+        <p class="message" id="printermsg"></p>
+      </div>
+    </section>
+
+    <section data-panel="opzioni" hidden>
+      <form id="optionsform">
+        <div class="card">
+          <h2>Conto</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px 16px">
+            <label>Chiudi il conto dopo (secondi senza file)<input name="ChiusuraVenditaDopoSecondi" type="number" min="0" max="3600"><span class="hint">0 = mai; con il QR di pagamento almeno 3 minuti</span></label>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Scontrino digitale e copia cartacea</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px 16px">
+            <label class="check"><input name="MostraScontrino" type="checkbox"> Mostra lo scontrino con il QR dello scontrino digitale</label>
+            <label class="check"><input name="CopiaCartacea" type="checkbox"> Pulsante per la copia cartacea</label>
+            <label>Secondi a video<input name="SecondiAVideo" type="number" min="5" max="600"></label>
+            <label style="grid-column:1/-1">Dicitura in fondo alla copia<input name="Dicitura" maxlength="200"></label>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Rete</h2>
+          <p class="muted">Porta, rete e HTTPS valgono dal prossimo avvio dell'Agent.</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px 16px;align-items:start">
+            <label>Porta HTTP<input name="Porta" type="number" min="1" max="65535"></label>
+            <label class="check"><input name="ApertoInRete" type="checkbox"> Raggiungibile dalla rete <span class="hint">(serve una regola nel firewall)</span></label>
+            <label class="check"><input name="HttpsAttivo" type="checkbox"> HTTPS</label>
+            <label>Porta HTTPS<input name="HttpsPorta" type="number" min="1" max="65535"></label>
+            <label style="grid-column:1/-1">Certificato .pfx<input name="Certificato" class="mono" placeholder="C:\certificati\agent.pfx"><span class="hint">vuoto = lo genera l'Agent, con un'autorità da installare sui dispositivi</span></label>
+            <label>Password del certificato<input name="PasswordCertificato" type="password" autocomplete="new-password" placeholder="invariata"></label>
+          </div>
+          <p id="httpsinfo" class="muted" style="margin-top:12px"></p>
+        </div>
+        <div class="row"><button class="btn primary" type="submit">Salva le opzioni</button><span class="message" id="optionsmsg" style="margin:0"></span></div>
+      </form>
+      <div class="card" style="margin-top:16px">
+        <h2>Password del back office</h2>
+        <form id="passwordform" class="fields">
+          <label>Password attuale<input name="attuale" type="password" autocomplete="current-password" required></label>
+          <label>Nuova password<input name="nuova" type="password" autocomplete="new-password" required minlength="6"></label>
+          <label>Ripeti la nuova<input name="ripeti" type="password" autocomplete="new-password" required minlength="6"></label>
+          <div class="actionsbar"><button class="btn" type="submit">Cambia la password</button></div>
+        </form>
+        <p class="message" id="passwordmsg"></p>
+      </div>
+      <p class="faint">Impostazioni in <span id="settingsfile" class="mono"></span>. Si possono copiare per una copia di sicurezza; se le modifichi a mano, fallo ad Agent fermo.</p>
+    </section>
+
+    <section data-panel="statistiche" hidden>
+      <div class="card">
+        <div class="row" style="margin-bottom:12px">
+          <h2 class="grow" style="margin:0">Statistiche</h2>
+          <label style="flex-direction:row;align-items:center">Cassa <select id="statcash" style="width:auto"></select></label>
+          <label style="flex-direction:row;align-items:center">Periodo
+            <select id="statdays" style="width:auto"><option value="1">Oggi</option><option value="7">7 giorni</option><option value="31" selected>31 giorni</option><option value="366">Un anno</option></select>
+          </label>
+        </div>
+        <p class="muted">Quello che ha visto il monitor, non i dati fiscali: per quelli c'è il gestionale. Gli importi sono quelli delle righe PAGATO meno il resto.</p>
+        <div id="statsummary" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))"></div>
+        <div class="table"><table><thead><tr><th>Giorno</th><th class="num">Vendite</th><th class="num">Pagate</th><th class="num">Incasso</th><th class="num">Senza PAGATO</th><th class="num">QR pagamento</th><th class="num">Scontrini digitali</th><th class="num">Copie</th><th class="num">Non stampate</th><th class="num">File letti</th></tr></thead><tbody id="statrows"></tbody><tfoot id="stattotal"></tfoot></table></div>
+      </div>
+    </section>
+
+    <section data-panel="log" hidden>
+      <div class="card">
+        <div class="row">
+          <h2 class="grow" style="margin:0">Log</h2>
+          <select id="logday" style="width:auto"></select>
+          <select id="loglevel" style="width:auto"><option value="">Tutto</option><option value="warn">Avvisi ed errori</option></select>
+          <input id="logsearch" type="search" placeholder="Cerca" style="width:180px">
+          <button id="logrefresh" class="btn small" type="button">Aggiorna</button>
+        </div>
+        <div id="log" role="log"></div>
+      </div>
+    </section>
+  </main>
+  <footer class="brand">powered by Bluetech</footer>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const state = { settings: null, status: null, tab: "", timer: 0, editingCash: null, editingPrinter: null, editingDevice: null, log: [] };
+const euro = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (cents) => "€ " + euro.format((cents || 0) / 100);
+const PHASES = { idle: "In attesa", sale: "Vendita in corso", payment: "QR di pagamento", receipt: "Scontrino digitale" };
+
+function el(tag, attrs, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs || {})) {
+    if (value === undefined || value === null || value === false) continue;
+    if (key === "class") node.className = value;
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else node.setAttribute(key, value === true ? "" : value);
+  }
+  for (const child of children.flat()) {
+    if (child === null || child === undefined || child === false) continue;
+    node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+  }
+  return node;
+}
+
+function when(iso) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (isNaN(date)) return "—";
+  const today = new Date().toDateString() === date.toDateString();
+  const time = date.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+  return today ? "oggi " + time : date.toLocaleDateString("it-IT") + " " + time;
+}
+
+function say(id, text, kind) {
+  const box = $(id);
+  box.textContent = text || "";
+  box.className = "message " + (kind || "");
+}
+
+async function api(method, path, body) {
+  const init = { method, cache: "no-store", headers: {} };
+  if (body !== undefined) { init.headers["Content-Type"] = "application/json"; init.body = JSON.stringify(body); }
+  const response = await fetch(path, init);
+  let data = null;
+  try { data = await response.json(); } catch { data = null; }
+  if (response.status === 401 && !path.startsWith("/api/bo/accesso") && !path.startsWith("/api/bo/password")) {
+    boot();
+    throw new Error((data && data.errore) || "Accedi al back office.");
+  }
+  if (!response.ok) throw new Error((data && data.errore) || "Errore " + response.status);
+  return data;
+}
+
+/* ---------- accesso ---------- */
+
+async function boot() {
+  clearInterval(state.timer);
+  let session;
+  try { session = await api("GET", "/api/bo/sessione"); }
+  catch (error) { $("login").hidden = false; say("loginmsg", "L'Agent non risponde: " + error.message, "err"); return; }
+  if (session.autenticato) return enter();
+  $("app").hidden = true;
+  $("login").hidden = false;
+  $("loginform").hidden = !session.passwordImpostata;
+  $("firstform").hidden = session.passwordImpostata || !session.locale;
+  $("remotefirst").hidden = session.passwordImpostata || session.locale;
+  say("loginmsg", "");
+  (session.passwordImpostata ? $("password") : $("first1")).focus();
+}
+
+$("loginform").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await api("POST", "/api/bo/accesso", { password: $("password").value });
+    $("password").value = "";
+    enter();
+  } catch (error) { say("loginmsg", error.message, "err"); }
+});
+
+$("firstform").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if ($("first1").value !== $("first2").value) return say("loginmsg", "Le due password non sono uguali.", "err");
+  try {
+    await api("POST", "/api/bo/password", { nuova: $("first1").value });
+    enter();
+  } catch (error) { say("loginmsg", error.message, "err"); }
+});
+
+$("logout").addEventListener("click", async () => {
+  try { await api("POST", "/api/bo/esci"); } catch {}
+  location.hash = "";
+  boot();
+});
+
+async function enter() {
+  $("login").hidden = true;
+  $("app").hidden = false;
+  await loadSettings();
+  await refreshStatus();
+  select(location.hash.slice(1) || "stato");
+}
+
+/* ---------- dati ---------- */
+
+async function loadSettings() {
+  state.settings = await api("GET", "/api/bo/impostazioni");
+  $("settingsfile").textContent = state.settings.File;
+  fillSelects();
+}
+
+async function refreshStatus() {
+  try {
+    state.status = await api("GET", "/api/bo/stato");
+  } catch (error) {
+    $("notices").replaceChildren(el("div", { class: "notice" }, "Non riesco a leggere lo stato dell'Agent: " + error.message));
+    return;
+  }
+  $("version").textContent = "versione " + (state.status.versione || "?") + " · avviato " + when(state.status.avviato);
+  renderNotices();
+  if (state.tab === "stato") renderStatus();
+  if (state.tab === "dispositivi") renderDevices();
+  if (state.tab === "casse") renderCash();
+}
+
+function cashName(id) {
+  const cash = state.settings && state.settings.Casse.find((c) => c.Id === id);
+  return cash ? cash.Nome : id;
+}
+
+function printerName(id) {
+  const printer = id && state.settings && state.settings.Stampanti.find((p) => p.Id === id);
+  return printer ? printer.Nome : "—";
+}
+
+function fillSelects() {
+  for (const select of document.querySelectorAll("select[data-cash]")) {
+    const value = select.value;
+    select.replaceChildren(...state.settings.Casse.map((c) => el("option", { value: c.Id }, c.Nome)));
+    if (value) select.value = value;
+  }
+  for (const select of document.querySelectorAll("select[data-printer]")) {
+    const value = select.value;
+    select.replaceChildren(el("option", { value: "" }, "Nessuna (niente pulsante)"), ...state.settings.Stampanti.map((p) => el("option", { value: p.Id }, p.Nome)));
+    select.value = value || "";
+  }
+}
+
+/* ---------- schede ---------- */
+
+for (const button of document.querySelectorAll("nav button")) button.addEventListener("click", () => select(button.dataset.tab));
+window.addEventListener("hashchange", () => { const tab = location.hash.slice(1); if (tab && tab !== state.tab && !$("app").hidden) select(tab); });
+
+function select(tab) {
+  if (!document.querySelector(`section[data-panel="${tab}"]`)) tab = "stato";
+  state.tab = tab;
+  if (location.hash.slice(1) !== tab) history.replaceState(null, "", "#" + tab);
+  for (const button of document.querySelectorAll("nav button")) button.setAttribute("aria-selected", String(button.dataset.tab === tab));
+  for (const panel of document.querySelectorAll("section[data-panel]")) panel.hidden = panel.dataset.panel !== tab;
+  clearInterval(state.timer);
+  if (tab === "stato") { renderStatus(); state.timer = setInterval(refreshStatus, 3000); }
+  if (tab === "casse") { renderCash(); state.timer = setInterval(refreshStatus, 5000); }
+  if (tab === "dispositivi") { renderDevices(); state.timer = setInterval(refreshStatus, 3000); }
+  if (tab === "stampanti") renderPrinters();
+  if (tab === "opzioni") renderOptions();
+  if (tab === "statistiche") loadStats();
+  if (tab === "log") loadLog();
+}
+
+function renderNotices() {
+  const s = state.status;
+  const box = $("notices");
+  box.replaceChildren();
+  if (s.riavvioNecessario) {
+    box.append(el("div", { class: "notice info row" },
+      el("span", { class: "grow" }, "Hai cambiato porta, rete o HTTPS: valgono dal prossimo avvio dell'Agent." + (s.servizio ? " Da servizio Windows riparte da solo in qualche secondo." : "")),
+      el("button", { class: "btn small", type: "button", onclick: restart }, "Riavvia ora")));
+  }
+  for (const text of s.avvisi || []) box.append(el("div", { class: "notice" }, text));
+}
+
+async function restart() {
+  if (!confirm("Riavviare l'Agent? I display si ricollegano da soli.")) return;
+  try { await api("POST", "/api/bo/riavvia"); } catch {}
+  $("notices").replaceChildren(el("div", { class: "notice info" }, "Riavvio in corso… la pagina si ricarica quando l'Agent risponde (se hai cambiato porta, apri il nuovo indirizzo)."));
+  setTimeout(function wait() {
+    fetch("/api/bo/sessione", { cache: "no-store" }).then(() => location.reload(), () => setTimeout(wait, 2000));
+  }, 4000);
+}
+
+/* Stato */
+function renderStatus() {
+  const s = state.status;
+  if (!s) return;
+  $("cashcards").replaceChildren(...s.casse.map((c) => {
+    const phase = PHASES[c.fase] || c.fase;
+    return el("div", { class: "card" },
+      el("div", { class: "row" },
+        el("h3", { class: "grow" }, c.nome),
+        el("span", { class: "badge" + (c.fase !== "idle" ? " on" : "") }, phase)),
+      el("dl", { class: "facts" },
+        el("dt", {}, "Totale"), el("dd", {}, c.fase === "idle" ? "—" : money(c.totale)),
+        el("dt", {}, "Ultimo file"), el("dd", {}, when(c.ultimoFile)),
+        el("dt", {}, "File letti"), el("dd", {}, String(c.fileLetti)),
+        el("dt", {}, "Display"), el("dd", {}, String(c.display)),
+        el("dt", {}, "File"), el("dd", { class: "mono" }, c.file || "")),
+      c.problema ? el("p", { class: "warn", style: "margin:10px 0 0" }, c.problema) : null,
+      el("div", { class: "row", style: "margin-top:12px" },
+        el("a", { href: "/diagnostica?cassa=" + encodeURIComponent(c.id), target: "_blank", rel: "noopener" }, "Anteprima dal vivo")));
+  }));
+  $("addresses").replaceChildren(...(s.indirizzi || []).map((url) => el("div", {}, url + "/auth")));
+  const connected = s.collegati || [];
+  $("connected").replaceChildren(...(connected.length ? connected.map((c) =>
+    el("tr", {}, el("td", {}, c.nome), el("td", {}, cashName(c.cassa)), el("td", { class: "mono" }, c.indirizzo)))
+    : [el("tr", {}, el("td", { colspan: 3, class: "faint" }, "Nessun display collegato."))]));
+  const prints = s.copieCartacee || [];
+  $("prints").replaceChildren(...(prints.length ? prints.map((p) =>
+    el("tr", {}, el("td", {}, when(p.ora)), el("td", {}, p.cassa), el("td", {}, p.dispositivo), el("td", {}, p.stampante),
+      el("td", { class: p.esito === "inviata" ? "ok" : "err" }, p.esito + (p.problema ? ": " + p.problema : "")), el("td", { class: "num" }, String(p.ms))))
+    : [el("tr", {}, el("td", { colspan: 6, class: "faint" }, "Nessuna copia dall'avvio."))]));
+}
+
+/* Casse */
+function renderCash() {
+  const live = new Map(((state.status && state.status.casse) || []).map((c) => [c.id, c]));
+  $("cashlist").replaceChildren(...state.settings.Casse.map((c) => {
+    const status = live.get(c.Id);
+    return el("tr", {},
+      el("td", {}, c.Nome),
+      el("td", { class: "mono" }, c.FileCassa),
+      el("td", { class: status && status.problema ? "warn" : "muted" }, status ? (status.problema || PHASES[status.fase] || status.fase) : "—"),
+      el("td", { class: "actions" },
+        el("button", { class: "btn small", type: "button", onclick: () => editCash(c) }, "Modifica"), " ",
+        el("button", { class: "btn small danger", type: "button", onclick: () => deleteCash(c) }, "Elimina")));
+  }));
+}
+
+function editCash(cash) {
+  state.editingCash = cash ? cash.Id : null;
+  const form = $("cashform");
+  form.Nome.value = cash ? cash.Nome : "";
+  form.FileCassa.value = cash ? cash.FileCassa : "";
+  $("cashformtitle").textContent = cash ? "Modifica " + cash.Nome : "Aggiungi una cassa";
+  form.querySelector("[data-cancel]").hidden = !cash;
+  say("cashmsg", "");
+  if (cash) form.Nome.focus();
+}
+
+$("cashform").querySelector("[data-cancel]").addEventListener("click", () => editCash(null));
+$("cashform").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.target;
+  const body = { Nome: form.Nome.value, FileCassa: form.FileCassa.value };
+  try {
+    if (state.editingCash) await api("PUT", "/api/bo/casse/" + encodeURIComponent(state.editingCash), body);
+    else await api("POST", "/api/bo/casse", body);
+    editCash(null);
+    say("cashmsg", "Salvato: l'Agent sorveglia subito il file.", "ok");
+    await loadSettings();
+    await refreshStatus();
+    renderCash();
+  } catch (error) { say("cashmsg", error.message, "err"); }
+});
+
+async function deleteCash(cash) {
+  if (!confirm("Eliminare " + cash.Nome + "? L'Agent smette di leggere il suo file.")) return;
+  try {
+    await api("DELETE", "/api/bo/casse/" + encodeURIComponent(cash.Id));
+    say("cashmsg", cash.Nome + " eliminata.", "ok");
+    await loadSettings();
+    renderCash();
+  } catch (error) { say("cashmsg", error.message, "err"); }
+}
+
+/* Dispositivi */
+function renderDevices() {
+  const s = state.status;
+  const waiting = (s && s.inAttesa) || [];
+  $("waiting").textContent = waiting.length
+    ? "Stanno mostrando un codice adesso: " + waiting.map((w) => w.indirizzo + " (da " + Math.max(1, Math.round(w.secondi / 60)) + " min)").join(", ") + "."
+    : "";
+  const live = new Map(((s && s.dispositivi) || []).map((d) => [d.id, d]));
+  const rows = state.settings.Dispositivi.map((d) => {
+    const info = live.get(d.Id) || {};
+    if (state.editingDevice === d.Id) {
+      const name = el("input", { value: d.Nome, maxlength: 40 });
+      const cash = el("select", { "data-cash": "" }, state.settings.Casse.map((c) => el("option", { value: c.Id }, c.Nome)));
+      cash.value = d.Cassa;
+      const printer = el("select", {}, el("option", { value: "" }, "Nessuna"), state.settings.Stampanti.map((p) => el("option", { value: p.Id }, p.Nome)));
+      printer.value = d.Stampante || "";
+      return el("tr", {},
+        el("td", {}, name), el("td", {}, cash), el("td", {}, printer), el("td", { colspan: 3 }),
+        el("td", { class: "actions" },
+          el("button", { class: "btn small primary", type: "button", onclick: () => saveDevice(d, name.value, cash.value, printer.value) }, "Salva"), " ",
+          el("button", { class: "btn small", type: "button", onclick: () => { state.editingDevice = null; renderDevices(); } }, "Annulla")));
+    }
+    return el("tr", {},
+      el("td", {}, d.Nome),
+      el("td", {}, cashName(d.Cassa)),
+      el("td", {}, printerName(d.Stampante)),
+      el("td", {}, el("span", { class: "dot" + (info.collegato ? " on" : "") }), info.collegato ? "sì" : "no"),
+      el("td", {}, when(info.ultimoAccesso), info.indirizzo ? el("div", { class: "faint mono" }, info.indirizzo) : null),
+      el("td", { class: "num" }, String(info.copieCartacee || 0)),
+      el("td", { class: "actions" },
+        el("button", { class: "btn small", type: "button", onclick: () => { state.editingDevice = d.Id; renderDevices(); } }, "Modifica"), " ",
+        el("button", { class: "btn small danger", type: "button", onclick: () => revokeDevice(d) }, "Revoca")));
+  });
+  $("devicelist").replaceChildren(...(rows.length ? rows : [el("tr", {}, el("td", { colspan: 7, class: "faint" }, "Nessun dispositivo autorizzato."))]));
+}
+
+async function saveDevice(device, name, cash, printer) {
+  try {
+    await api("PUT", "/api/bo/dispositivi/" + encodeURIComponent(device.Id), { nome: name, cassa: cash, stampante: printer });
+    state.editingDevice = null;
+    say("devicemsg", "Salvato: il dispositivo si ricollega con le impostazioni nuove.", "ok");
+    await loadSettings();
+    await refreshStatus();
+    renderDevices();
+  } catch (error) { say("devicemsg", error.message, "err"); }
+}
+
+async function revokeDevice(device) {
+  if (!confirm("Revocare " + device.Nome + "? Lo schermo smette subito di mostrare i conti; per rimetterlo serve un codice nuovo.")) return;
+  try {
+    await api("DELETE", "/api/bo/dispositivi/" + encodeURIComponent(device.Id));
+    say("devicemsg", device.Nome + " revocato.", "ok");
+    await loadSettings();
+    await refreshStatus();
+    renderDevices();
+  } catch (error) { say("devicemsg", error.message, "err"); }
+}
+
+$("pairform").codice.addEventListener("input", (event) => {
+  const digits = event.target.value.replace(/\D/g, "").slice(0, 6);
+  event.target.value = digits.length > 3 ? digits.slice(0, 3) + " " + digits.slice(3) : digits;
+});
+$("pairform").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.target;
+  try {
+    await api("POST", "/api/bo/dispositivi", { codice: form.codice.value, nome: form.nome.value, cassa: form.cassa.value, stampante: form.stampante.value });
+    say("pairmsg", form.nome.value + " autorizzato: entro un paio di secondi passa allo schermo del cliente.", "ok");
+    form.codice.value = "";
+    form.nome.value = "";
+    await loadSettings();
+    await refreshStatus();
+    renderDevices();
+  } catch (error) { say("pairmsg", error.message, "err"); }
+});
+
+/* Stampanti */
+const PRINTER_DEFAULTS = { Nome: "", Collegamento: "rete", Indirizzo: "", LarghezzaMm: 80, Colonne: 42, TabellaCaratteri: "1252", QrPuntiPerModulo: 4, TimeoutSecondi: 8, TestoRitiro: "Ritira la copia alla cassa", Taglio: true };
+const CONNECTIONS = { rete: "In rete", windows: "Windows", prova: "Prova" };
+
+function renderPrinters() {
+  const rows = state.settings.Stampanti.map((p) => el("tr", {},
+    el("td", {}, p.Nome),
+    el("td", {}, CONNECTIONS[p.Collegamento] || p.Collegamento),
+    el("td", { class: "mono" }, p.Collegamento === "prova" ? "log\\copie" : p.Indirizzo),
+    el("td", {}, p.LarghezzaMm + " mm · " + p.Colonne + " col."),
+    el("td", { class: "actions" },
+      el("button", { class: "btn small", type: "button", onclick: (event) => testPrinter(p, event.target) }, "Prova"), " ",
+      el("button", { class: "btn small", type: "button", onclick: () => editPrinter(p) }, "Modifica"), " ",
+      el("button", { class: "btn small danger", type: "button", onclick: () => deletePrinter(p) }, "Elimina"))));
+  $("printerlist").replaceChildren(...(rows.length ? rows : [el("tr", {}, el("td", { colspan: 5, class: "faint" }, "Nessuna stampante: senza, i dispositivi non mostrano il pulsante della copia."))]));
+  if (!state.editingPrinter) editPrinter(null, true);
+}
+
+function editPrinter(printer, keepMessage) {
+  state.editingPrinter = printer ? printer.Id : null;
+  const form = $("printerform");
+  const values = printer || PRINTER_DEFAULTS;
+  for (const [key, value] of Object.entries(PRINTER_DEFAULTS)) {
+    const field = form.elements[key];
+    if (!field) continue;
+    if (field.type === "checkbox") field.checked = !!(printer ? printer[key] : value);
+    else field.value = String(values[key] !== undefined ? values[key] : value);
+  }
+  updateAddressLabel();
+  $("printerformtitle").textContent = printer ? "Modifica " + printer.Nome : "Aggiungi una stampante";
+  form.querySelector("[data-cancel]").hidden = !printer;
+  if (!keepMessage) say("printermsg", "");
+}
+
+function updateAddressLabel() {
+  const form = $("printerform");
+  const kind = form.Collegamento.value;
+  form.Indirizzo.disabled = kind === "prova";
+  $("addresslabel").textContent = kind === "windows" ? "Nome della stampante in Windows" : "Indirizzo";
+  $("addresshint").textContent = kind === "windows" ? "Installata per tutti gli utenti: l'Agent gira come servizio."
+    : kind === "prova" ? "Non serve: la copia va in un file, in log\\copie."
+    : "IP o nome, con la porta se non è 9100.";
+  form.Indirizzo.placeholder = kind === "windows" ? "EPSON TM-T20III Receipt" : kind === "prova" ? "" : "192.168.1.50";
+}
+
+$("printerform").Collegamento.addEventListener("change", updateAddressLabel);
+$("printerform").LarghezzaMm.addEventListener("change", (event) => { $("printerform").Colonne.value = event.target.value === "58" ? 32 : 42; });
+$("printerform").querySelector("[data-cancel]").addEventListener("click", () => editPrinter(null));
+$("printerform").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.target;
+  const body = {
+    Nome: form.Nome.value, Collegamento: form.Collegamento.value, Indirizzo: form.Indirizzo.value,
+    LarghezzaMm: Number(form.LarghezzaMm.value), Colonne: Number(form.Colonne.value), TabellaCaratteri: form.TabellaCaratteri.value,
+    QrPuntiPerModulo: Number(form.QrPuntiPerModulo.value), TimeoutSecondi: Number(form.TimeoutSecondi.value),
+    TestoRitiro: form.TestoRitiro.value, Taglio: form.Taglio.checked,
+  };
+  try {
+    if (state.editingPrinter) await api("PUT", "/api/bo/stampanti/" + encodeURIComponent(state.editingPrinter), body);
+    else await api("POST", "/api/bo/stampanti", body);
+    state.editingPrinter = null;
+    await loadSettings();
+    renderPrinters();
+    say("printermsg", "Salvata. Provala con il pulsante Prova.", "ok");
+  } catch (error) { say("printermsg", error.message, "err"); }
+});
+
+async function deletePrinter(printer) {
+  if (!confirm("Eliminare " + printer.Nome + "?")) return;
+  try {
+    await api("DELETE", "/api/bo/stampanti/" + encodeURIComponent(printer.Id));
+    await loadSettings();
+    renderPrinters();
+    say("printermsg", printer.Nome + " eliminata.", "ok");
+  } catch (error) { say("printermsg", error.message, "err"); }
+}
+
+async function testPrinter(printer, button) {
+  button.disabled = true;
+  say("testmsg", "Stampo la prova su " + printer.Nome + "…");
+  $("testpreview").hidden = true;
+  try {
+    const result = await api("POST", "/api/bo/stampanti/" + encodeURIComponent(printer.Id) + "/prova");
+    say("testmsg", "Prova inviata a " + result.stampante + " in " + result.ms + " ms. Controlla accenti, euro, il totale grande, il QR (si legge col telefono?) e il taglio.", "ok");
+    $("testpreview").textContent = result.testo;
+    $("testpreview").hidden = false;
+  } catch (error) { say("testmsg", error.message, "err"); }
+  button.disabled = false;
+}
+
+/* Opzioni */
+function renderOptions() {
+  const s = state.settings;
+  const form = $("optionsform");
+  form.ChiusuraVenditaDopoSecondi.value = s.ChiusuraVenditaDopoSecondi;
+  form.MostraScontrino.checked = s.ScontrinoDigitale.MostraScontrino;
+  form.CopiaCartacea.checked = s.ScontrinoDigitale.CopiaCartacea;
+  form.SecondiAVideo.value = s.ScontrinoDigitale.SecondiAVideo;
+  form.Dicitura.value = s.ScontrinoDigitale.Dicitura;
+  form.Porta.value = s.Rete.Porta;
+  form.ApertoInRete.checked = s.Rete.ApertoInRete;
+  form.HttpsAttivo.checked = s.Rete.Https.Attivo;
+  form.HttpsPorta.value = s.Rete.Https.Porta;
+  form.Certificato.value = s.Rete.Https.Certificato;
+  form.PasswordCertificato.value = "";
+  form.PasswordCertificato.placeholder = s.Rete.Https.PasswordCertificatoImpostata ? "invariata" : "nessuna";
+  const https = state.status && state.status.https;
+  const info = $("httpsinfo");
+  info.replaceChildren();
+  if (https) {
+    info.append("HTTPS attivo: " + https.soggetto + ", scade il " + new Date(https.scade).toLocaleDateString("it-IT") + ". ");
+    if (https.generato) info.append(el("a", { href: "/api/bo/https/autorita", download: "bluetech-agent-ca.cer" }, "Scarica l'autorità da installare sui dispositivi"), " (una volta per dispositivo: poi il browser si fida dell'Agent).");
+  } else if (s.Rete.Https.Attivo) {
+    info.append("HTTPS sarà attivo dal prossimo avvio.");
+  }
+  say("optionsmsg", "");
+}
+
+$("optionsform").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.target;
+  const body = {
+    ChiusuraVenditaDopoSecondi: Number(form.ChiusuraVenditaDopoSecondi.value),
+    ScontrinoDigitale: { MostraScontrino: form.MostraScontrino.checked, CopiaCartacea: form.CopiaCartacea.checked, SecondiAVideo: Number(form.SecondiAVideo.value), Dicitura: form.Dicitura.value },
+    Rete: {
+      Porta: Number(form.Porta.value), ApertoInRete: form.ApertoInRete.checked,
+      Https: { Attivo: form.HttpsAttivo.checked, Porta: Number(form.HttpsPorta.value), Certificato: form.Certificato.value, PasswordCertificato: form.PasswordCertificato.value === "" ? null : form.PasswordCertificato.value },
+    },
+  };
+  try {
+    await api("PUT", "/api/bo/opzioni", body);
+    await loadSettings();
+    await refreshStatus();
+    renderOptions();
+    say("optionsmsg", state.status && state.status.riavvioNecessario ? "Salvate. Porta, rete e HTTPS valgono dal riavvio." : "Salvate: valgono subito.", "ok");
+  } catch (error) { say("optionsmsg", error.message, "err"); }
+});
+
+$("passwordform").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.target;
+  if (form.nuova.value !== form.ripeti.value) return say("passwordmsg", "Le due password nuove non sono uguali.", "err");
+  try {
+    await api("POST", "/api/bo/password", { attuale: form.attuale.value, nuova: form.nuova.value });
+    form.reset();
+    say("passwordmsg", "Password cambiata. Le altre sessioni aperte sono state chiuse.", "ok");
+  } catch (error) { say("passwordmsg", error.message, "err"); }
+});
+
+/* Statistiche */
+const METRICS = [
+  ["Vendite", "Vendite"], ["Pagate", "Pagate"], ["Incasso", "Incasso", true], ["SenzaPagamento", "Senza PAGATO"],
+  ["QrPagamento", "QR pagamento"], ["ScontriniDigitali", "Scontrini digitali"], ["CopieCartacee", "Copie cartacee"], ["CopieNonStampate", "Non stampate"], ["File", "File letti"],
+];
+
+async function loadStats() {
+  let data;
+  try { data = await api("GET", "/api/bo/statistiche?giorni=" + $("statdays").value); }
+  catch (error) { $("statrows").replaceChildren(el("tr", {}, el("td", { colspan: 10, class: "err" }, error.message))); return; }
+  const select = $("statcash");
+  const chosen = select.value;
+  const ids = new Set(data.casse.map((c) => c.id));
+  for (const day of data.giorni) for (const id of Object.keys(day.casse)) ids.add(id);
+  const names = new Map(data.casse.map((c) => [c.id, c.nome]));
+  select.replaceChildren(el("option", { value: "" }, "Tutte"), ...[...ids].map((id) => el("option", { value: id }, names.get(id) || id + " (tolta)")));
+  select.value = chosen && ids.has(chosen) ? chosen : "";
+  const sum = (target, counters) => { for (const [key] of METRICS) target[key] = (target[key] || 0) + (counters[key] || 0); };
+  const total = {};
+  const rows = data.giorni.map((day) => {
+    const counters = {};
+    for (const [id, values] of Object.entries(day.casse)) if (!select.value || select.value === id) sum(counters, values);
+    sum(total, counters);
+    return el("tr", {}, el("td", {}, new Date(day.giorno + "T12:00:00").toLocaleDateString("it-IT", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" })),
+      ...METRICS.map(([key, , isMoney]) => el("td", { class: "num" }, isMoney ? money(counters[key]) : String(counters[key] || 0))));
+  });
+  $("statrows").replaceChildren(...(rows.length ? rows : [el("tr", {}, el("td", { colspan: 10, class: "faint" }, "Ancora nessun dato nel periodo."))]));
+  $("stattotal").replaceChildren(rows.length > 1 ? el("tr", {}, el("td", {}, "Totale"), ...METRICS.map(([key, , isMoney]) => el("td", { class: "num" }, isMoney ? money(total[key]) : String(total[key] || 0)))) : "");
+  const digital = total.ScontriniDigitali || 0;
+  const cards = [
+    ["Vendite", String(total.Vendite || 0)],
+    ["Pagate", String(total.Pagate || 0)],
+    ["Incasso visto", money(total.Incasso)],
+    ["Scontrini digitali", String(digital)],
+    ["Copie cartacee", String(total.CopieCartacee || 0) + (digital ? " (" + Math.round(100 * (total.CopieCartacee || 0) / digital) + "%)" : "")],
+    ["Non stampate", String(total.CopieNonStampate || 0)],
+  ];
+  $("statsummary").replaceChildren(...cards.map(([label, value]) => el("div", { class: "card" }, el("div", { class: "muted" }, label), el("div", { style: "font-size:22px;font-weight:700" }, value))));
+}
+$("statdays").addEventListener("change", loadStats);
+$("statcash").addEventListener("change", loadStats);
+
+/* Log */
+async function loadLog() {
+  const day = $("logday").value;
+  let data;
+  try { data = await api("GET", "/api/bo/log?righe=1000" + (day ? "&giorno=" + day : "")); }
+  catch (error) { $("log").textContent = error.message; return; }
+  const select = $("logday");
+  select.replaceChildren(...(data.giorni.length ? data.giorni : [data.giorno]).map((d) => el("option", { value: d }, d.slice(6, 8) + "/" + d.slice(4, 6) + "/" + d.slice(0, 4))));
+  select.value = data.giorno;
+  state.log = data.righe;
+  renderLog();
+}
+
+function renderLog() {
+  const onlyWarnings = $("loglevel").value === "warn";
+  const search = $("logsearch").value.trim().toLowerCase();
+  const box = $("log");
+  const lines = [];
+  let level = "INF";
+  for (const line of state.log) {
+    const match = /^\S+ \S+ (TRC|DBG|INF|AVV|ERR|CRT) /.exec(line);
+    if (match) level = match[1];   // le righe senza livello (stack) seguono quella prima
+    if (onlyWarnings && !["AVV", "ERR", "CRT"].includes(level)) continue;
+    if (search && !line.toLowerCase().includes(search)) continue;
+    lines.push(el("div", { class: level }, line));
+  }
+  box.replaceChildren(...(lines.length ? lines : [el("div", { class: "faint" }, "Nessuna riga.")]));
+  box.scrollTop = box.scrollHeight;
+}
+$("logday").addEventListener("change", loadLog);
+$("logrefresh").addEventListener("click", loadLog);
+$("loglevel").addEventListener("change", renderLog);
+$("logsearch").addEventListener("input", renderLog);
+
+boot();
+</script>
+</body>
+</html>

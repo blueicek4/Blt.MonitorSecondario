@@ -20,7 +20,7 @@ namespace Bluetech.Display.Agent.Vendita;
 ///   digitale attivo (docs/03), <c>receipt.digital</c> con il conto pagato abbinato, se l'abbinamento è sicuro;
 /// - una versione identica alla precedente non produce niente.
 ///
-/// Non è thread-safe: lo usa un solo chiamante alla volta (vedi <see cref="Server.AgentEngine"/>).
+/// Non è thread-safe: lo usa un solo chiamante alla volta (vedi <see cref="Server.AgentEngine"/>). Uno per cassa.
 /// </summary>
 public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
 {
@@ -30,7 +30,7 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
     /// </summary>
     public static readonly TimeSpan PairWindow = TimeSpan.FromSeconds(30);
 
-    readonly DigitalReceiptSettings _digital = digital ?? DigitalReceiptSettings.Off;
+    DigitalReceiptSettings _digital = digital ?? DigitalReceiptSettings.Off;
     readonly List<SaleLine> _visible = [];
     long _nextId;
     bool _open;
@@ -55,6 +55,13 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
     public IReadOnlyList<SaleLine> Lines => _visible;
     /// <summary>Lo scontrino digitale a video, se c'è.</summary>
     public DigitalReceipt? Receipt => _receipt;
+
+    /// <summary>Cambiato dal back office: vale dal prossimo QR; lo scontrino già a video resta com'è.</summary>
+    public DigitalReceiptSettings Digital
+    {
+        get => _digital;
+        set => _digital = value ?? DigitalReceiptSettings.Off;
+    }
 
     /// <param name="wallNow">L'ora vera, per la data sulla copia; senza, quella di <paramref name="now"/>.</param>
     public IReadOnlyList<CashIn> Apply(CashFile file, DateTimeOffset now, DateTimeOffset? wallNow = null)

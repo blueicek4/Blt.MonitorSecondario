@@ -9,8 +9,8 @@ using Bluetech.Display.Agent.Vendita;
 namespace Bluetech.Display.Agent.Server;
 
 /// <summary>
-/// I display collegati via WebSocket. Ogni display ha la sua coda: un display lento non rallenta gli altri; se resta
-/// troppo indietro viene staccato, si ricollega e riceve lo stato completo (sync).
+/// I display collegati via WebSocket, ognuno con la sua cassa. Ogni display ha la sua coda: un display lento non
+/// rallenta gli altri; se resta troppo indietro viene staccato, si ricollega e riceve lo stato completo (sync).
 /// </summary>
 public sealed class DisplayHub(ILogger<DisplayHub> log)
 {
@@ -20,25 +20,89 @@ public sealed class DisplayHub(ILogger<DisplayHub> log)
 
     public int ClientCount => _clients.Count;
     public long MessagesSent => Interlocked.Read(ref _sent);
+    public IReadOnlyCollection<DisplayClient> Clients => _clients.Values.ToArray();
 
-    public DisplayClient Add(WebSocket socket, string remote)
+    public DisplayClient Add(WebSocket socket, string remote, string cashPoint, string? deviceId, string name, bool canPrint)
     {
-        var client = new DisplayClient(Interlocked.Increment(ref _nextId), socket, remote);
+        var client = new DisplayClient(Interlocked.Increment(ref _nextId), socket, remote)
+        {
+            CashPoint = cashPoint,
+            DeviceId = deviceId,
+            Name = name,
+            CanPrint = canPrint,
+        };
         _clients[client.Id] = client;
-        log.LogInformation("Display collegato da {Remote} ({Count} in tutto)", remote, _clients.Count);
+        log.LogInformation("Display {Name} collegato da {Remote} ({CashPoint}, {Count} in tutto)", name, remote, cashPoint, _clients.Count);
         return client;
     }
 
-    public void Send(DisplayClient client, CashIn message) => Enqueue(client, message.ToString());
+    public void Send(DisplayClient client, CashIn message) => Enqueue(client, ForClient(message.ToJson(), client.CanPrint).ToJsonString());
 
-    public void Broadcast(IReadOnlyList<CashIn> messages)
+    /// <summary>I messaggi di una cassa, ai soli display di quella cassa.</summary>
+    public void Broadcast(string cashPoint, IReadOnlyList<CashIn> messages)
     {
         foreach (var message in messages)
         {
-            var json = message.ToString();
+            var json = message.ToJson();
+            string? withButton = null;
+            string? withoutButton = null;
             foreach (var client in _clients.Values)
-                Enqueue(client, json);
+            {
+                if (client.CashPoint != cashPoint)
+                    continue;
+                Enqueue(client, client.CanPrint
+                    ? withButton ??= ForClient(json, true).ToJsonString()
+                    : withoutButton ??= ForClient(json, false).ToJsonString());
+            }
         }
+    }
+
+    /// <summary>A tutti i display (il battito).</summary>
+    public void BroadcastAll(CashIn message)
+    {
+        var json = message.ToString();
+        foreach (var client in _clients.Values)
+            Enqueue(client, json);
+    }
+
+    /// <summary>
+    /// Stacca i display scelti (dispositivo revocato, spostato su un'altra cassa, cassa tolta): si ricollegano e
+    /// ricevono le impostazioni nuove, o il rifiuto.
+    /// </summary>
+    public int Disconnect(Func<DisplayClient, bool> which)
+    {
+        var count = 0;
+        foreach (var client in _clients.Values)
+        {
+            if (!which(client))
+                continue;
+            client.Abort();
+            count++;
+        }
+        return count;
+    }
+
+    /// <summary>
+    /// Il pulsante della copia cartacea c'è solo sui dispositivi con una stampante: per gli altri <c>paperCopy</c> è
+    /// falso, nello scontrino digitale e nello stato completo.
+    /// </summary>
+    static JsonObject ForClient(JsonObject json, bool canPrint)
+    {
+        if (canPrint)
+            return json;
+        if (json["t"]?.GetValue<string>() == "receipt.digital" && json["paperCopy"] is not null)
+        {
+            var copy = json.DeepClone().AsObject();
+            copy["paperCopy"] = false;
+            return copy;
+        }
+        if (json["t"]?.GetValue<string>() == "sync" && json["state"]?["receipt"] is JsonObject)
+        {
+            var copy = json.DeepClone().AsObject();
+            copy["state"]!["receipt"]!["paperCopy"] = false;
+            return copy;
+        }
+        return json;
     }
 
     void Enqueue(DisplayClient client, string json)
@@ -85,7 +149,7 @@ public sealed class DisplayHub(ILogger<DisplayHub> log)
         }
         loops.Cancel();
         await Task.WhenAll(sender, receiver);
-        log.LogInformation("Display {Remote} scollegato ({Count} ancora collegati)", client.Remote, _clients.Count);
+        log.LogInformation("Display {Name} scollegato ({Count} ancora collegati)", client.Name, _clients.Count);
     }
 
     async Task SendLoop(DisplayClient client, CancellationToken cancel)
@@ -170,6 +234,13 @@ public sealed class DisplayClient(long id, WebSocket socket, string remote)
     public long Id { get; } = id;
     public WebSocket Socket { get; } = socket;
     public string Remote { get; } = remote;
+    /// <summary>La cassa che il display mostra.</summary>
+    public required string CashPoint { get; init; }
+    /// <summary>Il dispositivo autorizzato; null per l'anteprima dal back office.</summary>
+    public string? DeviceId { get; init; }
+    public required string Name { get; init; }
+    /// <summary>Il dispositivo ha una stampante per la copia cartacea.</summary>
+    public bool CanPrint { get; init; }
     const int QueueLimit = 1000;
 
     public Channel<string> Queue { get; } = Channel.CreateBounded<string>(new BoundedChannelOptions(QueueLimit)

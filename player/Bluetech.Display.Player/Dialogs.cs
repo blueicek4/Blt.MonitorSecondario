@@ -254,7 +254,7 @@ sealed class ConfigForm : DialogBase
 
         if (!PlayerSettings.TryNormalizeUrl(_url.Text, out var url))
         {
-            _error.Text = "Indirizzo web non valido. Esempio: http://192.168.1.20:5080/display";
+            _error.Text = "Indirizzo web non valido. Esempio: http://192.168.1.20:5080/auth";
             _url.Focus();
             return;
         }

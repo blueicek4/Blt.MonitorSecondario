@@ -150,7 +150,7 @@ public class PaperCopyTests
             var printer = CopyPrinters.Create(new PaperCopyOptions { Collegamento = "prova" }, folder);
             Assert.IsType<TrialPrinter>(printer);
             await printer!.PrintAsync([0x1B, 0x40], "LOCALE 1\n", "R1", CancellationToken.None);
-            var files = Directory.GetFiles(Path.Combine(folder, "copie")).Select(Path.GetExtension).Order().ToArray();
+            var files = Directory.GetFiles(Path.Combine(folder, "copie")).Select(f => Path.GetExtension(f)!).Order().ToArray();
             Assert.Equal([".bin", ".txt"], files);
         }
         finally

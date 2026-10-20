@@ -1,42 +1,56 @@
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
+using Bluetech.Display.Agent.Accesso;
+using Bluetech.Display.Agent.Impostazioni;
 using Bluetech.Display.Agent.Logging;
 using Bluetech.Display.Agent.Server;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 
 namespace Bluetech.Display.Agent;
 
 /// <summary>
-/// L'applicazione: il servizio che legge la cassa e il server per i display.
-/// - <c>/</c>: il display (la build di display/ nella cartella <see cref="AgentOptions.CartellaDisplay"/>);
-///   <c>/display</c> rimanda lì, perché è l'indirizzo predefinito del Player;
-/// - <c>/ws</c>: i messaggi del protocollo, via WebSocket;
-/// - <c>/diagnostica</c>: cosa arriva dalla cassa, dal vivo; <c>/api/stato</c>: lo stesso in JSON;
-/// - <c>/cliente</c>: la stessa pagina senza le parti tecniche, per un palmare o uno schermo touch finché il display
-///   vero non c'è (scontrino digitale e copia cartacea, docs/03).
+/// L'applicazione: il servizio che legge le casse e il server per i display. Tre pagine:
+/// - <c>/cliente</c>: quello che vede il cliente, solo sui dispositivi autorizzati (agli altri un errore e basta);
+/// - <c>/auth</c>: un dispositivo nuovo mostra il codice da scrivere nel back office; autorizzato, va su /cliente;
+/// - <c>/backoffice</c>: con la password, configurazione, stato, statistiche e log.
+/// Poi <c>/ws</c> (i messaggi del protocollo, via WebSocket) e <c>/diagnostica</c> (una cassa dal vivo, dal back office).
 /// </summary>
 public static class AgentApp
 {
     public const string ServiceName = "BluetechDisplayAgent";
 
+    /// <summary>Chiesto dal back office: Program rilancia l'applicazione (da console; da servizio la riavvia Windows).</summary>
+    public static volatile bool RestartRequested;
+
     static readonly Dictionary<string, string> Switches = new()
     {
-        ["--file"] = "Agent:FileCassa",
         ["--porta"] = "Agent:Porta",
+        ["--dati"] = "Agent:CartellaDati",
         ["--replay"] = "Agent:Replay",
         ["--velocita"] = "Agent:VelocitaReplay",
         ["--ripeti"] = "Agent:RipetiReplay",
     };
 
-    static readonly Lazy<string> DiagnosticPage = new(() =>
-    {
-        using var stream = typeof(AgentApp).Assembly.GetManifestResourceStream("diagnostica.html")!;
-        using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
-    });
+    static readonly Dictionary<string, string> Pages = [];
 
-    static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+    internal static string Page(string name)
+    {
+        lock (Pages)
+        {
+            if (!Pages.TryGetValue(name, out var page))
+            {
+                using var stream = typeof(AgentApp).Assembly.GetManifestResourceStream(name)!;
+                using var reader = new StreamReader(stream);
+                Pages[name] = page = reader.ReadToEnd();
+            }
+            return page;
+        }
+    }
+
+    static IResult Html(string name) => Results.Text(Page(name), "text/html; charset=utf-8");
 
     /// <param name="configure">Per i test: altra configurazione prima di costruire l'applicazione.</param>
     public static WebApplication Build(string[] args, Action<WebApplicationBuilder>? configure = null)
@@ -52,36 +66,143 @@ public static class AgentApp
 
         var options = builder.Configuration.GetSection("Agent").Get<AgentOptions>() ?? new AgentOptions();
         builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection("Agent"));
-        if (!options.ApertoInRete && string.IsNullOrEmpty(builder.Configuration["AllowedHosts"]))
-            builder.Configuration["AllowedHosts"] = "localhost;127.0.0.1;[::1]";   // niente DNS rebinding su /api/stato
-        builder.Logging.AddProvider(new FileLoggerProvider(Path.Combine(AppContext.BaseDirectory, options.CartellaLog), options.GiorniLog));
-        builder.WebHost.UseUrls(options.Porta == 0
-            ? "http://127.0.0.1:0"
-            : options.ApertoInRete ? $"http://*:{options.Porta}" : $"http://localhost:{options.Porta}");
+        var dataFolder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, options.CartellaDati));
+        var logFolder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, options.CartellaLog));
+        var store = new SettingsStore(dataFolder);
+        var network = store.Current.Rete;
+        if (!network.ApertoInRete && string.IsNullOrEmpty(builder.Configuration["AllowedHosts"]))
+            builder.Configuration["AllowedHosts"] = "localhost;127.0.0.1;[::1]";   // niente DNS rebinding sul back office
+        builder.Logging.AddProvider(new FileLoggerProvider(logFolder, options.GiorniLog));
 
+        HttpsCertificate.Loaded? https = null;
+        string? httpsProblem = null;
+        if (network.Https.Attivo)
+            https = HttpsCertificate.Load(network.Https, dataFolder, out httpsProblem);
+        var port = options.Porta ?? network.Porta;
+        builder.WebHost.ConfigureKestrel(kestrel =>
+        {
+            Listen(kestrel, network.ApertoInRete, port, null);
+            if (https != null)
+                Listen(kestrel, network.ApertoInRete, network.Https.Porta, https.Certificate);
+        });
+
+        var runtime = new AgentRuntime
+        {
+            DataFolder = dataFolder,
+            LogFolder = logFolder,
+            DisplayFolder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, options.CartellaDisplay)),
+            StartupNetwork = JsonSerializer.Deserialize<NetworkSettings>(JsonSerializer.Serialize(network, AgentSettings.Json), AgentSettings.Json)!,
+            PortOverride = options.Porta,
+            Certificate = https?.Certificate,
+            AuthorityPath = https?.AuthorityPath,
+            HttpsProblem = httpsProblem,
+        };
+        builder.Services.AddSingleton(store);
+        builder.Services.AddSingleton(new Statistics(dataFolder));
+        builder.Services.AddSingleton(runtime);
+        builder.Services.AddSingleton<AdminAccess>();
+        builder.Services.AddSingleton<DeviceAccess>();
         builder.Services.AddSingleton<DisplayHub>();
         builder.Services.AddSingleton<AgentEngine>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<AgentEngine>());
 
         var app = builder.Build();
+        var startup = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Avvio");
+        foreach (var note in store.LoadNotes)
+            startup.LogWarning("{Note}", note);
+        if (app.Services.GetRequiredService<Statistics>().LoadProblem is { } statsProblem)
+            startup.LogWarning("{Problem}", statsProblem);
+        if (httpsProblem != null)
+            startup.LogError("{Problem}", httpsProblem);
+        if (options.Porta.HasValue && options.Porta != network.Porta)
+            startup.LogInformation("Porta {Port} dalla riga di comando, al posto della {Configured} delle impostazioni", options.Porta, network.Porta);
+
         app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(20) });
+        MapPages(app, options, runtime);
+        BackOfficeApi.Map(app);
+        return app;
+    }
 
-        if (options.ChiaviDispositivi.Length > 0)
+    static void Listen(KestrelServerOptions kestrel, bool open, int port, X509Certificate2? certificate)
+    {
+        Action<ListenOptions> secure = listen =>
         {
-            app.Use(async (context, next) =>
-            {
-                if (DeviceAllowed(context, options.ChiaviDispositivi))
-                {
-                    await next();
-                    return;
-                }
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                context.Response.ContentType = "text/plain; charset=utf-8";
-                await context.Response.WriteAsync("Dispositivo non abbinato: apri una volta l'indirizzo con ?chiave=… (la chiave è nell'appsettings.json dell'Agent).");
-            });
-        }
+            if (certificate != null)
+                listen.UseHttps(certificate);
+        };
+        if (port == 0)
+            kestrel.Listen(IPAddress.Loopback, 0, secure);   // prove: una porta libera
+        else if (open)
+            kestrel.ListenAnyIP(port, secure);
+        else
+            kestrel.ListenLocalhost(port, secure);
+    }
 
-        app.Map("/ws", async (HttpContext context, AgentEngine engine, DisplayHub hub, IHostApplicationLifetime lifetime) =>
+    static void MapPages(WebApplication app, AgentOptions options, AgentRuntime runtime)
+    {
+        // Le API che cambiano qualcosa accettano solo le pagine dell'Agent: un sito qualunque aperto nel browser della
+        // cassa non può autorizzare dispositivi né toccare le impostazioni.
+        app.Use(async (context, next) =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api") && !HttpMethods.IsGet(context.Request.Method)
+                && !OriginAllowed(context, options.AltreOrigini))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return;
+            }
+            await next();
+        });
+
+        app.MapGet("/", () => Results.Redirect("/cliente"));
+        app.MapGet("/display", () => Results.Redirect("/cliente"));   // l'indirizzo predefinito del Player di prima
+        app.MapGet("/display/{**rest}", () => Results.Redirect("/cliente"));
+
+        app.MapGet("/cliente", (HttpContext context, DeviceAccess devices, Statistics stats) =>
+        {
+            if (devices.Find(context) is not { } device)
+                return Denied();
+            stats.Seen(device.Id, Remote(context), connected: false);
+            NoCache(context);
+            var display = Path.Combine(runtime.DisplayFolder, "index.html");
+            return File.Exists(display)
+                ? Results.File(display, "text/html; charset=utf-8")   // il display del design, quando c'è (M5)
+                : Html("diagnostica.html");
+        });
+        app.MapGet("/auth", (HttpContext context, DeviceAccess devices) =>
+        {
+            if (devices.Find(context) != null)
+                return Results.Redirect("/cliente");
+            NoCache(context);
+            return Html("auth.html");
+        });
+        app.MapPost("/api/abbinamento", (HttpContext context, DeviceAccess devices) =>
+        {
+            // Già autorizzato, anche se la pagina è stata ricaricata prima di accorgersene: niente codice nuovo.
+            if (devices.Find(context) != null || devices.Poll(context) == "autorizzato")
+                return Results.Json(new { stato = "autorizzato" });
+            var (code, expiresIn) = devices.StartPairing(context);
+            return Results.Json(new { stato = "attesa", codice = code, scadeTraSecondi = (int)expiresIn.TotalSeconds });
+        });
+        app.MapGet("/api/abbinamento", (HttpContext context, DeviceAccess devices) =>
+        {
+            NoCache(context);
+            return Results.Json(new { stato = devices.Find(context) != null ? "autorizzato" : devices.Poll(context) });
+        });
+
+        app.MapGet("/backoffice", (HttpContext context) =>
+        {
+            NoCache(context);
+            return Html("backoffice.html");
+        });
+        app.MapGet("/diagnostica", (HttpContext context, AdminAccess admin) =>
+        {
+            if (!admin.IsAuthenticated(context))
+                return Results.Redirect("/backoffice");
+            NoCache(context);
+            return Html("diagnostica.html");
+        });
+
+        app.Map("/ws", async (HttpContext context, AgentEngine engine, DisplayHub hub, DeviceAccess devices, AdminAccess admin, Statistics stats, IHostApplicationLifetime lifetime) =>
         {
             if (!context.WebSockets.IsWebSocketRequest)
             {
@@ -94,20 +215,35 @@ public static class AgentApp
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 return;
             }
+            // L'anteprima del back office (?cassa=…) vale anche su un dispositivo autorizzato; altrimenti conta il dispositivo.
+            var preview = context.Request.Query["cassa"].ToString();
+            string? deviceId = null;
+            if (preview.Length == 0 || !admin.IsAuthenticated(context))
+            {
+                deviceId = devices.Find(context)?.Id;
+                if (deviceId == null && !admin.IsAuthenticated(context))
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return;
+                }
+            }
             using var socket = await context.WebSockets.AcceptWebSocketAsync();
-            var client = engine.Connect(socket, context.Connection.RemoteIpAddress?.ToString() ?? "?");
+            var remote = Remote(context);
+            var client = engine.Connect(socket, remote, deviceId, preview.Length > 0 ? preview : null);
+            if (client == null)
+            {
+                await socket.CloseAsync(System.Net.WebSockets.WebSocketCloseStatus.PolicyViolation, "cassa non disponibile", CancellationToken.None);
+                return;
+            }
+            if (deviceId != null)
+                stats.Seen(deviceId, remote, connected: true);
             // Anche l'arresto del servizio chiude il collegamento: altrimenti ogni stop aspetterebbe 30 s.
             using var end = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted, lifetime.ApplicationStopping);
             await hub.RunAsync(client, end.Token, engine.OnDisplayMessage);
         });
-        app.MapGet("/api/stato", (AgentEngine engine) =>
-            Results.Text(engine.Status().ToJsonString(Indented), "application/json; charset=utf-8"));
-        app.MapGet("/diagnostica", () => Results.Text(DiagnosticPage.Value, "text/html; charset=utf-8"));
-        app.MapGet("/cliente", () => Results.Text(DiagnosticPage.Value, "text/html; charset=utf-8"));
-        app.MapGet("/display", () => Results.Redirect("/"));
-        app.MapGet("/display/{**rest}", () => Results.Redirect("/"));
 
-        var displayFolder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, options.CartellaDisplay));
+        // I file del display del design (M5): script, stili, immagini. La sua pagina passa solo da /cliente.
+        var displayFolder = runtime.DisplayFolder;
         try
         {
             Directory.CreateDirectory(displayFolder);
@@ -117,66 +253,39 @@ public static class AgentApp
         }
         if (Directory.Exists(displayFolder))
         {
-            var files = new PhysicalFileProvider(displayFolder);
-            app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
-            app.UseStaticFiles(new StaticFileOptions { FileProvider = files, OnPrepareResponse = CacheHeaders });
-        }
-        // Finché nella cartella non c'è il display, "/" dice cosa manca. Si controlla a ogni richiesta: un display
-        // copiato con l'Agent acceso si vede subito.
-        app.Use(async (context, next) =>
-        {
-            if (context.Request.Path == "/" && !File.Exists(Path.Combine(displayFolder, "index.html")))
+            app.Use(async (context, next) =>
             {
-                context.Response.ContentType = "text/html; charset=utf-8";
-                await context.Response.WriteAsync(Placeholder(displayFolder));
-                return;
-            }
-            await next();
-        });
-        return app;
+                if (context.GetEndpoint() == null && context.Request.Path.Value?.EndsWith(".html", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
+                }
+                await next();
+            });
+            app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(displayFolder), OnPrepareResponse = CacheHeaders });
+        }
     }
 
-    /// <summary>
-    /// Le pagine si riconvalidano sempre: senza, WebView2 terrebbe per giorni il display vecchio dopo un aggiornamento.
-    /// I file di assets/ hanno l'impronta nel nome e non cambiano mai.
-    /// </summary>
+    static IResult Denied() => Results.Content(Page("negato.html"), "text/html; charset=utf-8", statusCode: StatusCodes.Status403Forbidden);
+
+    static void NoCache(HttpContext context) => context.Response.Headers.CacheControl = "no-cache";
+
+    internal static string Remote(HttpContext context) => context.Connection.RemoteIpAddress is { } ip
+        ? (ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip).ToString()
+        : "?";
+
+    /// <summary>I file di assets/ hanno l'impronta nel nome e non cambiano mai.</summary>
     static void CacheHeaders(StaticFileResponseContext context)
     {
-        if (context.File.Name.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
-            context.Context.Response.Headers.CacheControl = "no-cache";
-        else if (context.Context.Request.Path.StartsWithSegments("/assets"))
+        if (context.Context.Request.Path.StartsWithSegments("/assets"))
             context.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        else
+            context.Context.Response.Headers.CacheControl = "no-cache";
     }
-
-    /// <summary>
-    /// Con le chiavi dei dispositivi: questo PC entra sempre; un palmare o un tablet solo con <c>?chiave=…</c>, che poi
-    /// resta in un cookie (così anche la pagina, i suoi file e il WebSocket passano).
-    /// </summary>
-    internal static bool DeviceAllowed(HttpContext context, IReadOnlyCollection<string> keys)
-    {
-        var remote = context.Connection.RemoteIpAddress;
-        if (remote == null || IPAddress.IsLoopback(remote) || (remote.IsIPv4MappedToIPv6 && IPAddress.IsLoopback(remote.MapToIPv4())))
-            return true;
-        var key = context.Request.Query["chiave"].ToString();
-        if (key.Length > 0 && keys.Contains(key))
-        {
-            context.Response.Cookies.Append(DeviceCookie, key, new CookieOptions
-            {
-                HttpOnly = true,
-                SameSite = SameSiteMode.Strict,
-                IsEssential = true,
-                Expires = DateTimeOffset.UtcNow.AddYears(5),
-            });
-            return true;
-        }
-        return context.Request.Cookies.TryGetValue(DeviceCookie, out var cookie) && keys.Contains(cookie);
-    }
-
-    const string DeviceCookie = "bluetech_dispositivo";
 
     /// <summary>
     /// Un browser manda sempre l'origine della pagina: si accettano le pagine servite dall'Agent stesso (Player,
-    /// diagnostica, display in rete) e quelle in <see cref="AgentOptions.AltreOrigini"/>. Senza origine non è un browser.
+    /// display, back office) e quelle in <see cref="AgentOptions.AltreOrigini"/>. Senza origine non è un browser.
     /// </summary>
     internal static bool OriginAllowed(HttpContext context, IEnumerable<string> extra)
     {
@@ -188,21 +297,4 @@ public static class AgentApp
             return true;
         return extra.Any(o => string.Equals(o.TrimEnd('/'), origin.TrimEnd('/'), StringComparison.OrdinalIgnoreCase));
     }
-
-    /// <summary>
-    /// Si ricarica ogni 10 s: il Player non riapre la pagina da solo, così il display copiato più tardi compare senza
-    /// toccare il monitor cliente.
-    /// </summary>
-    static string Placeholder(string folder) => $$"""
-        <!doctype html>
-        <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Bluetech Display Agent</title><link rel="icon" href="data:,">
-        <meta http-equiv="refresh" content="10">
-        <style>body{font:16px/1.5 system-ui,sans-serif;background:#0b1017;color:#e6eaf2;margin:0;padding:48px}a{color:#8fb8ff}</style>
-        </head><body>
-        <h1>Bluetech Display Agent</h1>
-        <p>L'Agent è in funzione, ma il display non è installato in <code>{{System.Net.WebUtility.HtmlEncode(folder)}}</code>.</p>
-        <p>Cosa arriva dalla cassa: <a href="/diagnostica">diagnostica</a>.</p>
-        </body></html>
-        """;
 }

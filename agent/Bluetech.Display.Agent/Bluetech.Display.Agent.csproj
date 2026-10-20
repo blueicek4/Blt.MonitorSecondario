@@ -26,10 +26,16 @@
     <InternalsVisibleTo Include="Bluetech.Display.Agent.Tests" />
   </ItemGroup>
 
+  <!-- Le pagine stanno dentro l'exe: /cliente e /diagnostica, /auth, /backoffice e l'errore per chi non è autorizzato. -->
   <ItemGroup>
-    <Content Remove="Server\diagnostica.html" />
-    <None Remove="Server\diagnostica.html" />
+    <Content Remove="Server\*.html" />
+    <None Remove="Server\*.html" />
     <EmbeddedResource Include="Server\diagnostica.html" LogicalName="diagnostica.html" />
+    <EmbeddedResource Include="Server\auth.html" LogicalName="auth.html" />
+    <EmbeddedResource Include="Server\backoffice.html" LogicalName="backoffice.html" />
+    <EmbeddedResource Include="Server\negato.html" LogicalName="negato.html" />
+    <!-- Il QR della stampa di prova: porta a example.com, con la geometria di quello di Satispay. -->
+    <EmbeddedResource Include="..\..\samples\qr-di-prova-geometria-satispay.txt" LogicalName="qr-prova.txt" Link="Server\qr-prova.txt" />
   </ItemGroup>
 
 </Project>
