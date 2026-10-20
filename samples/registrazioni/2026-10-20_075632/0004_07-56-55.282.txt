@@ -1,0 +1,10 @@
+SNF
+ 
+ SPREMUTA ARANCIA         4,00
+ CAPPUCCINO               1,80
+ CAFFE ORZO PICCOLO       1,50
+SUBTOT.                   7,30
+ 
+TOT. DA PAGARE            7,30
+ 
+ 

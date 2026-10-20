@@ -93,9 +93,13 @@ riceve subito lo stato corrente.
   `SovrascriviSeEsistente=true`: se l'Agent si ferma, il display riceve gli aggiornamenti in ritardo invece di
   perderli. Il display del cliente
   guadagna 3 s a battuta rispetto a oggi e non perde più stati intermedi.
-- Già chiarito dal secondo giro: formato a 48 colonne, intestazione e quantità unite in "dettagli conto", sconti sul
-  subtotale e ripartiti, righe `PAGATO …` e `Resto:` a fine conto. Ancora da registrare: Satispay, messaggi del visore,
-  annullo, reso, fattura, e perché il terzo conto non ha scritto la riga del pagamento.
+- **Quarto giro (20/10 alle 7:56)**: [QR Satispay, fattura e promozione](../samples/registrazioni/2026-10-20_075632/README.md).
+  QR: PNG 197×197, 49 moduli da 4 pixel, senza quiet zone. La fattura al monitor arriva come uno scontrino normale,
+  senza dati del cliente. La promozione compare solo sullo scontrino finale, ripartita sotto le righe.
+- Già chiarito: formato a 30 o 48 colonne, intestazione e quantità unite in "dettagli conto", sconti sul subtotale e
+  ripartiti, righe `PAGATO …` e `Resto:` a fine conto, QR. Ancora da registrare: un pagamento Satispay vero (la riga
+  di pagamento e cosa succede se il cliente annulla), messaggi del visore, annullo, reso, e perché il terzo conto del
+  20/10 notte non ha scritto la riga del pagamento.
 - Casi da registrare su una cassa vera: vendita semplice, quantità > 1, sconto riga e subtotale, maggiorazione, storno,
   annullo, reso, preconto, conto separato, fattura, pagamento contanti / carta / **Satispay**, messaggi del visore.
 - Verificare: codifica (UTF-8? ANSI? il simbolo €), se il file viene riscritto o ricreato, ordine degli eventi

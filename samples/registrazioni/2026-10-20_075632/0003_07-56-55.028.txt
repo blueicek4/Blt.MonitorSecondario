@@ -1,0 +1,9 @@
+SNF
+ 
+ SPREMUTA ARANCIA         4,00
+ CAPPUCCINO               1,80
+SUBTOT.                   5,80
+ 
+TOT. DA PAGARE            5,80
+ 
+ 

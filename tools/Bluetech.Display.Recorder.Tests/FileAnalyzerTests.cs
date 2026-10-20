@@ -69,6 +69,36 @@ public class FileAnalyzerTests
         Assert.Contains(" Caesar salad con salsa Vecchia Malga      22,00", a.ReceiptLines);
     }
 
+    static byte[] Recorded(string session, string prefix) =>
+        File.ReadAllBytes(Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "samples", "registrazioni", session), prefix + "_*.txt").Single());
+
+    [Fact]
+    public void Satispay_qr_as_written_by_the_till()
+    {
+        // Geometria del QR vero (sostituito nel campione): PNG 197x197, Base64 su una riga, una riga di spazi dopo.
+        var a = FileAnalyzer.Analyze(Recorded("2026-10-20_075632", "0008"));
+        Assert.Equal(FileKind.QrCode, a.Kind);
+        Assert.True(a.Qr.IsBase64);
+        Assert.Equal("png", a.Qr.Format);
+        Assert.Equal(197, a.Qr.Width);
+        Assert.Equal(197, a.Qr.Height);
+        Assert.Equal(2, a.Qr.LinesAfter);
+    }
+
+    [Fact]
+    public void Promotion_appears_only_on_the_final_receipt_spread_under_the_lines()
+    {
+        var a = FileAnalyzer.Analyze(Recorded("2026-10-20_075632", "0019"));
+        Assert.Equal("5,20", a.Total);
+        Assert.Equal("5,20", a.Subtotal);
+        Assert.Contains("                SCONTO   -0,41", a.ReceiptLines);
+        Assert.Contains("PAGATO CONTANTI:    5,20", a.ReceiptLines);
+        // Righe con un importo (le altre, centrate, perdono gli spazi finali), tranne pagamento e resto.
+        var amounts = a.ReceiptLines.Where(l => System.Text.RegularExpressions.Regex.IsMatch(l, @",\d\d$") && !l.StartsWith("PAGATO") && !l.StartsWith("Resto")).ToList();
+        Assert.Equal(4, amounts.Count);   // due articoli e i due sconti; subtotale e totale sono a parte
+        Assert.All(amounts, l => Assert.Equal(30, l.Length));
+    }
+
     [Fact]
     public void Discount_on_the_subtotal_lowers_the_total()
     {
