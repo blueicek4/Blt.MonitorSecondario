@@ -99,4 +99,43 @@ public sealed class CashFileSourceTests : IDisposable
         File.WriteAllText(target, "SNF\r\n CAFFE   1,00\r\n");
         WaitUntil(() => received.Count == 1, "file letto");
     }
+
+    /// <summary>
+    /// Un altro programma tiene il file aperto senza permettere di eliminarlo, più a lungo dei tentativi immediati. Su
+    /// Windows la cancellazione fallisce: il file va tolto appena si libera, senza mostrarlo una seconda volta. Altrove
+    /// la condivisione non è imposta e il file si toglie subito.
+    /// </summary>
+    [Fact]
+    public void A_file_that_could_not_be_removed_is_removed_later_and_shown_once()
+    {
+        File.WriteAllText(_target, "SNF\r\n CAFFE   1,00\r\n");
+        var received = new ConcurrentQueue<byte[]>();
+        using var source = new CashFileSource(_target, TimeSpan.FromMinutes(5), NullLogger.Instance, received.Enqueue);
+        using (new FileStream(_target, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            source.Start();
+            WaitUntil(() => received.Count == 1, "file letto");
+            Thread.Sleep(1500);
+        }
+        WaitUntil(() => !File.Exists(_target), "file tolto quando si libera");
+        Thread.Sleep(500);
+        Assert.Single(received);
+    }
+
+    [Fact]
+    public void An_old_file_that_cannot_be_removed_at_startup_is_never_shown()
+    {
+        File.WriteAllText(_target, "SNF\r\n CONTO DI IERI   9,00\r\n");
+        File.SetLastWriteTimeUtc(_target, DateTime.UtcNow.AddHours(-10));
+        var received = new ConcurrentQueue<byte[]>();
+        using var source = new CashFileSource(_target, TimeSpan.FromMinutes(5), NullLogger.Instance, received.Enqueue);
+        using (new FileStream(_target, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            source.Start();
+            Thread.Sleep(1500);
+        }
+        WaitUntil(() => !File.Exists(_target), "file vecchio tolto quando si libera");
+        Thread.Sleep(500);
+        Assert.Empty(received);
+    }
 }

@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Bluetech.Display.Agent.Cassa;
 using Bluetech.Display.Agent.Vendita;
+using Microsoft.Extensions.Hosting.WindowsServices;
 using Microsoft.Extensions.Options;
 
 namespace Bluetech.Display.Agent.Server;
@@ -19,50 +20,67 @@ public sealed partial class AgentEngine(
     ILoggerFactory loggers) : BackgroundService
 {
     static readonly TimeSpan HeartbeatEvery = TimeSpan.FromSeconds(3);
+    static readonly TimeSpan StartRetry = TimeSpan.FromSeconds(10);
     const int RecentLimit = 50;
 
     readonly object _gate = new();
     readonly SaleTracker _tracker = new();
     readonly Queue<JsonObject> _recent = new();
     readonly DateTimeOffset _started = DateTimeOffset.Now;
-    CashFileSource? _source;
+    readonly long _startedTicks = Stopwatch.GetTimestamp();
+    volatile CashFileSource? _source;
+    volatile string? _problem;
     string? _lastEncoding;
     string[] _oldMonitors = [];
 
     AgentOptions Options => options.Value;
+
+    /// <summary>
+    /// L'ora per i tempi della vendita e del battito: monotona, così una correzione dell'orologio di Windows non ferma
+    /// il battito e non chiude un conto. Parte dall'ora vera di avvio.
+    /// </summary>
+    DateTimeOffset Now => _started + Stopwatch.GetElapsedTime(_startedTicks);
     TimeSpan CloseAfter => TimeSpan.FromSeconds(Math.Max(0, Options.ChiusuraVenditaDopoSecondi));
     bool Replaying => !string.IsNullOrWhiteSpace(Options.Replay);
 
     protected override async Task ExecuteAsync(CancellationToken stop)
     {
+        try
+        {
+            await RunAsync(stop);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException && WindowsServiceHelpers.IsWindowsService())
+        {
+            // Un servizio che si ferma da solo risulta fermato normalmente e Windows non lo riavvia: si esce con un
+            // codice d'errore, così valgono le azioni di ripristino ("sc failure", nel README).
+            log.LogCritical(ex, "Errore imprevisto: l'Agent si chiude e Windows lo riavvia");
+            Environment.Exit(1);
+        }
+    }
+
+    async Task RunAsync(CancellationToken stop)
+    {
         _oldMonitors = FindOldMonitors();
         if (_oldMonitors.Length > 0)
             log.LogWarning("Il vecchio MonitorCliente.exe è aperto ({Paths}): legge lo stesso file e non vedrà più i conti, perché l'Agent li toglie. Va chiuso e tolto dall'avvio automatico", string.Join(", ", _oldMonitors));
 
-        Task replay = Task.CompletedTask;
-        if (Replaying)
-        {
-            replay = Task.Run(() => RunReplay(Options.Replay!, stop), stop);
-        }
-        else
-        {
-            _source = new CashFileSource(Options.FileCassa, CloseAfter, loggers.CreateLogger<CashFileSource>(), OnFile);
-            _source.Start();
-        }
+        var background = Replaying
+            ? Task.Run(() => RunReplay(Options.Replay!, stop), stop)
+            : Task.Run(() => StartSource(stop), stop);
 
-        var lastBeat = DateTimeOffset.MinValue;
+        TimeSpan? lastBeat = null;
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
         try
         {
             while (await timer.WaitForNextTickAsync(stop))
             {
-                var now = DateTimeOffset.Now;
                 lock (_gate)
-                    Publish(_tracker.CheckIdle(now, CloseAfter));
-                if (now - lastBeat >= HeartbeatEvery)
+                    Publish(_tracker.CheckIdle(Now, CloseAfter));
+                var elapsed = Stopwatch.GetElapsedTime(_startedTicks);
+                if (lastBeat == null || elapsed - lastBeat >= HeartbeatEvery)
                 {
                     hub.Broadcast([new Heartbeat()]);
-                    lastBeat = now;
+                    lastBeat = elapsed;
                 }
             }
         }
@@ -71,14 +89,43 @@ public sealed partial class AgentEngine(
         }
         finally
         {
-            _source?.Dispose();
             try
             {
-                await replay;
+                await background;
             }
             catch (OperationCanceledException)
             {
             }
+            _source?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Comincia a sorvegliare il file. Se non si può (cartella su un disco di rete che il servizio non vede, permessi),
+    /// l'Agent resta acceso, lo dice in /api/stato e riprova ogni 10 s: il servizio non si ferma per un percorso sbagliato.
+    /// </summary>
+    async Task StartSource(CancellationToken stop)
+    {
+        for (var attempt = 1; !stop.IsCancellationRequested; attempt++)
+        {
+            var source = new CashFileSource(Options.FileCassa, CloseAfter, loggers.CreateLogger<CashFileSource>(), OnFile);
+            try
+            {
+                source.Start();
+                _source = source;
+                _problem = null;
+                if (attempt > 1)
+                    log.LogInformation("Sorveglianza di {Path} partita al tentativo {Attempt}", source.FilePath, attempt);
+                return;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                source.Dispose();
+                _problem = $"Non riesco a sorvegliare {Options.FileCassa}: {ex.Message} Riprovo ogni 10 secondi.";
+                if (attempt == 1)
+                    log.LogError(ex, "Non riesco a sorvegliare {Path}: riprovo ogni 10 s (da servizio i dischi di rete collegati con una lettera non si vedono)", Options.FileCassa);
+            }
+            await Task.Delay(StartRetry, stop);
         }
     }
 
@@ -91,7 +138,7 @@ public sealed partial class AgentEngine(
             if (file.Encoding != _lastEncoding)
                 log.LogInformation("Codifica del file: {Encoding}", file.Encoding);
             _lastEncoding = file.Encoding;
-            Publish(_tracker.Apply(file, DateTimeOffset.Now));
+            Publish(_tracker.Apply(file, Now));
         }
     }
 
@@ -139,7 +186,7 @@ public sealed partial class AgentEngine(
                 ["fileLetti"] = _source?.FilesRead ?? 0,
                 ["fileTolti"] = _source?.FilesRemoved ?? 0,
                 ["ultimoFile"] = _source?.LastFileAt?.ToString("O"),
-                ["problema"] = _source?.LastProblem,
+                ["problema"] = _problem ?? _source?.LastProblem,
                 ["codifica"] = _lastEncoding,
                 ["vecchioMonitor"] = new JsonArray(_oldMonitors.Select(p => (JsonNode)JsonValue.Create(p)!).ToArray()),
                 ["display"] = hub.ClientCount,
@@ -154,9 +201,29 @@ public sealed partial class AgentEngine(
 
     async Task RunReplay(string folder, CancellationToken stop)
     {
+        try
+        {
+            await Replay(folder, stop);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _problem = $"Replay interrotto: {ex.Message}";
+            log.LogError(ex, "Replay interrotto");
+        }
+    }
+
+    async Task Replay(string folder, CancellationToken stop)
+    {
+        if (!Directory.Exists(folder))
+        {
+            _problem = $"Replay: la cartella {folder} non esiste";
+            log.LogError("Replay: la cartella {Folder} non esiste", folder);
+            return;
+        }
         var steps = LoadReplay(folder);
         if (steps.Count == 0)
         {
+            _problem = $"Replay: nessuna versione in {folder}";
             log.LogError("Replay: nessuna versione in {Folder}", folder);
             return;
         }

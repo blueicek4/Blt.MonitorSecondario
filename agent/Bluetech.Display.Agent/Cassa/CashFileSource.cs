@@ -24,6 +24,8 @@ public sealed class CashFileSource : IDisposable
     const int WriterWaitMilliseconds = 100;
     const int ConsumeAttempts = 25;
     const int ConsumeRetryDelayMilliseconds = 20;
+    const int LeftBehindRetryMilliseconds = 2000;
+    const int WatcherRetryMilliseconds = 10_000;
 
     readonly string _path;
     readonly string _folder;
@@ -41,6 +43,16 @@ public sealed class CashFileSource : IDisposable
     // L'ultima lettura non era stabile (Passepartout stava scrivendo) o il file era bloccato: si riprova al prossimo
     // controllo periodico anche se i metadati non cambiano (la chiusura del file non sempre li cambia).
     volatile bool _retryPending;
+    // Un contenuto da togliere senza mostrarlo: una versione già consegnata che non si è riusciti a togliere (si
+    // riprova ogni 2 s) o l'avanzo trovato all'avvio. Lo usa solo il worker.
+    string? _doNotDeliver;
+    long _retryAfter;
+    // La sorveglianza della cartella si è interrotta: la riattiva il controllo periodico, mai il gestore dell'errore
+    // (su una cartella che non la supporta si richiamerebbe da solo all'infinito).
+    volatile bool _watcherBroken;
+    long _watcherRetryAt;
+    int _watcherFailures;
+    int _polling;
 
     public CashFileSource(string path, TimeSpan staleAfter, ILogger log, Action<byte[]> onFile)
     {
@@ -77,22 +89,10 @@ public sealed class CashFileSource : IDisposable
         _watcher.Changed += (_, _) => Trigger("modificato");
         _watcher.Created += (_, _) => Trigger("creato");
         _watcher.Renamed += (_, _) => Trigger("rinominato");
-        _watcher.Error += (_, e) =>
-        {
-            _log.LogWarning(e.GetException(), "Sorveglianza della cartella interrotta: continuo con il controllo periodico");
-            Trigger("errore-sorveglianza");
-            try
-            {
-                _watcher.EnableRaisingEvents = false;
-                _watcher.EnableRaisingEvents = true;
-            }
-            catch (Exception ex) when (ex is IOException or ObjectDisposedException)
-            {
-            }
-        };
+        _watcher.Error += (_, e) => WatcherFailed(e.GetException());
 
         _worker = Task.Run(WorkerLoop);
-        _watcher.EnableRaisingEvents = true;
+        StartWatcher();
         _observed = FileMeta.Read(_path);
         Trigger("avvio");
         _poll = new Timer(_ => Poll(), null, PollMilliseconds, PollMilliseconds);
@@ -116,19 +116,59 @@ public sealed class CashFileSource : IDisposable
 
     void Trigger(string source) => _triggers.Writer.TryWrite(source);
 
-    void Poll()
+    void StartWatcher()
     {
         try
         {
+            _watcher!.EnableRaisingEvents = true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or PlatformNotSupportedException)
+        {
+            WatcherFailed(ex);
+        }
+    }
+
+    void WatcherFailed(Exception? ex)
+    {
+        _watcherBroken = true;
+        _watcherRetryAt = Environment.TickCount64 + WatcherRetryMilliseconds;
+        if (Interlocked.Increment(ref _watcherFailures) == 1)
+            _log.LogWarning(ex, "Sorveglianza della cartella interrotta: continuo con il controllo ogni {Ms} ms e la riattivo ogni 10 s", PollMilliseconds);
+        Trigger("errore-sorveglianza");
+    }
+
+    void Poll()
+    {
+        if (Interlocked.Exchange(ref _polling, 1) == 1)
+            return;   // il controllo precedente non ha ancora finito
+        try
+        {
             var meta = FileMeta.Read(_path);
-            if (!meta.Equals(_observed) || (_retryPending && meta.Exists))
+            var retry = _retryPending && meta.Exists && Environment.TickCount64 >= Interlocked.Read(ref _retryAfter);
+            if (!meta.Equals(_observed) || retry)
             {
                 _observed = meta;
                 Trigger("controllo-periodico");
             }
+            if (_watcherBroken && Environment.TickCount64 >= _watcherRetryAt && !_stop.IsCancellationRequested)
+            {
+                _watcherBroken = false;
+                try
+                {
+                    _watcher!.EnableRaisingEvents = false;
+                }
+                catch (Exception ex) when (ex is IOException or ObjectDisposedException)
+                {
+                }
+                StartWatcher();
+            }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ObjectDisposedException)
         {
+        }
+        finally
+        {
+            Volatile.Write(ref _polling, 0);
         }
     }
 
@@ -164,6 +204,7 @@ public sealed class CashFileSource : IDisposable
         var read = ReadStable();
         _observed = read.Meta;
         _retryPending = !read.Missing && !read.Stable;
+        Interlocked.Exchange(ref _retryAfter, 0);
         if (read.Missing || !read.Stable || read.Bytes == null)
         {
             if (read.Locked)
@@ -171,24 +212,54 @@ public sealed class CashFileSource : IDisposable
             return;
         }
 
-        FilesRead++;
-        LastFileAt = DateTimeOffset.Now;
-        Consume(Hash(read.Bytes));
-        _onFile(read.Bytes);
+        var hash = Hash(read.Bytes);
+        var deliver = hash != _doNotDeliver;
+        if (deliver)
+        {
+            FilesRead++;
+            LastFileAt = DateTimeOffset.Now;
+        }
+        if (Consume(hash, warn: deliver))
+        {
+            _doNotDeliver = null;
+        }
+        else
+        {
+            // Rimasto lì: Passepartout aspetterebbe 3 s a ogni battuta (o rinuncerebbe). Si riprova ogni 2 s, senza
+            // mostrarlo di nuovo.
+            _doNotDeliver = hash;
+            _retryPending = true;
+            Interlocked.Exchange(ref _retryAfter, Environment.TickCount64 + LeftBehindRetryMilliseconds);
+        }
+        if (deliver)
+            _onFile(read.Bytes);
     }
 
     void RemoveStaleFile()
     {
-        var meta = FileMeta.Read(_path);
-        if (!meta.Exists || _staleAfter <= TimeSpan.Zero)
-            return;
-        var age = DateTime.UtcNow - meta.LastWriteUtc;
-        if (age < _staleAfter)
+        if (_staleAfter <= TimeSpan.Zero)
             return;
         try
         {
-            File.Delete(_path);
-            _log.LogInformation("All'avvio ho trovato {File} scritto {Minutes:0} minuti fa: tolto senza mostrarlo", _fileName, age.TotalMinutes);
+            var meta = FileMeta.Read(_path);
+            if (!meta.Exists)
+                return;
+            var age = DateTime.UtcNow - meta.LastWriteUtc;
+            if (age < _staleAfter)
+                return;
+            var bytes = ReadShared(out _);
+            if (bytes == null)
+                return;
+            var hash = Hash(bytes);
+            if (Consume(hash, warn: true))
+            {
+                _log.LogInformation("All'avvio ho trovato {File} scritto {Minutes:0} minuti fa: tolto senza mostrarlo", _fileName, age.TotalMinutes);
+            }
+            else
+            {
+                _doNotDeliver = hash;   // il worker riprova a toglierlo, ma non lo mostra
+                _retryPending = true;
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -196,8 +267,11 @@ public sealed class CashFileSource : IDisposable
         }
     }
 
-    /// <summary>Toglie il file solo se contiene ancora la versione letta (<paramref name="readHash"/>).</summary>
-    void Consume(string readHash)
+    /// <summary>
+    /// Toglie il file solo se contiene ancora la versione letta (<paramref name="readHash"/>). Falso se è rimasto lì
+    /// con quel contenuto; vero se è stato tolto, se non c'è più o se nel frattempo è cambiato (e allora si rilegge).
+    /// </summary>
+    bool Consume(string readHash, bool warn)
     {
         for (var attempt = 0; attempt < ConsumeAttempts; attempt++)
         {
@@ -210,16 +284,16 @@ public sealed class CashFileSource : IDisposable
                     if (Hash(memory.ToArray()) != readHash)
                     {
                         Trigger("contenuto-cambiato");   // nel frattempo è arrivata un'altra versione: si rilegge
-                        return;
+                        return true;
                     }
                     File.Delete(_path);
                 }
                 FilesRemoved++;
-                return;
+                return true;
             }
             catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
             {
-                return;
+                return true;
             }
             catch (IOException)
             {
@@ -228,12 +302,15 @@ public sealed class CashFileSource : IDisposable
             catch (UnauthorizedAccessException ex)
             {
                 LastProblem = $"Non posso togliere {_fileName}: {ex.Message}";
-                _log.LogWarning(ex, "Non posso togliere {File}: controlla i permessi della cartella", _fileName);
-                return;
+                if (warn)
+                    _log.LogWarning(ex, "Non posso togliere {File}: controlla i permessi della cartella. Riprovo ogni 2 s", _fileName);
+                return false;
             }
         }
         LastProblem = $"{_fileName} è rimasto aperto da un altro programma e non è stato tolto";
-        _log.LogWarning("{File} è rimasto aperto da un altro programma e non è stato tolto", _fileName);
+        if (warn)
+            _log.LogWarning("{File} è rimasto aperto da un altro programma e non è stato tolto. Riprovo ogni 2 s", _fileName);
+        return false;
     }
 
     sealed class ReadResult

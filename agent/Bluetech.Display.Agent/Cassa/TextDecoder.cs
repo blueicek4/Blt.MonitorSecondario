@@ -4,7 +4,8 @@ namespace Bluetech.Display.Agent.Cassa;
 
 /// <summary>
 /// Testo del file con la codifica giusta: UTF-8 (con o senza BOM) se valido, altrimenti Windows-1252, l'ANSI italiano.
-/// Con le lettere accentate ammesse nel modello XML (CaratteriAmmessi) la cassa può scrivere l'una o l'altra.
+/// Con le lettere accentate ammesse nel modello XML (CaratteriAmmessi) la cassa può scrivere l'una o l'altra. UTF-16
+/// con BOM non è mai stato visto, ma lo leggevano il vecchio monitor e il registratore: si legge anche qui.
 /// </summary>
 public static class TextDecoder
 {
@@ -21,6 +22,16 @@ public static class TextDecoder
         {
             encoding = "UTF-8 con BOM";
             return Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3);
+        }
+        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
+        {
+            encoding = "UTF-16 LE con BOM";
+            return Encoding.Unicode.GetString(bytes, 2, bytes.Length - 2);
+        }
+        if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF)
+        {
+            encoding = "UTF-16 BE con BOM";
+            return Encoding.BigEndianUnicode.GetString(bytes, 2, bytes.Length - 2);
         }
         if (bytes.All(b => b < 0x80))
         {

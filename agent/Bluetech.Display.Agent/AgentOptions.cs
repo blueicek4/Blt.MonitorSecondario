@@ -11,6 +11,13 @@ public sealed class AgentOptions
     /// <summary>false: risponde solo a questo PC (il Player). true: anche a tablet e TV della rete locale.</summary>
     public bool ApertoInRete { get; set; }
 
+    /// <summary>
+    /// Pagine servite da altri indirizzi che possono collegarsi a /ws, per esempio il display in sviluppo
+    /// (http://localhost:5173). Le pagine servite dall'Agent possono sempre; una pagina qualunque aperta nel browser
+    /// della cassa no, altrimenti leggerebbe i conti.
+    /// </summary>
+    public string[] AltreOrigini { get; set; } = [];
+
     /// <summary>La build del display (display/dist), relativa alla cartella dell'Agent.</summary>
     public string CartellaDisplay { get; set; } = "display";
 

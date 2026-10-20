@@ -119,4 +119,81 @@ public class MoneyAndParserTests
         Assert.Equal(CashFileKind.Message, message.Kind);
         Assert.Equal("TOTALE 5,80", message.MessageText);
     }
+
+    static CashFile Receipt(params string[] lines) =>
+        ReceiptParser.Parse(Encoding.ASCII.GetBytes(string.Join("\r\n", ["SNF", " ", .. lines]) + "\r\n"));
+
+    [Fact]
+    public void Mixed_payment_adds_up_the_lines()
+    {
+        // Il modello XML ha un comando per metodo (StampaPagamentoBuonoPasto, …Contanti): una riga ciascuno.
+        var file = Receipt(" Menu pranzo             17,50", "TOT. DA PAGARE          17,50", "PAGATO BUONI PASTO:   8,00", "PAGATO CONTANTI:     10,00", "Resto:               0,50");
+        Assert.Equal(new Payment("BUONI PASTO + CONTANTI", 1800, 50), file.Payment);
+    }
+
+    [Fact]
+    public void Quantity_line_with_another_unit_of_measure()
+    {
+        var file = Receipt("   0,450 kg X 60,00 Euro", " Branzino al sale        27,00", "   2 bt X 18,00 Euro", " Lambrusco               36,00");
+        Assert.Equal([new ItemEntry("Branzino al sale", 0.450m, 2700, 6000), new ItemEntry("Lambrusco", 2, 3600, 1800)], file.Items);
+        Assert.Empty(file.Entries.OfType<NoteEntry>());
+    }
+
+    [Fact]
+    public void A_quantity_goes_only_to_the_line_it_adds_up_to()
+    {
+        // Una riga non riconosciuta (importo attaccato alla descrizione) non passa la sua quantità alla successiva.
+        var file = Receipt("  25 X 40,00 Euro", " Menu Comunione Bambini1000,00", " CAPPUCCINO               1,80");
+        Assert.Equal(new ItemEntry("CAPPUCCINO", 1, 180, 180), file.Items.Single());
+        Assert.Equal(new ItemEntry("Tagliere", 1, 900, 900), Receipt("   2 X 3,00 Euro", " Tagliere                 9,00").Items.Single());
+    }
+
+    [Fact]
+    public void Utf16_with_bom()
+    {
+        var bytes = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("SNF\r\n \r\n Caffè          1,20\r\nTOT. DA PAGARE 1,20\r\n")).ToArray();
+        var file = ReceiptParser.Parse(bytes);
+        Assert.Equal("UTF-16 LE con BOM", file.Encoding);
+        Assert.Equal("Caffè", file.Items.Single().Desc);
+    }
+
+    static byte[] QrPng(byte[] bytes)
+    {
+        var lines = Encoding.ASCII.GetString(bytes).Split("\r\n");
+        return Convert.FromBase64String(lines[Array.FindIndex(lines, l => l.Trim() == "QRCODE") + 1].Trim());
+    }
+
+    static byte[] FromDataUri(string uri) => Convert.FromBase64String(uri[(uri.IndexOf(',') + 1)..]);
+
+    [Theory]
+    [InlineData("qr-di-prova-geometria-satispay.txt")]   // un QR leggibile con la geometria di quello vero
+    [InlineData("registrazioni/2026-10-20_075632/0008")]   // il QR finto della registrazione
+    public void The_satispay_qr_becomes_one_pixel_per_module(string sample)
+    {
+        var bytes = sample.StartsWith("registrazioni/") ? Samples.Version("2026-10-20_075632", "0008") : Samples.Receipt(sample);
+        var original = QrImage.Decode(QrPng(bytes))!;
+        Assert.Equal(197, original.Width);
+
+        var file = ReceiptParser.Parse(bytes);
+        Assert.Equal(CashFileKind.Qr, file.Kind);
+        Assert.StartsWith("data:image/png;base64,", file.QrDataUri);
+        var reduced = QrImage.Decode(FromDataUri(file.QrDataUri!))!;
+        Assert.Equal((49, 49), (reduced.Width, reduced.Height));
+
+        // Ogni modulo è uno dei blocchi 4×4 dell'originale, tutto dello stesso colore.
+        for (var y = 0; y < 196; y++)
+        for (var x = 0; x < 196; x++)
+            Assert.Equal(reduced.Dark[y / 4 * 49 + x / 4], original.Dark[y * 197 + x]);
+
+        Assert.Equal(FromDataUri(file.QrDataUri!), QrImage.ToModules(FromDataUri(file.QrDataUri!)));   // già ridotto: uguale
+    }
+
+    [Fact]
+    public void An_image_that_is_not_a_readable_qr_passes_as_it_is()
+    {
+        var notQr = Convert.ToBase64String([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4]);
+        var file = ReceiptParser.Parse(Encoding.ASCII.GetBytes($"SNF\r\n \r\nQRCODE\r\n{notQr}\r\n \r\n"));
+        Assert.Equal(CashFileKind.Qr, file.Kind);
+        Assert.Equal("data:image/png;base64," + notQr, file.QrDataUri);
+    }
 }

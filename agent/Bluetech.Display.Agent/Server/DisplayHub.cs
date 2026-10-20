@@ -41,30 +41,45 @@ public sealed class DisplayHub(ILogger<DisplayHub> log)
 
     void Enqueue(DisplayClient client, string json)
     {
-        if (!client.Queue.Writer.TryWrite(json))
+        if (!client.Queue.Writer.TryWrite(json) && !client.Closing)
         {
             log.LogWarning("Display {Remote} troppo indietro: lo stacco, si ricollegherà", client.Remote);
             client.Abort();
         }
     }
 
-    /// <summary>Spedisce la coda del display finché il collegamento resta aperto.</summary>
+    /// <summary>
+    /// Spedisce la coda del display finché il collegamento resta aperto, il display lo chiude o <paramref name="cancel"/>
+    /// scatta (richiesta finita, Agent che si ferma).
+    /// </summary>
     public async Task RunAsync(DisplayClient client, CancellationToken cancel)
     {
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancel, client.Aborted);
-        var sender = SendLoop(client, linked.Token);
-        var receiver = ReceiveLoop(client, linked.Token);
-        await Task.WhenAny(sender, receiver);
-        linked.Cancel();
+        using var loops = CancellationTokenSource.CreateLinkedTokenSource(client.Aborted);
+        var sender = SendLoop(client, loops.Token);
+        var receiver = ReceiveLoop(client, loops.Token);
+        var ended = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using (cancel.Register(() => ended.TrySetResult()))
+            await Task.WhenAny(sender, receiver, ended.Task);
         _clients.TryRemove(client.Id, out _);
+
+        // Chiusura ordinata, al massimo 2 s: si finisce di spedire, poi il frame di chiusura (la risposta a quello del
+        // browser, o l'avviso che l'Agent si ferma) e si aspetta la risposta. Annullare la ricezione prima chiuderebbe il
+        // collegamento di colpo.
+        client.Closing = true;
+        client.Queue.Writer.TryComplete();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         try
         {
-            if (client.Socket.State == WebSocketState.Open)
-                await client.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "fine", CancellationToken.None);
+            await sender.WaitAsync(timeout.Token);
+            if (client.Socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
+                await client.Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "fine", timeout.Token);
+            await receiver.WaitAsync(timeout.Token);
         }
         catch (Exception ex) when (ex is WebSocketException or OperationCanceledException or ObjectDisposedException)
         {
         }
+        loops.Cancel();
+        await Task.WhenAll(sender, receiver);
         log.LogInformation("Display {Remote} scollegato ({Count} ancora collegati)", client.Remote, _clients.Count);
     }
 
@@ -118,6 +133,8 @@ public sealed class DisplayClient(long id, WebSocket socket, string remote)
         FullMode = BoundedChannelFullMode.Wait,   // TryWrite fallisce a coda piena: il display viene staccato
     });
     public CancellationToken Aborted => _abort.Token;
+    /// <summary>Il collegamento si sta chiudendo: la coda chiusa non vuol dire "troppo indietro".</summary>
+    public volatile bool Closing;
 
     public void Abort()
     {
