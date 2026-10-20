@@ -41,7 +41,10 @@ confrontando ogni versione del file con quella precedente.
 | `SUBTOT.` | ignorato | Come il vecchio monitor |
 | `   2 X 3,00 Euro` o `   2 pz X 12,00 Euro` | `qty` e prezzo unitario della riga **successiva**, che porta l'importo totale | Il primo in "dettagli conto", il secondo cambiando la quantità mentre si batte. Non filtrare per ` x `: ci sono prodotti con ` x ` nel nome (`Tagliere Emilia x 2`), che il vecchio monitor non mostra per questo |
 | Messaggio del visore (file senza `SNF`) | `display.msg` | Il design estrae etichetta e importo con una regex: i testi reali sono `{riga1} {riga2}` del visore (16 colonne) |
-| `SNF` + `QRCODE` + riga Base64 | `pay.qr` `png: data:image/png;base64,…`, `amount` = ultimo totale | Formato dell'immagine da confermare (punto 9) |
+| `SNF` + `QRCODE` + riga Base64 | `pay.qr` `png: data:image/png;base64,…`, `amount` = ultimo totale | Visto il 20/10 ([registrazione](../samples/registrazioni/2026-10-20_075632/README.md)): PNG 197×197 in bianco e nero, QR versione 8, 49 moduli da 4 pixel, **senza quiet zone**. L'Agent lo riduce a un pixel per modulo; `QrStage` lo ingrandisce di un multiplo intero e aggiunge la quiet zone. Arriva dopo "dettagli conto" |
+| Il conto rimandato dopo il QR | `pay.clear` | La cassa rimanda il conto prima della riga `PAGATO` |
+| Fattura | come uno scontrino | Al monitor non arrivano i dati del cliente |
+| Promozione | `discount` sotto le righe | Compare solo sullo scontrino finale, ripartita riga per riga |
 | Qualunque file dopo un QR | `pay.clear` | È il comportamento del vecchio monitor |
 | Conto nuovo | `sale.close` + `sale.open` | Criterio da definire coi dati (nessuna riga in comune? totale ripartito da zero?) |
 | Agent riavviato o browser ricaricato | `sync` con lo stato completo | Il design lo prevede già per la riconnessione |
@@ -107,7 +110,7 @@ confrontando ogni versione del file con quella precedente.
 | `data-qr` sul nodo radice | TASKS M1 lo dà al `ThemeProvider`, che non sa in che fase è lo schermo; tokens.css restringe lo scontrino a 760 px quando `data-qr='beside'` | L'attributo c'è solo durante il pagamento: il `ThemeProvider` riceve la fase (oggi dal banco di prova, da M2 da `DisplayRoot`). Fuori dal pagamento lo scontrino resta a 1180 px |
 | Colori del locale con giorno o notte fissi | I colori che il preset ricava dagli altri (blocco totale, bagliori, superficie opaca, filetti, testo tenue) restavano quelli del preset: il totale poteva diventare illeggibile | Si ricalcolano dai colori del locale. Il controllo di contrasto copre anche il testo sulla card e la cifra del totale; se non passa, `bluetech-notte` |
 | Font e raggio con `mode: 'auto'` | Ignorati insieme ai colori | Restano quelli del locale: sono uguali nelle due varianti di ogni tema |
-| QR della cassa finta | Era un SVG con la quiet zone già dentro | PNG vero, un pixel per modulo, senza quiet zone: come quello della cassa, che `QrStage` ingrandisce di un multiplo intero aggiungendo la quiet zone |
+| QR della cassa finta | Era un SVG con la quiet zone già dentro | PNG vero, un pixel per modulo, senza quiet zone, 49 moduli come quello di Satispay visto il 20/10: `QrStage` lo ingrandisce di un multiplo intero aggiungendo la quiet zone |
 
 **Aperto per M2**: con `mode: 'auto'` il passaggio giorno/notte oggi è secco, la SPEC §6 vuole una dissolvenza di 900 ms.
 Va fatta in sola opacità (due livelli, mai una transizione sui colori), sotto il footer e mai durante il pagamento:

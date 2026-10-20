@@ -202,8 +202,8 @@ export function createMockTransport(): MockCashier {
   };
 }
 
-/** Moduli per lato del QR finto (versione 2). */
-export const FAKE_QR_MODULES = 25;
+/** Moduli per lato del QR finto: 49 (versione 8), come il QR Satispay registrato in cassa il 20/10. */
+export const FAKE_QR_MODULES = 49;
 
 /**
  * QR finto come nei mockup: geometria corretta (tre finder, timing, alignment) ma NON scansionabile.
