@@ -9,8 +9,10 @@
 > l'Agent compone la copia con quello che ha visto e la stampa da solo, in ESC/POS, su una stampante comande
 > standard.
 >
-> Stato: **studio**, niente è implementato. Le parti segnate *da verificare* dipendono da cose che non abbiamo ancora
-> visto: un `QRCODESD` vero e le stampanti dei locali.
+> Stato (20/10): **fasi 2 e 3 fatte** nell'Agent: abbinamento, copia ESC/POS in rete o nella coda di Windows, modalità
+> prova, abbinamento dei palmari con chiave, pagina `/cliente` e diagnostica con il pulsante (`agent/README.md`). Non
+> avendo transazioni con scontrino digitale, tutto si basa su quello che mostra il vecchio monitor 6.0: si sistema
+> con le prime transazioni vere. Le parti segnate *da verificare* restano aperte.
 
 ## 1. Cosa vede il cliente
 
@@ -74,6 +76,7 @@ servono messaggi nei due sensi.
 |---|---|
 | `receipt.digital` | `id` (generato dall'Agent, opaco), `png` (QR, un pixel per modulo), `caption?`, `receipt` (le righe della copia, §5), `paperCopy` (il pulsante va mostrato) |
 | `receipt.paper.status` | `id`, `state`: `printing`, `requested` (la copia è arrivata alla stampante o alla coda di Windows), `failed`, `already` (già chiesta), `message?` |
+| `receipt.clear` | `id`: lo scontrino digitale non è più a video (tempo scaduto o vendita successiva) |
 
 Con la funzione spenta l'Agent manda il `receipt.qr` di oggi e il display lo mostra in Grazie, come deciso.
 
@@ -144,15 +147,15 @@ Resto                                 0,00
   accanto resta quello da inquadrare dallo schermo.
 - **Cosa non c'è**, perché il file del monitor non lo porta: numero e data del documento commerciale, matricola del
   registratore telematico, ripartizione dell'IVA. Le descrizioni sono tagliate come nel file (22 caratteri con il
-  modello a 30 colonne, 40 con quello a 48). Il documento valido resta quello del QR.
-- **Se la verifica fiscale (§11) dicesse che serve un duplicato vero**, con numero e IVA, questa copia non basta: un
-  duplicato può farlo solo Passepartout, e la scelta di non chiedergli niente andrebbe rivista. Va chiarito prima di
-  sviluppare.
+  modello a 30 colonne, 40 con quello a 48). **Non è un problema**: ai fini legali e fiscali conta solo il QR, che porta
+  al PDF firmato del documento (§11).
 
 **Abbinare il QR al conto giusto.** Il `QRCODESD` non dice di quale conto è. L'Agent lo abbina all'ultimo conto
-pagato se arriva entro 30 s dalla riga `PAGATO` e nel frattempo non è partita un'altra vendita; altrimenti mostra il
-QR senza scontrino e senza pulsante. Se nelle registrazioni il QR arriva *prima* del `PAGATO`, la regola si
-rovescia: è il motivo principale per registrare qualche pagamento con scontrino digitale.
+pagato se arriva entro 30 s dalla riga `PAGATO` e nel frattempo non è partita un'altra vendita. Altrimenti mostra e
+stampa il **solo QR**, che basta ai fini fiscali: mai il QR di un cliente con le righe di un altro. Un `PAGATO` che
+arriva *dopo* il QR non si abbina, per lo stesso motivo. L'ordine "prima `PAGATO`, poi QR" è quello logico (il QR
+dello scontrino digitale esiste solo a documento emesso) ed è coerente con il vecchio monitor 6.0; va confermato con le
+prime transazioni.
 
 ## 6. Come stampa l'Agent
 
@@ -320,16 +323,11 @@ dell'Agent:
 - `/diagnostica` mostra la schermata con il pulsante: si prova tutta la catena (cassa → Agent → stampante) prima che
   il display vero sia pronto.
 
-## 11. Aspetti fiscali (da verificare, non sono un parere)
+## 11. Aspetti fiscali
 
-- Che cos'è legalmente la copia su stampante non fiscale composta con i dati del monitor: una copia di cortesia dello
-  scontrino digitale, che resta il documento valido? Che diciture deve avere o non deve avere?
-- Basta una copia senza numero del documento, matricola e IVA (§5), o il cliente che chiede la carta ha diritto a un
-  duplicato vero del documento commerciale? Nel secondo caso questa funzione non basta (§5).
-- Se il cliente che chiede la carta va considerato come uno che non accetta la consegna digitale, e se questo cambia
-  cosa la cassa deve emettere.
-- Va chiarito con un consulente fiscale **prima** di sviluppare: il testo del pulsante e della dicitura dipendono
-  dalla risposta.
+Chiarito il 20/10: **ai fini legali e fiscali conta solo il QR**, che permette di scaricare il PDF firmato del
+documento. La copia può quindi mancare di matricola, progressivo e IVA. Resta da scegliere il testo della dicitura
+(`Dicitura` nella configurazione).
 
 ## 12. Piano e stime
 
@@ -337,12 +335,12 @@ Stime indicative, da rivedere quando avremo visto le stampanti.
 
 | Fase | Cosa | Dipende da | Stima |
 |---|---|---|---|
-| 0 | Registrare 2-3 pagamenti con scontrino digitale; modello e collegamento della stampante del locale pilota; decidere §11 | Tu | — |
+| 0 | Modello e collegamento della stampante del locale pilota. Le transazioni con scontrino digitale non sono ancora disponibili: si parte da quello che mostra il vecchio monitor 6.0 e si corregge con le prime vere | Tu | — |
 | 1 | Solo per il secondo monitor touch del PC della cassa: prototipo del tocco senza focus (§7.2) | Un monitor touch | ½ giorno, +1-2 giorni se serve la modalità visuale |
-| 2 | Agent: ultimo conto pagato e abbinamento al QR, scontrino corrente anche nello stato completo, comando dal display, composizione della copia, stampa ESC/POS in rete e nella coda di Windows, stampante finta per i test, abbinamento dei dispositivi con chiave | Fase 0 | 4-5 giorni |
+| 2 | Agent: ultimo conto pagato e abbinamento al QR, scontrino corrente anche nello stato completo, comando dal display, composizione della copia, stampa ESC/POS in rete e nella coda di Windows, stampante finta per i test, abbinamento dei dispositivi con chiave | Fase 0 | **Fatto il 20/10** |
 | 2b | Agent: stampa con il driver di Windows, per le stampanti che non capiscono ESC/POS | Solo se serve | 1-2 giorni |
 | 2c | Agent: più file, uno per palmare (§7.1), se Passepartout li scrive così | Le registrazioni | 1-2 giorni |
-| 3 | Diagnostica: schermata con il pulsante, prova completa in cassa | Fase 2 | ½ giorno |
+| 3 | Diagnostica e `/cliente`: schermata con il pulsante; la prova completa in cassa resta da fare | Fase 2 | **Fatto il 20/10** (pagine) |
 | 4 | Display: lo stato `receipt` nei formati, compreso il nuovo formato "palmare" | Display M2-M5 | 3-4 giorni |
 | 5 | Pannello: i due interruttori | Fase 4 del piano | ½ giorno |
 | 6 | Pilota in un locale con palmari o schermo touch | Tutto il resto | 1 settimana |
@@ -355,7 +353,6 @@ stampante.
 
 | Rischio | Effetto | Contromisura |
 |---|---|---|
-| La copia non basta ai fini fiscali | Serve un duplicato, che può fare solo Passepartout | §11 prima di sviluppare |
 | Il `QRCODESD` arriva in un ordine diverso da quello previsto | Il QR abbinato al conto sbagliato | Registrazioni prima di sviluppare; nel dubbio, QR senza scontrino e senza pulsante (§5) |
 | Stampanti diverse da Epson, comandi diversi | Copia stampata male o non stampata | Prova sui modelli dei locali pilota; stampa con il driver di Windows (2b) |
 | Stampante comande ad aghi | QR illeggibile | Solo stampanti termiche; l'Agent lo dice nella configurazione |
@@ -376,7 +373,7 @@ stampante.
    il display va anche sui palmari, con un formato in più.
 2. Le deroghe del design: il totale come elemento più grande e la misura minima del QR, per il QR piccolo
    dell'anteprima (§8).
-3. La dicitura sulla copia e se basta la copia composta, dopo §11.
+3. Il testo della dicitura sulla copia (§11).
 4. La misura del QR piccolo sulla carta (25 mm proposti).
 5. Testi del pulsante, anche in inglese.
 6. Tempi: quanto resta a video la schermata (45 s proposti).

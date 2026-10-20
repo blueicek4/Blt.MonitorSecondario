@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Channels;
 using Bluetech.Display.Agent.Vendita;
 
@@ -48,15 +50,18 @@ public sealed class DisplayHub(ILogger<DisplayHub> log)
         }
     }
 
+    /// <summary>Il display manda solo comandi brevi (la richiesta della copia cartacea): il resto si scarta.</summary>
+    const int MaxIncoming = 1024;
+
     /// <summary>
     /// Spedisce la coda del display finché il collegamento resta aperto, il display lo chiude o <paramref name="cancel"/>
-    /// scatta (richiesta finita, Agent che si ferma).
+    /// scatta (richiesta finita, Agent che si ferma). I messaggi del display vanno a <paramref name="onMessage"/>.
     /// </summary>
-    public async Task RunAsync(DisplayClient client, CancellationToken cancel)
+    public async Task RunAsync(DisplayClient client, CancellationToken cancel, Func<DisplayClient, JsonObject, Task>? onMessage = null)
     {
         using var loops = CancellationTokenSource.CreateLinkedTokenSource(client.Aborted);
         var sender = SendLoop(client, loops.Token);
-        var receiver = ReceiveLoop(client, loops.Token);
+        var receiver = ReceiveLoop(client, loops.Token, onMessage);
         var ended = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using (cancel.Register(() => ended.TrySetResult()))
             await Task.WhenAny(sender, receiver, ended.Task);
@@ -99,10 +104,13 @@ public sealed class DisplayHub(ILogger<DisplayHub> log)
         }
     }
 
-    static async Task ReceiveLoop(DisplayClient client, CancellationToken cancel)
+    async Task ReceiveLoop(DisplayClient client, CancellationToken cancel, Func<DisplayClient, JsonObject, Task>? onMessage)
     {
-        // Il display non manda niente: si ascolta solo per accorgersi della chiusura.
-        var buffer = new byte[1024];
+        // Si ascolta per accorgersi della chiusura e per i comandi del display; un messaggio troppo lungo o non JSON si
+        // scarta, il collegamento resta.
+        var buffer = new byte[MaxIncoming];
+        var message = new MemoryStream();
+        var tooLong = false;
         try
         {
             while (client.Socket.State == WebSocketState.Open)
@@ -110,10 +118,47 @@ public sealed class DisplayHub(ILogger<DisplayHub> log)
                 var result = await client.Socket.ReceiveAsync(buffer, cancel);
                 if (result.MessageType == WebSocketMessageType.Close)
                     return;
+                if (message.Length + result.Count > MaxIncoming)
+                    tooLong = true;
+                else
+                    message.Write(buffer, 0, result.Count);
+                if (!result.EndOfMessage)
+                    continue;
+                if (tooLong)
+                    log.LogWarning("Display {Remote}: messaggio troppo lungo, scartato", client.Remote);
+                else if (result.MessageType == WebSocketMessageType.Text && onMessage != null && Parse(message) is { } json)
+                    _ = Handle(onMessage, client, json);   // una stampa lenta non blocca la ricezione né la chiusura
+                message.SetLength(0);
+                tooLong = false;
             }
         }
         catch (Exception ex) when (ex is WebSocketException or OperationCanceledException or ObjectDisposedException)
         {
+        }
+    }
+
+    async Task Handle(Func<DisplayClient, JsonObject, Task> onMessage, DisplayClient client, JsonObject json)
+    {
+        try
+        {
+            await onMessage(client, json);
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Display {Remote}: errore gestendo un comando", client.Remote);
+        }
+    }
+
+    JsonObject? Parse(MemoryStream message)
+    {
+        try
+        {
+            return JsonNode.Parse(message.ToArray()) as JsonObject;
+        }
+        catch (JsonException)
+        {
+            log.LogWarning("Display: messaggio che non è JSON, scartato");
+            return null;
         }
     }
 }
@@ -135,6 +180,8 @@ public sealed class DisplayClient(long id, WebSocket socket, string remote)
     public CancellationToken Aborted => _abort.Token;
     /// <summary>Il collegamento si sta chiudendo: la coda chiusa non vuol dire "troppo indietro".</summary>
     public volatile bool Closing;
+    /// <summary>Quando il display ha mandato l'ultimo comando (Environment.TickCount64): uno ogni 2 s al massimo.</summary>
+    public long LastCommandAt = long.MinValue / 2;
 
     public void Abort()
     {
