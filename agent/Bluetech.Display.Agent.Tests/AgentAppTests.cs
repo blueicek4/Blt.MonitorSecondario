@@ -25,7 +25,10 @@ public sealed class AgentAppTests
         await using var agent = await TestAgent.Start();
         var device = await agent.Pair("Player cassa");
         using var socket = await agent.Connect(device);
-        var look = await Receive(socket, _ => true);   // prima l'aspetto, poi il conto
+        var layout = await Receive(socket, _ => true);   // prima la disposizione, poi l'aspetto, poi il conto
+        Assert.Equal("layout", (string)layout["t"]!);
+        Assert.Null(layout["force"]);   // automatica: la sceglie lo schermo
+        var look = await Receive(socket, _ => true);
         Assert.Equal("cfg", (string)look["t"]!);
         Assert.Equal("bluetech", (string)look["preset"]!);
         Assert.Equal("auto", (string)look["theme"]!["mode"]!);
@@ -679,11 +682,40 @@ public sealed class AgentAppTests
         page.Options.Cookies = device.Cookies;
         page.Options.SetRequestHeader("Origin", $"http://{agent.Base.Authority}");
         await page.ConnectAsync(new Uri($"ws://{agent.Base.Authority}/ws"), CancellationToken.None);
-        Assert.Equal("cfg", (string)(await Receive(page, _ => true))["t"]!);
+        Assert.Equal("layout", (string)(await Receive(page, _ => true))["t"]!);
 
         using var post = new HttpRequestMessage(HttpMethod.Post, "/api/abbinamento");
         post.Headers.Add("Origin", "https://evil.example");
         Assert.Equal(HttpStatusCode.Forbidden, (await agent.NewBrowser().Http.SendAsync(post)).StatusCode);
+    }
+
+    [Fact]
+    public async Task A_device_gets_the_layout_forced_from_the_back_office_without_reconnecting()
+    {
+        await using var agent = await TestAgent.Start();
+        var device = await agent.Pair("iPad Pro");
+        using var socket = await agent.Connect(device);
+        Assert.Null((await Receive(socket, Type("layout")))["force"]);
+        await Receive(socket, Type("sync"));
+
+        var update = await agent.Admin.PutAsJsonAsync("/api/bo/dispositivi/" + device.Id, new { nome = "iPad Pro", cassa = "cassa1", stampante = "", disposizione = "larga" });
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        Assert.Equal("wide", (string)(await Receive(socket, Type("layout")))["force"]!);   // subito, sullo stesso collegamento
+        await Write(agent.CashFile(), Coffee);
+        Assert.Equal("Caffè", (string)(await Receive(socket, Type("sale.line")))["line"]!["desc"]!);   // lo schermo non è stato staccato
+
+        var refused = await agent.Admin.PutAsJsonAsync("/api/bo/dispositivi/" + device.Id, new { nome = "iPad Pro", cassa = "cassa1", disposizione = "obliqua" });
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        Assert.Contains("la disposizione è automatica, larga, stretta, verticale o palmare", (string)(await Json(refused))["errore"]!);
+
+        // Senza il campo (un back office aperto prima dell'aggiornamento) la disposizione resta quella.
+        await agent.Admin.PutAsJsonAsync("/api/bo/dispositivi/" + device.Id, new { nome = "iPad", cassa = "cassa1" });
+        var settings = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/impostazioni"))!;
+        Assert.Equal("larga", (string)settings["Dispositivi"]![0]!["Disposizione"]!);
+
+        using var again = await agent.Connect(device);
+        var first = await Receive(again, _ => true);
+        Assert.Equal(("layout", "wide"), ((string)first["t"]!, (string)first["force"]!));   // al collegamento, per primo
     }
 
     [Fact]

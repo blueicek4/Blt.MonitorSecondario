@@ -268,7 +268,8 @@
       </div>
       <div class="card">
         <h2>Dispositivi autorizzati</h2>
-        <div class="table"><table><thead><tr><th>Nome</th><th>Cassa</th><th>Stampante</th><th>Collegato</th><th>Ultimo accesso</th><th class="num">Copie</th><th></th></tr></thead><tbody id="devicelist"></tbody></table></div>
+        <div class="table"><table><thead><tr><th>Nome</th><th>Cassa</th><th>Stampante</th><th>Disposizione</th><th>Collegato</th><th>Ultimo accesso</th><th class="num">Copie</th><th></th></tr></thead><tbody id="devicelist"></tbody></table></div>
+        <p class="faint" style="margin:10px 0 0">Disposizione: in automatico lo schermo la sceglie dal formato (16:9 larga con la colonna accanto al conto, 4:3 stretta con il conto a tutta larghezza, verticale, palmare). Si forza per uno schermo che sbaglia: un iPad Pro è 4:3, ma la colonna ci sta. Cambia subito, senza ricaricare.</p>
         <p class="message" id="devicemsg"></p>
       </div>
     </section>
@@ -906,6 +907,12 @@ async function deleteCash(cash) {
 }
 
 /* Dispositivi */
+// La disposizione la sceglie lo schermo dal rapporto d'aspetto; qui si forza per uno schermo che la sbaglia (un iPad
+// Pro è 4:3, ma la colonna accanto al conto ci sta).
+const LAYOUTS = [["", "Automatica", "dal formato dello schermo"], ["larga", "Larga", "il conto con la colonna accanto"],
+  ["stretta", "Stretta (4:3)", "il conto a tutta larghezza"], ["verticale", "Verticale", "la colonna sopra il conto"], ["palmare", "Palmare", "solo il conto"]];
+const layoutName = (value) => (LAYOUTS.find(([key]) => key === (value || "")) || LAYOUTS[0])[1];
+
 function renderDevices() {
   const s = state.status;
   const waiting = (s && s.inAttesa) || [];
@@ -917,20 +924,23 @@ function renderDevices() {
     const info = live.get(d.Id) || {};
     if (state.editingDevice === d.Id) {
       const name = el("input", { value: d.Nome, maxlength: 40 });
-      const cash = el("select", { "data-cash": "" }, state.settings.Casse.map((c) => el("option", { value: c.Id }, c.Nome)));
+      const cash = el("select", { "data-cash": "", style: "min-width:120px" }, state.settings.Casse.map((c) => el("option", { value: c.Id }, c.Nome)));
       cash.value = d.Cassa;
-      const printer = el("select", {}, el("option", { value: "" }, "Nessuna"), state.settings.Stampanti.map((p) => el("option", { value: p.Id }, p.Nome)));
+      const printer = el("select", { style: "min-width:120px" }, el("option", { value: "" }, "Nessuna"), state.settings.Stampanti.map((p) => el("option", { value: p.Id }, p.Nome)));
       printer.value = d.Stampante || "";
+      const layout = el("select", { title: "Come si dispone lo schermo", style: "min-width:150px" }, LAYOUTS.map(([key, label, hint]) => el("option", { value: key, title: hint }, label)));
+      layout.value = d.Disposizione || "";
       return el("tr", {},
-        el("td", {}, name), el("td", {}, cash), el("td", {}, printer), el("td", { colspan: 3 }),
+        el("td", {}, name), el("td", {}, cash), el("td", {}, printer), el("td", {}, layout), el("td", { colspan: 3 }),
         el("td", { class: "actions" },
-          el("button", { class: "btn small primary", type: "button", onclick: () => saveDevice(d, name.value, cash.value, printer.value) }, "Salva"), " ",
+          el("button", { class: "btn small primary", type: "button", onclick: () => saveDevice(d, name.value, cash.value, printer.value, layout.value) }, "Salva"), " ",
           el("button", { class: "btn small", type: "button", onclick: () => { state.editingDevice = null; renderDevices(); } }, "Annulla")));
     }
     return el("tr", {},
       el("td", {}, d.Nome),
       el("td", {}, cashName(d.Cassa)),
       el("td", {}, printerName(d.Stampante)),
+      el("td", {}, d.Disposizione ? el("b", {}, layoutName(d.Disposizione)) : el("span", { class: "faint" }, "automatica")),
       el("td", {}, el("span", { class: "dot" + (info.collegato ? " on" : "") }), info.collegato ? "sì" : "no"),
       el("td", {}, when(info.ultimoAccesso), info.indirizzo ? el("div", { class: "faint mono" }, info.indirizzo) : null),
       el("td", { class: "num" }, String(info.copieCartacee || 0)),
@@ -938,14 +948,16 @@ function renderDevices() {
         el("button", { class: "btn small", type: "button", onclick: () => { state.editingDevice = d.Id; renderDevices(); } }, "Modifica"), " ",
         el("button", { class: "btn small danger", type: "button", onclick: () => revokeDevice(d) }, "Revoca")));
   });
-  $("devicelist").replaceChildren(...(rows.length ? rows : [el("tr", {}, el("td", { colspan: 7, class: "faint" }, "Nessun dispositivo autorizzato."))]));
+  $("devicelist").replaceChildren(...(rows.length ? rows : [el("tr", {}, el("td", { colspan: 8, class: "faint" }, "Nessun dispositivo autorizzato."))]));
 }
 
-async function saveDevice(device, name, cash, printer) {
+async function saveDevice(device, name, cash, printer, layout) {
   try {
-    await api("PUT", "/api/bo/dispositivi/" + encodeURIComponent(device.Id), { nome: name, cassa: cash, stampante: printer });
+    await api("PUT", "/api/bo/dispositivi/" + encodeURIComponent(device.Id), { nome: name, cassa: cash, stampante: printer, disposizione: layout });
     state.editingDevice = null;
-    say("devicemsg", "Salvato: il dispositivo si ricollega con le impostazioni nuove.", "ok");
+    const reconnects = cash !== device.Cassa || (printer || null) !== (device.Stampante || null);
+    say("devicemsg", reconnects ? "Salvato: il dispositivo si ricollega con le impostazioni nuove."
+      : (layout || "") !== (device.Disposizione || "") ? "Salvato: lo schermo si ridispone subito, se è collegato." : "Salvato.", "ok");
     await loadSettings();
     await refreshStatus();
     renderDevices();
