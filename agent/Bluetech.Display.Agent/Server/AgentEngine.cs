@@ -258,7 +258,15 @@ public sealed partial class AgentEngine(
             {
                 var current = now.Device(old.Id);
                 if (current == null || current.Cassa != old.Cassa || current.Stampante != old.Stampante || current.Token != old.Token)
+                {
                     hub.Disconnect(c => c.DeviceId == old.Id);
+                }
+                else if (current.Disposizione != old.Disposizione)
+                {
+                    // La disposizione cambia senza staccare lo schermo: si ridispone e basta.
+                    foreach (var client in hub.Clients.Where(c => c.DeviceId == old.Id))
+                        hub.Send(client, LayoutMessage.For(current.Disposizione));
+                }
             }
         }
         return retired;
@@ -470,6 +478,7 @@ public sealed partial class AgentEngine(
             string cashPoint;
             string name;
             var canPrint = false;
+            string? layout = null;
             if (deviceId != null)
             {
                 if (now.Device(deviceId) is not { } device)
@@ -477,6 +486,7 @@ public sealed partial class AgentEngine(
                 cashPoint = device.Cassa;
                 name = device.Nome;
                 canPrint = now.Printer(device.Stampante) != null;
+                layout = device.Disposizione;
             }
             else
             {
@@ -486,6 +496,8 @@ public sealed partial class AgentEngine(
             if (_points.Find(p => p.Id == cashPoint) is not { } point)
                 return null;
             var client = hub.Add(socket, remote, cashPoint, deviceId, name, canPrint);
+            if (deviceId != null)
+                hub.Send(client, LayoutMessage.For(layout));   // per primo: lo schermo si dispone prima di disegnare
             if (point.Config != null)
                 hub.Send(client, point.Config);   // prima l'aspetto, poi il conto: lo schermo non cambia faccia dopo
             hub.Send(client, new Sync(point.Tracker.Snapshot()));

@@ -293,6 +293,8 @@ public static class BackOfficeApi
                 device.Nome = (Text(body, "nome") ?? "").Trim();
                 device.Cassa = Text(body, "cassa") ?? "";
                 device.Stampante = Text(body, "stampante") is { Length: > 0 } printer ? printer : null;
+                if (body.ContainsKey("disposizione"))
+                    device.Disposizione = Text(body, "disposizione") is { Length: > 0 } layout ? layout : null;
                 return null;
             }));
         });

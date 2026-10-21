@@ -126,7 +126,7 @@ avvio:
 | `ScontrinoDigitale` | `MostraScontrino`, `CopiaCartacea`, `SecondiAVideo` (45), `Dicitura`: vedi sotto |
 | `Casse` | `Id`, `Nome`, `FileCassa`: un `.txt`, fuori dalle cartelle dell'Agent. L'Agent lo cancella dopo averlo letto, quindi il back office rifiuta anche un file che c'è già e non sembra quello del monitor, e l'Agent non tocca mai un file di oltre 256 KB |
 | `Stampanti` | `Id`, `Nome`, `Collegamento` (`rete`, `windows`, `prova`), `Indirizzo`, `LarghezzaMm`, `Colonne`, `TabellaCaratteri`, `QrPuntiPerModulo`, `Taglio`, `TestoRitiro`, `TimeoutSecondi` |
-| `Dispositivi` | `Id`, `Nome`, `Cassa`, `Stampante`, `AutorizzatoIl` e l'hash del token del dispositivo: il token vero lo ha solo il dispositivo, in un cookie |
+| `Dispositivi` | `Id`, `Nome`, `Cassa`, `Stampante`, `Disposizione` (vuota = automatica; `larga`, `stretta`, `verticale`, `palmare`: sotto), `AutorizzatoIl` e l'hash del token del dispositivo: il token vero lo ha solo il dispositivo, in un cookie |
 | `Aspetto` | Come appare lo schermo del cliente: `NomeLocale`, `Sottotitolo`, `Logo`, `LogoChiaro`, `Tema`, `Modo`, `GiornoDalle`/`GiornoAlle`, `Colori`, `FontTitoli`, `FontTesto`, `Raggio`, `Vetro`, `Footer`, `Fondo`/`FondoMedia`, `Animazioni`, `QrPagamento`, `RigheCompatte`, `PrezziSoloSulConto`, le scritte (`Benvenuto`, `Scorrevole`, `TitoloConto`, `Grazie`), `SecondiGrazie`, `Promozioni` (la galleria), `Set` (i set di reclame) e `Media` (l'elenco delle foto e dei video in `dati\media`): vedi sotto |
 
 Ogni modifica si salva subito e la versione prima resta in `impostazioni.json.bak`; se `impostazioni.json` sparisce,
@@ -188,7 +188,9 @@ L'Agent manda a ogni display il messaggio `cfg` del protocollo del design (`them
 - **Caratteri e forma**: gli otto font del design (dentro l'exe, serviti a `/fonts`: niente internet), gli angoli, il
   vetro della card, la firma "powered by Bluetech" chiara o scura (c'è sempre).
 - **Sfondo e animazioni**: tinta, sfumato, luci che si muovono piano, un'immagine o un video del locale (velati con il
-  colore del fondo); animazioni piene, leggere (consigliate) o ridotte; il QR del pagamento accanto al conto o a tutto
+  colore del fondo); animazioni piene, leggere (consigliate) o ridotte (MOTION.md del design: la riga che entra, il
+  totale a contachilometri, le dissolvenze tra gli stati; con "riduci le animazioni" di Windows o del telefono valgono
+  sempre le ridotte); il QR del pagamento accanto al conto o a tutto
   schermo; righe più grandi sui 4:3; importi e totale solo quando la cassa mostra il conto (preconto, scontrino), come
   `ShowPricesDuringOrder=false` del vecchio monitor.
 - **Scritte**: il benvenuto (nell'attesa senza slide), il titolo del conto, il saluto dopo il pagamento, il testo che
@@ -225,10 +227,13 @@ L'Agent manda a ogni display il messaggio `cfg` del protocollo del design (`them
   avvio, la galleria e i set Attesa, Accanto al conto e Grazie. Casse, giorni e orari di ogni promozione non si portano
   (ora sono del set): il log lo dice, e vanno rimessi sul set.
 
-Lo schermo del cliente sceglie la disposizione dal rapporto d'aspetto (SPEC §9 del design): 16:9 con la colonna
-laterale, 4:3 senza, verticale con la reclame sopra il conto, palmare con il conto a tutto schermo. Dove la colonna è
-stretta (4:3, verticale, palmare), una promozione con la foto e il QR perde la foto: il QR e le scritte contano di più. La tela del
-formato si adatta alla risoluzione vera dello schermo.
+Lo schermo del cliente sceglie la disposizione dal rapporto d'aspetto (SPEC §9 del design): da 1,5:1 in su larga, con
+la colonna laterale (anche 1200×800, con un margine per chi riporta un pixel in più o in meno), sotto stretta, senza
+colonna, come sui monitor 4:3; verticale con la reclame sopra il conto, palmare con il conto a tutto schermo. Uno schermo
+che sbaglia (un iPad Pro è 4:3, ma la colonna ci sta) si forza nel back office, **Dispositivi → Modifica →
+Disposizione**: larga, stretta, verticale o palmare; cambia subito, senza ricaricare la pagina. Dove la colonna è
+stretta (4:3, verticale, palmare), una promozione con la foto e il QR perde la foto: il QR e le scritte contano di più.
+La tela del formato si adatta alla risoluzione vera dello schermo.
 
 ## HTTPS (opzionale)
 

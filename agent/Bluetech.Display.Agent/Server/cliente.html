@@ -21,12 +21,12 @@
   --total-fill: rgba(31,111,235,0.12); --total-border: rgba(31,111,235,0.42); --total-text: #E6EAF2;
   --glow: rgba(31,111,235,0.30); --glow-2: rgba(61,220,151,0.14); --c-bg-rgb: 11,16,23; --c-text-rgb: 230,234,242;
   --c-primary-rgb: 31,111,235; --c-accent-rgb: 61,220,151;
-  --k-row: 1; --k-amount: 1; --k-total: 1;
+  --k-row: 1; --k-amount: 1; --k-total: 1; --d-odo: 520ms;
 }
-:root[data-motion='light'] { --d-row: 300ms; --d-state: 320ms; --d-slide: 600ms; --e-spring: var(--e-out); --d-total-pulse: 0ms; }
-:root[data-motion='eco'] { --d-row: 160ms; --d-state: 160ms; --d-slide: 200ms; --d-celebration: 300ms; --e-spring: linear; --e-out: linear; --e-move: linear; --d-total-pulse: 0ms; }
+:root[data-motion='light'] { --d-row: 300ms; --d-state: 320ms; --d-slide: 600ms; --e-spring: var(--e-out); --d-total-pulse: 0ms; --d-odo: 320ms; }
+:root[data-motion='eco'] { --d-row: 160ms; --d-state: 160ms; --d-slide: 200ms; --d-celebration: 300ms; --e-spring: linear; --e-out: linear; --e-move: linear; --d-total-pulse: 0ms; --d-odo: 0ms; }
 @media (prefers-reduced-motion: reduce) {
-  :root, :root[data-motion] { --d-row: 160ms; --d-state: 160ms; --d-slide: 200ms; --d-celebration: 300ms; --e-spring: linear; --e-out: linear; --d-total-pulse: 0ms; }
+  :root, :root[data-motion] { --d-row: 160ms; --d-state: 160ms; --d-slide: 200ms; --d-celebration: 300ms; --e-spring: linear; --e-out: linear; --d-total-pulse: 0ms; --d-odo: 0ms; }
   .ticker .track, .kenburns, .mesh, .ring, .halo, #offline i { animation: none !important; }
 }
 
@@ -88,6 +88,8 @@
 @keyframes bt-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @keyframes bt-breathe { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 @keyframes bt-mesh { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(40px, -30px, 0) scale(1.1); } }
+@keyframes bt-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bt-pop { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
 
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--c-bg); color: var(--c-text); font-family: var(--font-text);
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; }
@@ -193,12 +195,21 @@ html.nocursor, html.nocursor * { cursor: none !important; }
   display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
 :root[data-layout='narrow'] .total, :root[data-format='palmare'] .total { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-on-primary); }
 .total .label { color: inherit; opacity: 0.78; padding-bottom: calc(var(--t-total) * var(--k-total) * 0.1); font-size: calc(var(--t-label) * 1.12); }
-.total .value { font-family: var(--font-display); font-size: calc(var(--t-total) * var(--k-total)); font-weight: 700; line-height: 0.9; letter-spacing: -0.035em; white-space: nowrap; }
-.total .value.pulse { animation: bt-total-pulse var(--d-total-pulse) var(--e-out); }
+.total .value { font-family: var(--font-display); font-size: calc(var(--t-total) * var(--k-total)); font-weight: 700; line-height: 1; letter-spacing: -0.035em; white-space: nowrap; }
+.total .value.pulse { animation: bt-total-pulse var(--d-total-pulse) var(--e-out) 120ms; }
+.total .value.fade { animation: bt-fade-in 140ms linear; }
+/* Il contachilometri (SPEC §4): ogni cifra è una colonna 0-9 alta 1em che scorre; gli altri caratteri stanno fermi. */
+.odo-c, .odo-d { display: inline-block; height: 1em; vertical-align: top; }
+.odo-d { overflow: hidden; }
+.odo-r { display: block; transition: transform var(--d-odo) var(--e-out); }
+.odo-r > i { display: block; height: 1em; font-style: normal; }
+/* "Prezzi solo sul conto": quando la cassa mostra il conto importi e totale arrivano in dissolvenza. */
+.row .amount, .total { animation: bt-fade-in var(--d-state) var(--e-out) both; }
 .side { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 24px; }
 :root[data-side='none'] .side { display: none; }
 :root[data-layout='portrait'] .side { flex: 0 0 auto; max-height: 42%; }
-.side > section { display: none; flex: 1; min-height: 0; }
+.side > section { display: none; flex: 1; min-height: 0; animation: bt-fade-in var(--d-state) var(--e-out) both; }
+:root[data-motion='full'] .side > .paycard { animation: bt-pop 360ms var(--e-out) both; }
 :root[data-side='promo'] .side .adcard, :root[data-side='venue'] .side .venuecard, :root[data-side='qr'] .side .paycard,
 :root[data-side='thanks'] .side .thanks { display: flex; }
 .venuecard { flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; border-radius: var(--radius);
@@ -458,13 +469,29 @@ const FORMATS = {
 function pickFormat(width, height) {
   const ratio = width / height;
   if (ratio < 1) return width < 700 ? "palmare" : "1080x1920";
-  if (ratio < 1.5) return "1024x768";
-  return width >= 1650 ? "1920x1080" : width >= 1330 ? "1366x768" : "1280x800";
+  // Stretta sotto 1,5:1 (SPEC §9), con un margine: un 1200×800 che il browser riporta con un pixel in più resta largo.
+  if (ratio < 1.45) return "1024x768";
+  return wideFormat(width);
+}
+const wideFormat = (width) => (width >= 1650 ? "1920x1080" : width >= 1330 ? "1366x768" : "1280x800");
+
+// La disposizione forzata dal back office per questo dispositivo (messaggio layout): un iPad Pro è 4:3, ma la colonna
+// accanto al conto ci sta. Ricordata per la prossima apertura, così lo schermo non cambia faccia appena si collega.
+const LAYOUT_STORE = "bluetech.monitor.disposizione";
+let forced = null;
+try { forced = preview ? null : localStorage.getItem(LAYOUT_STORE); } catch (e) { forced = null; }
+
+function forcedFormat(width) {
+  if (forced === "wide") return wideFormat(width);
+  if (forced === "narrow") return "1024x768";
+  if (forced === "portrait") return "1080x1920";
+  if (forced === "handheld") return "palmare";
+  return null;
 }
 
 function layout() {
   const width = window.innerWidth, height = window.innerHeight;
-  const key = FORMATS[query.get("formato")] ? query.get("formato") : pickFormat(width, height);
+  const key = FORMATS[query.get("formato")] ? query.get("formato") : forcedFormat(width) || pickFormat(width, height);
   const format = FORMATS[key];
   const scale = width / format.width;
   root.dataset.format = key;
@@ -802,9 +829,11 @@ const THANKS_MS = 8000;
 let thanksTimer = 0;
 let messageTimer = 0;
 let lastTotal = null;
+let firstSync = true;
 
 function clearSale(phase) {
   clearTimeout(thanksTimer);
+  seenLines.clear();
   state.phase = phase; state.lines = []; state.total = 0; state.cover = 0; state.payment = null; state.paid = null;
   state.bill = false; state.receiptQr = null; state.receipt = null;
 }
@@ -831,6 +860,11 @@ function apply(m) {
     case "cfg":
       if (!draft) applyConfig(m, !preview);   // nell'anteprima vince la bozza del back office
       return;
+    case "layout":
+      forced = ["wide", "narrow", "portrait", "handheld"].includes(m.force) ? m.force : null;
+      try { if (forced) localStorage.setItem(LAYOUT_STORE, forced); else localStorage.removeItem(LAYOUT_STORE); } catch (e) { /* vale fino al prossimo collegamento */ }
+      layout();
+      return;
     case "sync": {
       clearTimeout(thanksTimer);
       const s = m.state || {};
@@ -843,7 +877,9 @@ function apply(m) {
       state.bill = !!s.bill;
       state.receiptQr = null;
       state.receipt = s.receipt || null;
-      state.lines.forEach((l) => seenLines.add(l.id));   // dopo un sync si anima solo ciò che arriva dopo
+      // Appena collegato (anche dopo un riavvio dell'Agent, che ricomincia gli id) le righe ci sono già: non entra
+      // niente. A metà conto (righe unite, sconti spostati) entrano solo quelle davvero nuove (ALLINEAMENTO §8).
+      if (firstSync) { seenLines.clear(); firstSync = false; state.lines.forEach((l) => seenLines.add(l.id)); }
       break;
     }
     case "sale.open":
@@ -954,27 +990,52 @@ function side() {
   return root.dataset.layout !== "portrait" && (logoFor(false) || v.name) ? "venue" : "none";
 }
 
+// Le righe si aggiornano, non si ridisegnano: il totale arriva qualche millisecondo dopo la riga, e ridisegnando la
+// lista l'animazione d'ingresso della riga nuova si interrompeva prima di vedersi.
+const rowNodes = new Map();
+
+function lineRow(line) {
+  let row = rowNodes.get(line.id);
+  if (!row) {
+    row = el("div", "row");
+    if (!seenLines.has(line.id)) {
+      seenLines.add(line.id);
+      row.classList.add("enter");
+      row.addEventListener("animationend", (event) => { if (event.animationName === "bt-row-in") row.classList.remove("enter"); });
+    }
+    rowNodes.set(line.id, row);
+  }
+  const key = JSON.stringify(line);
+  if (row.dataset.key !== key) {   // la quantità cambiata mentre si batte: cambia la cifra, la riga resta
+    row.dataset.key = key;
+    row.className = "row " + line.kind + (row.classList.contains("enter") ? " enter" : "");
+    row.replaceChildren(el("span", "desc", line.kind === "note" ? line.text : line.desc));
+    if (line.kind === "item" && line.qty !== 1) row.append(el("span", "qty num", "×" + String(line.qty).replace(".", ",")));
+    if (line.kind === "void") row.append(el("span", "pill", "STORNO"));
+    if (line.kind !== "note") row.append(el("span", "amount num", (line.kind === "surcharge" ? "+" : "") + plain(line.amount)));
+  }
+  return row;
+}
+
 function renderLines() {
   const voided = new Set(state.lines.filter((l) => l.kind === "void" && l.voidsId).map((l) => l.voidsId));
   const list = $("lines");
-  list.replaceChildren();
+  const rows = [];
   let items = 0;
   for (const line of state.lines) {
     if (voided.has(line.id)) continue;
     if (line.kind === "void" && Date.now() - (voidedAt.get(line.id) || 0) > 6000) continue;
     if (line.kind === "item") items += Number.isInteger(line.qty) ? line.qty : 1;
-    const row = el("div", "row " + line.kind);
-    if (!seenLines.has(line.id)) { row.classList.add("enter"); seenLines.add(line.id); }
-    row.append(el("span", "desc", line.kind === "note" ? line.text : line.desc));
-    if (line.kind === "item" && line.qty !== 1) row.append(el("span", "qty num", "×" + String(line.qty).replace(".", ",")));
-    if (line.kind === "void") row.append(el("span", "pill", "STORNO"));
-    if (line.kind !== "note") row.append(el("span", "amount num", (line.kind === "surcharge" ? "+" : "") + plain(line.amount)));
-    list.append(row);
+    rows.push(lineRow(line));
   }
+  const wanted = new Set(rows);
+  for (const [id, row] of rowNodes) if (!wanted.has(row)) { row.remove(); rowNodes.delete(id); }
+  // Solo le righe fuori posto si spostano: una riga reinserita ricomincerebbe l'animazione.
+  rows.forEach((row, i) => { if (list.children[i] !== row) list.insertBefore(row, list.children[i] || null); });
+  rows.forEach((row) => { row.style.display = ""; });
   // Con tante righe restano le ultime, vicino al totale, e si dice quante ce ne sono sopra (SPEC §2.2). Le altezze vere
   // delle righe, non scrollHeight: la riga che entra è spostata in basso dall'animazione e sembrerebbe non starci.
   let hidden = 0;
-  const rows = Array.from(list.children);
   let used = rows.reduce((sum, row) => sum + row.offsetHeight, 0);
   while (used > list.clientHeight + 1 && hidden < rows.length - 1) { used -= rows[hidden].offsetHeight; rows[hidden].style.display = "none"; hidden++; }
   list.classList.toggle("cut", hidden > 0);
@@ -984,6 +1045,39 @@ function renderLines() {
   if (items) parts.push(items === 1 ? "1 articolo" : items + " articoli");
   if (state.cover) parts.push(state.cover === 1 ? "1 coperto" : state.cover + " coperti");
   $("count").textContent = parts.join(" · ");
+}
+
+/**
+ * Il totale a contachilometri (SPEC §4): ogni cifra è una colonna 0-9 che parte dalla cifra di prima (allineate da
+ * destra) e scorre fino a quella nuova; si muovono solo le cifre che cambiano. Con le animazioni ridotte, sostituzione
+ * secca con una dissolvenza di 140 ms.
+ */
+function renderTotal(node, cents) {
+  const text = money(cents);
+  if (node.dataset.text === text) return;
+  const before = node.dataset.text || "";
+  node.dataset.text = text;
+  const oldDigits = before.replace(/\D/g, "");
+  const count = text.replace(/\D/g, "").length;
+  const reels = [];
+  node.replaceChildren(...Array.from(text).map((ch) => {
+    if (!/\d/.test(ch)) return el("span", "odo-c", ch);
+    const fromRight = count - 1 - reels.length;
+    const previous = oldDigits[oldDigits.length - 1 - fromRight];
+    const reel = el("span", "odo-r");
+    for (let n = 0; n <= 9; n++) reel.append(el("i", "", String(n)));
+    reel.style.transform = "translateY(-" + (previous === undefined ? ch : previous) + "em)";
+    reels.push([reel, ch]);
+    const cell = el("span", "odo-d");
+    cell.append(reel);
+    return cell;
+  }));
+  if (!before) return;   // la prima volta il numero c'è e basta
+  void node.offsetWidth;   // le colonne partono dalle cifre di prima
+  reels.forEach(([reel, ch]) => { reel.style.transform = "translateY(-" + ch + "em)"; });
+  if (root.dataset.motion === "eco" || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    node.classList.remove("fade"); void node.offsetWidth; node.classList.add("fade");
+  }
 }
 
 function renderMessage() {
@@ -1110,7 +1204,7 @@ function render() {
     if (root.dataset.side === "qr") { showQr($("besideqr"), state.payment.png, cssNumber("--qr-beside")); $("besidecaption").textContent = state.payment.caption || ""; }
     $("totallabel").textContent = state.phase === "payment" ? "Da pagare" : "Totale";
     const total = $("total");
-    total.textContent = money(state.total);
+    renderTotal(total, state.total);
     if (lastTotal !== null && lastTotal !== state.total && root.dataset.motion === "full") {
       total.classList.remove("pulse"); void total.offsetWidth; total.classList.add("pulse");
     }
@@ -1144,7 +1238,7 @@ let delay = 1000;
 function connect() {
   const cash = preview && !demo ? "?cassa=" + encodeURIComponent(preview) : "";
   socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws" + cash);
-  socket.onopen = () => { delay = 1000; lastMessage = Date.now(); };
+  socket.onopen = () => { delay = 1000; lastMessage = Date.now(); firstSync = true; };
   socket.onmessage = (event) => {
     lastMessage = Date.now();
     let message;

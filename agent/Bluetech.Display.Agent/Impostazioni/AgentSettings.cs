@@ -199,6 +199,8 @@ public sealed partial class AgentSettings
                 yield return $"{device.Nome}: scegli la cassa da mostrare.";
             if (device.Stampante != null && Printer(device.Stampante) == null)
                 yield return $"{device.Nome}: la stampante scelta non c'è.";
+            if (device.Disposizione != null && !DeviceConfig.Layouts.Contains(device.Disposizione))
+                yield return $"{device.Nome}: la disposizione è automatica, larga, stretta, verticale o palmare.";
         }
 
         foreach (var problem in AppearanceProblems())
@@ -330,6 +332,15 @@ public sealed class DeviceConfig
 
     /// <summary>Dove stampa la copia cartacea chiesta da questo dispositivo; null = niente pulsante.</summary>
     public string? Stampante { get; set; }
+
+    /// <summary>
+    /// Null: la disposizione la sceglie lo schermo dal rapporto d'aspetto (SPEC §9 del design). Altrimenti forzata:
+    /// "larga" (il conto con la colonna accanto, per esempio su un iPad Pro, che è 4:3), "stretta" (il conto a tutta
+    /// larghezza), "verticale", "palmare".
+    /// </summary>
+    public string? Disposizione { get; set; }
+
+    public static readonly string[] Layouts = ["larga", "stretta", "verticale", "palmare"];
 
     public DateTimeOffset AutorizzatoIl { get; set; }
 }

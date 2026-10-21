@@ -162,6 +162,26 @@ public sealed record Heartbeat : CashIn
     public override string Type => "hb";
 }
 
+/// <summary>
+/// Estensione (ALLINEAMENTO §8): la disposizione forzata dal back office per questo display, solo a lui, al
+/// collegamento e quando cambia. <see cref="Force"/> null = quella che il display sceglie dal rapporto d'aspetto.
+/// </summary>
+public sealed record LayoutMessage(string? Force) : CashIn
+{
+    public override string Type => "layout";
+    protected override void Fill(JsonObject json) => json["force"] = Force;
+
+    /// <summary>Dai nomi del back office a quelli del design: larga, stretta, verticale, palmare.</summary>
+    public static LayoutMessage For(string? disposizione) => new(disposizione switch
+    {
+        "larga" => "wide",
+        "stretta" => "narrow",
+        "verticale" => "portrait",
+        "palmare" => "handheld",
+        _ => null,
+    });
+}
+
 public enum LineKind
 {
     Item,
