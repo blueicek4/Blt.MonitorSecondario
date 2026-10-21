@@ -115,6 +115,8 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 #idle.has-slides .slides { display: block; }
 #idle .slide { position: absolute; inset: 0; opacity: 0; transition: opacity var(--d-slide) var(--e-out); }
 #idle .slide.on { opacity: 1; }
+/* La scheda riempie la slide: con l'altezza automatica una foto restava una striscia 16:9 in alto (4:3, verticale). */
+#idle .slide > .ad { position: absolute; inset: 0; }
 #idle .slide img, #idle .slide video { display: block; width: 100%; height: 100%; object-fit: cover; }
 :root[data-motion='full'] #idle .slide.on img { animation: bt-kenburns 9s linear both; }
 #idle .scrim { position: absolute; inset: 0; display: none;
@@ -334,10 +336,12 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 #pay .caption { font-size: calc(var(--t-hint) * 0.66); color: var(--c-muted); }
 
 /* Scontrino digitale (docs/03): lo scontrino come sulla carta, il QR grande, il pulsante della copia. */
+/* Scorre solo sopra la firma, che altrimenti finiva sopra lo scontrino. Sul 4:3 in orizzontale due colonne come sul
+   16:9: in una sola il totale restava sotto il bordo, e un monitor senza touch non si scorre. */
 #digital { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap); align-items: center;
-  padding: var(--pad-y) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); overflow: auto; }
-:root[data-layout='portrait'] #digital, :root[data-layout='narrow'] #digital { grid-template-columns: 1fr; align-content: start; }
-:root[data-layout='portrait'] #digital .scan, :root[data-layout='narrow'] #digital .scan { order: -1; }
+  bottom: calc(var(--pad-y) * 0.6 + var(--footer-h)); padding: var(--pad-y) var(--pad-x) calc(var(--pad-y) * 0.5); overflow: auto; }
+:root[data-layout='portrait'] #digital { grid-template-columns: 1fr; align-content: start; }
+:root[data-layout='portrait'] #digital .scan { order: -1; }
 .paper { background: #FBFAF7; color: #1D232C; border-radius: 6px; padding: 24px 22px; font: calc(var(--t-row) * 0.62) / 1.5 ui-monospace, Consolas, "Courier New", monospace;
   box-shadow: 0 10px 30px rgba(0,0,0,0.35); max-width: 520px; width: 100%; justify-self: center; box-sizing: border-box; }
 .paper .center { text-align: center; }
