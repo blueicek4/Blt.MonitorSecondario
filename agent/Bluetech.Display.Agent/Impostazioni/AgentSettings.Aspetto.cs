@@ -66,15 +66,13 @@ public sealed partial class AgentSettings
                 set.Elementi.Remove(gone);
             }
         }
-        if (a.Logo != null && Media(a.Logo) == null)
+        foreach (var (name, get, set) in AppearanceSettings.Logos)
         {
-            notes.Add($"il logo {a.Logo} non c'è più");
-            a.Logo = null;
-        }
-        if (a.LogoChiaro != null && Media(a.LogoChiaro) == null)
-        {
-            notes.Add($"il logo per i fondi chiari {a.LogoChiaro} non c'è più");
-            a.LogoChiaro = null;
+            if (get(a) is { } logo && Media(logo) == null)
+            {
+                notes.Add($"{name} {logo} non c'è più");
+                set(a, null);
+            }
         }
         if (a.FondoMedia != null && Media(a.FondoMedia) == null)
         {
@@ -208,10 +206,11 @@ public sealed partial class AgentSettings
             yield return "Aspetto: le animazioni sono piene, leggere o ridotte.";
         if (a.QrPagamento is not ("accanto" or "schermo"))
             yield return "Aspetto: il QR del pagamento sta \"accanto\" al conto o a tutto \"schermo\".";
-        if (a.Logo != null && Media(a.Logo) is not { IsVideo: false })
-            yield return "Aspetto: il logo è un'immagine (PNG con lo sfondo trasparente, per esempio).";
-        if (a.LogoChiaro != null && Media(a.LogoChiaro) is not { IsVideo: false })
-            yield return "Aspetto: il logo per i fondi chiari è un'immagine (PNG con lo sfondo trasparente, per esempio).";
+        foreach (var (name, get, _) in AppearanceSettings.Logos)
+        {
+            if (get(a) is { } logo && Media(logo) is not { IsVideo: false })
+                yield return $"Aspetto: {name} è un'immagine (PNG con lo sfondo trasparente, per esempio).";
+        }
 
         foreach (var (text, label, max) in new[]
                  {
@@ -324,6 +323,27 @@ public sealed class AppearanceSettings
     /// vede: con giorno e notte automatici serve tutti i giorni.
     /// </summary>
     public string? LogoChiaro { get; set; }
+    /// <summary>
+    /// Il marchio Bluetech della firma in basso, dal kit ufficiale: per la firma scura (temi di notte, sopra le slide) e
+    /// per quella chiara. Dove manca resta il marchio di serie; "powered by" c'è sempre.
+    /// </summary>
+    public string? LogoBluetech { get; set; }
+    public string? LogoBluetechChiaro { get; set; }
+    /// <summary>Il logo di Satispay accanto al QR del pagamento (SPEC §2.4), dal kit di Satispay; null = solo la scritta.</summary>
+    public string? LogoSatispay { get; set; }
+    /// <summary>Facoltativo, come per il logo del locale: la versione per i fondi chiari.</summary>
+    public string? LogoSatispayChiaro { get; set; }
+
+    /// <summary>I loghi, con il nome che hanno nei messaggi: sono tutti immagini della galleria.</summary>
+    public static readonly (string Name, Func<AppearanceSettings, string?> Get, Action<AppearanceSettings, string?> Set)[] Logos =
+    [
+        ("il logo", a => a.Logo, (a, id) => a.Logo = id),
+        ("il logo per i fondi chiari", a => a.LogoChiaro, (a, id) => a.LogoChiaro = id),
+        ("il logo Bluetech", a => a.LogoBluetech, (a, id) => a.LogoBluetech = id),
+        ("il logo Bluetech per i fondi chiari", a => a.LogoBluetechChiaro, (a, id) => a.LogoBluetechChiaro = id),
+        ("il logo Satispay", a => a.LogoSatispay, (a, id) => a.LogoSatispay = id),
+        ("il logo Satispay per i fondi chiari", a => a.LogoSatispayChiaro, (a, id) => a.LogoSatispayChiaro = id),
+    ];
 
     /// <summary>bluetech, trattoria, fine o cocktail: i quattro temi del design.</summary>
     public string Tema { get; set; } = "bluetech";

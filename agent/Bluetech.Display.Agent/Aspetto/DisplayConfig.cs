@@ -96,6 +96,14 @@ public static class DisplayConfig
         if (s.Media(a.LogoChiaro) is { IsVideo: false } light)
             venue["logoLight"] = Url(light.Id);   // al posto del logo sui fondi chiari
 
+        // I marchi dai kit ufficiali, se caricati: la firma Bluetech scura e chiara, il logo di Satispay (ALLINEAMENTO §8).
+        var marks = new JsonObject();
+        foreach (var (key, id) in new[] { ("bluetech", a.LogoBluetech), ("bluetechLight", a.LogoBluetechChiaro), ("satispay", a.LogoSatispay), ("satispayLight", a.LogoSatispayChiaro) })
+        {
+            if (s.Media(id) is { IsVideo: false } image)
+                marks[key] = Url(image.Id);
+        }
+
         var config = new JsonObject
         {
             ["preset"] = theme,
@@ -105,6 +113,7 @@ public static class DisplayConfig
             ["playlists"] = playlists,
             ["promoCards"] = cards,
             ["venue"] = venue,
+            ["marks"] = marks,
             ["texts"] = new JsonObject
             {
                 ["welcome"] = a.Benvenuto.Trim(),
