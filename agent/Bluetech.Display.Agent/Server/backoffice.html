@@ -428,6 +428,46 @@
               <label class="wide">Testo che scorre in basso nell'attesa<textarea data-look="Scorrevole" maxlength="500" placeholder="Aperitivo dalle 18 alle 20 · Chiuso il lunedì · Seguici per le serate a tema"></textarea><span class="hint">vuoto = niente testo</span></label>
             </div>
           </div>
+          <div class="card">
+            <h2>Marchi</h2>
+            <p class="muted">I loghi ufficiali di Bluetech e di Satispay, presi dai loro kit: PNG con lo sfondo trasparente (un SVG va esportato in PNG). Finché non ci sono, la firma in basso usa il marchio di serie e il pagamento solo la scritta. "powered by" resta sempre.</p>
+            <div class="fields2">
+              <div class="wide">
+                <span class="lbl">Bluetech per la firma scura <span class="hint">· temi di notte e sopra le slide</span></span>
+                <div class="row">
+                  <div class="logothumb dark" id="btdarkthumb">di serie</div>
+                  <select id="btdarkselect" style="width:auto;max-width:260px"></select>
+                  <button class="btn small" type="button" data-upload="bluetech">Carica…</button>
+                </div>
+              </div>
+              <div class="wide">
+                <span class="lbl">Bluetech per la firma chiara <span class="hint">· temi di giorno</span></span>
+                <div class="row">
+                  <div class="logothumb light" id="btlightthumb">di serie</div>
+                  <select id="btlightselect" style="width:auto;max-width:260px"></select>
+                  <button class="btn small" type="button" data-upload="bluetechchiaro">Carica…</button>
+                </div>
+                <span class="hint">Servono tutte e due: dove ne manca una resta il marchio di serie, che si legge su quel fondo.</span>
+              </div>
+              <div class="wide">
+                <span class="lbl">Satispay per i fondi scuri <span class="hint">· accanto al QR del pagamento</span></span>
+                <div class="row">
+                  <div class="logothumb dark" id="satispaythumb">nessuno</div>
+                  <select id="satispayselect" style="width:auto;max-width:260px"></select>
+                  <button class="btn small" type="button" data-upload="satispay">Carica…</button>
+                </div>
+              </div>
+              <div class="wide">
+                <span class="lbl">Satispay per i fondi chiari <span class="hint">· facoltativo, per i temi di giorno</span></span>
+                <div class="row">
+                  <div class="logothumb light" id="satispaylightthumb">come l'altro</div>
+                  <select id="satispaylightselect" style="width:auto;max-width:260px"></select>
+                  <button class="btn small" type="button" data-upload="satispaychiaro">Carica…</button>
+                </div>
+                <span class="hint">Usa i loghi come dicono le linee guida di Satispay, senza ritoccarli.</span>
+              </div>
+            </div>
+          </div>
           <div class="savebar">
             <button class="btn primary" type="button" data-save>Salva l'aspetto</button>
             <button class="btn" type="button" data-revert>Annulla le modifiche</button>
@@ -1394,8 +1434,8 @@ $("filepicker").addEventListener("change", async (event) => {
   for (const file of files) last = (await upload(file)) || last;
   if (!last) return;
   await refreshMediaList();
-  if (target === "logo") { look.draft.Logo = last.Id; lookChanged(); }
-  if (target === "logochiaro") { look.draft.LogoChiaro = last.Id; lookChanged(); }
+  const logo = LOGOS.find((l) => l.upload === target);
+  if (logo) { look.draft[logo.field] = last.Id; lookChanged(); }
   if (target === "promo" && look.editingPromo && !isVideo(last)) { look.editingPromo.value.Immagine = last.Id; schedulePreview(); }
   renderLookTab();
 });
@@ -1580,15 +1620,26 @@ function renderBackground() {
 }
 $("backgroundselect").addEventListener("change", (event) => { look.draft.FondoMedia = event.target.value || null; lookChanged(); });
 
+/* I loghi: del locale, il marchio Bluetech della firma, Satispay. Dove c'è un ripiego, senza la versione per i fondi
+   chiari vale l'altra; il marchio Bluetech no, lì resta quello di serie. */
+const LOGOS = [
+  { field: "Logo", id: "logo", upload: "logo", empty: "Nessun logo", none: "nessuno", used: "il logo" },
+  { field: "LogoChiaro", id: "logolight", upload: "logochiaro", empty: "Lo stesso dei fondi scuri", none: "nessuno", used: "il logo chiaro", fallback: "Logo" },
+  { field: "LogoBluetech", id: "btdark", upload: "bluetech", empty: "Il marchio di serie", none: "di serie", used: "il logo Bluetech" },
+  { field: "LogoBluetechChiaro", id: "btlight", upload: "bluetechchiaro", empty: "Il marchio di serie", none: "di serie", used: "il logo Bluetech chiaro" },
+  { field: "LogoSatispay", id: "satispay", upload: "satispay", empty: "Nessuno: solo la scritta", none: "nessuno", used: "il logo Satispay" },
+  { field: "LogoSatispayChiaro", id: "satispaylight", upload: "satispaychiaro", empty: "Lo stesso dei fondi scuri", none: "nessuno", used: "il logo Satispay chiaro", fallback: "LogoSatispay" },
+];
 function renderLogo() {
-  fillMediaSelect($("logoselect"), "image", look.draft.Logo, "Nessun logo");
-  fillMediaSelect($("logolightselect"), "image", look.draft.LogoChiaro, "Lo stesso dei fondi scuri");
-  $("logothumb").replaceChildren(look.draft.Logo ? el("img", { src: mediaUrl(look.draft.Logo), alt: "" }) : "nessuno");
-  const light = look.draft.LogoChiaro || look.draft.Logo;
-  $("logolightthumb").replaceChildren(light ? el("img", { src: mediaUrl(light), alt: "" }) : "nessuno");
+  for (const logo of LOGOS) {
+    fillMediaSelect($(logo.id + "select"), "image", look.draft[logo.field], logo.empty);
+    const shown = look.draft[logo.field] || (logo.fallback && look.draft[logo.fallback]);
+    $(logo.id + "thumb").replaceChildren(shown ? el("img", { src: mediaUrl(shown), alt: "" }) : logo.none);
+  }
 }
-$("logoselect").addEventListener("change", (event) => { look.draft.Logo = event.target.value || null; renderLogo(); lookChanged(); });
-$("logolightselect").addEventListener("change", (event) => { look.draft.LogoChiaro = event.target.value || null; renderLogo(); lookChanged(); });
+for (const logo of LOGOS) {
+  $(logo.id + "select").addEventListener("change", (event) => { look.draft[logo.field] = event.target.value || null; renderLogo(); lookChanged(); });
+}
 
 /* Promozioni: i set di reclame, la galleria delle promozioni, le foto e i video. Set e promozioni si salvano subito, da
    soli: l'aspetto non ancora salvato resta in bozza. Cosa va in onda lo dice l'Agent (InOnda, StatoSet): qui non si
@@ -2015,9 +2066,7 @@ $("promoform").addEventListener("submit", async (event) => {
 
 /* Le gallerie delle foto e dei video */
 function usedBy(id) {
-  const used = [];
-  if (look.draft.Logo === id) used.push("il logo");
-  if (look.draft.LogoChiaro === id) used.push("il logo chiaro");
+  const used = LOGOS.filter((l) => look.draft[l.field] === id).map((l) => l.used);
   if (look.draft.FondoMedia === id) used.push("lo sfondo");
   for (const p of look.draft.Promozioni) if (p.Immagine === id) used.push(p.Nome);
   for (const x of setsWith(id)) used.push("set " + x.Nome);

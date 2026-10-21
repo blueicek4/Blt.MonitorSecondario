@@ -151,14 +151,10 @@ public sealed class MediaLibrary(SettingsStore settings, AgentRuntime runtime, I
         return File.Exists(path) ? path : null;
     }
 
-    /// <summary>Dove è usato un file: il logo, lo sfondo, le promozioni, i set.</summary>
+    /// <summary>Dove è usato un file: i loghi, lo sfondo, le promozioni, i set.</summary>
     public static List<string> UsedBy(AgentSettings s, string id)
     {
-        var used = new List<string>();
-        if (s.Aspetto.Logo == id)
-            used.Add("il logo");
-        if (s.Aspetto.LogoChiaro == id)
-            used.Add("il logo per i fondi chiari");
+        var used = AppearanceSettings.Logos.Where(l => l.Get(s.Aspetto) == id).Select(l => l.Name).ToList();
         if (s.Aspetto.FondoMedia == id)
             used.Add("lo sfondo");
         used.AddRange(s.Aspetto.Promozioni.Where(p => p.Immagine == id).Select(p => $"la promozione {p.Nome}"));
@@ -200,10 +196,8 @@ public sealed class MediaLibrary(SettingsStore settings, AgentRuntime runtime, I
                 {
                     var item = s.Media(id);
                     notes.Add($"{item?.Nome ?? id}: il file non c'è più in {Folder}");
-                    if (s.Aspetto.Logo == id)
-                        s.Aspetto.Logo = null;
-                    if (s.Aspetto.LogoChiaro == id)
-                        s.Aspetto.LogoChiaro = null;
+                    foreach (var logo in AppearanceSettings.Logos.Where(l => l.Get(s.Aspetto) == id))
+                        logo.Set(s.Aspetto, null);
                     if (s.Aspetto.FondoMedia == id)
                     {
                         s.Aspetto.FondoMedia = null;

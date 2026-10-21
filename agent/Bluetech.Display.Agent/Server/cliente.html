@@ -369,6 +369,20 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 .powered .word { font-family: 'Archivo', 'Arial Narrow', sans-serif; font-size: var(--footer-word); font-weight: 600; letter-spacing: 0.16em; color: var(--bt-word); }
 :root[data-footer='dark'], :root.over-slides { --bt-by: #8FA3C0; --bt-word: #E6EAF2; --bt-mark: #1F6FEB; }
 :root[data-footer='light']:not(.over-slides) { --bt-by: #5A6679; --bt-word: #10151D; --bt-mark: #1757C2; }
+/* Il marchio dal kit ufficiale, se caricato, al posto di quello di serie: uno per la firma scura, uno per la chiara.
+   Dove manca, o non si carica, resta quello di serie. Niente :is(): i WebView vecchi dei palmari non lo conoscono. */
+.powered .mark { display: none; height: calc(var(--footer-mark) * 1.15); width: auto; max-width: calc(var(--footer-mark) * 9); object-fit: contain; }
+:root[data-footer='dark'] .powered.has-dark .mark.dark, :root.over-slides .powered.has-dark .mark.dark,
+:root[data-footer='light']:not(.over-slides) .powered.has-light .mark.light { display: block; }
+:root[data-footer='dark'] .powered.has-dark svg, :root[data-footer='dark'] .powered.has-dark .word,
+:root.over-slides .powered.has-dark svg, :root.over-slides .powered.has-dark .word,
+:root[data-footer='light']:not(.over-slides) .powered.has-light svg, :root[data-footer='light']:not(.over-slides) .powered.has-light .word { display: none; }
+
+/* Il logo di Satispay sotto l'istruzione, se il locale l'ha caricato dal kit di Satispay (SPEC §2.4). */
+.satispay { display: none; height: calc(var(--t-hint) * 1.3); width: auto; max-width: 70%; object-fit: contain; }
+.satispay.on { display: block; }
+#pay .satispay { align-self: flex-start; }
+:root[data-layout='portrait'] #pay .satispay { align-self: center; }
 
 /* Connessione assente: una pillola discreta, l'ultima schermata resta com'è (SPEC §2.6). */
 #offline { position: absolute; left: var(--pad-x); bottom: calc(var(--pad-y) * 0.6); height: var(--footer-h); display: flex; align-items: center; gap: 10px;
@@ -407,7 +421,7 @@ html.nocursor, html.nocursor * { cursor: none !important; }
         <section class="adcard" id="salead"></section>
         <section class="venuecard" id="venuecard"></section>
         <section class="paycard"><div class="qrbox" id="besideqr"><img alt="QR per pagare con Satispay"><i class="halo"></i><i class="halo"></i><i class="halo"></i></div>
-          <div class="hint">Inquadra il QR con l'app Satispay</div><div class="caption" id="besidecaption"></div></section>
+          <div class="hint">Inquadra il QR con l'app Satispay</div><img class="satispay" alt="Satispay"><div class="caption" id="besidecaption"></div></section>
         <section class="thanks" id="thanks">
           <div class="rings"><i class="ring"></i><i class="ring"></i><i class="ring"></i></div>
           <h2 id="thankstext">Grazie e arrivederci</h2>
@@ -420,7 +434,7 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 
   <section id="pay" class="screen" aria-label="Pagamento">
     <div class="left"><span class="label">Da pagare</span><span class="amount num" id="payamount"></span>
-      <span class="hint">Inquadra il QR con l'app Satispay</span><span class="caption" id="paycaption"></span></div>
+      <span class="hint">Inquadra il QR con l'app Satispay</span><img class="satispay" alt="Satispay"><span class="caption" id="paycaption"></span></div>
     <div class="qrbox" id="fullqr"><img alt="QR per pagare con Satispay"><i class="halo"></i><i class="halo"></i><i class="halo"></i></div>
   </section>
 
@@ -440,6 +454,7 @@ html.nocursor, html.nocursor * { cursor: none !important; }
     <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="var(--bt-mark)" stroke-width="2.6"></rect>
       <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="var(--bt-word)" stroke-width="3" stroke-linecap="round"></path></svg>
     <span class="word">BLUETECH</span>
+    <img class="mark dark" alt="Bluetech"><img class="mark light" alt="Bluetech">
   </div>
   <div id="offline" role="status"><i></i><span>Connessione assente</span></div>
 </div>
@@ -605,6 +620,28 @@ function applyTexts() {
   if (logo) { const img = el("img"); img.src = logo; img.alt = ""; venueCard.append(img); }
   if (v.name) venueCard.append(el("div", "name", v.name));
   if (v.tagline) venueCard.append(el("div", "tagline", v.tagline));
+  applyMarks();
+}
+
+/** I marchi dai kit ufficiali (cfg.marks), se caricati: la firma Bluetech scura e chiara, il logo di Satispay. */
+function applyMarks() {
+  const m = (cfg && cfg.marks) || {};
+  const powered = document.querySelector(".powered");
+  for (const [variant, src] of [["dark", m.bluetech], ["light", m.bluetechLight]]) {
+    showImage(powered.querySelector(".mark." + variant), src, (ok) => powered.classList.toggle("has-" + variant, ok));
+  }
+  const satispay = lightBackground && m.satispayLight ? m.satispayLight : m.satispay;
+  document.querySelectorAll("img.satispay").forEach((img) => showImage(img, satispay, (ok) => img.classList.toggle("on", ok)));
+}
+
+/** Un'immagine che compare solo quando si carica davvero: un file che manca lascia il posto a quello di serie. */
+function showImage(img, src, shown) {
+  if (!src) { img.onload = img.onerror = null; img.removeAttribute("src"); shown(false); return; }
+  if (img.getAttribute("src") === src) return;
+  img.onload = () => shown(true);
+  img.onerror = () => shown(false);
+  shown(false);
+  img.src = src;
 }
 
 function applyConfig(next, persist) {

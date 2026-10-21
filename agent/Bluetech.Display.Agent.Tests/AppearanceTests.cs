@@ -121,6 +121,13 @@ public sealed class AppearanceTests
         Assert.Contains("l'ordine è elenco, casuale o alfabetico", settings.Validate());
         settings.Aspetto.Set[0].Ordine = "casuale";
         settings.Aspetto.Set[0].QrDopo = 2;
+        settings.Aspetto.Media.Add(Video('b', "forno.mp4"));
+        settings.Aspetto.LogoSatispay = settings.Aspetto.Media[0].Id;
+        Assert.Contains("Aspetto: il logo Satispay è un'immagine", settings.Validate());
+        settings.Aspetto.LogoSatispay = null;
+        settings.Aspetto.LogoBluetech = "0123456789abcdef0123.png";
+        Assert.Contains("Aspetto: il logo Bluetech è un'immagine", settings.Validate());   // un file che non c'è
+        settings.Aspetto.LogoBluetech = null;
         Assert.Null(settings.Validate());
     }
 
@@ -235,6 +242,7 @@ public sealed class AppearanceTests
         Assert.Equal(7, (double)defaults["dayHours"]!["start"]!);
         Assert.Empty(defaults["playlists"]!["idle"]!.AsArray());
         Assert.Empty(defaults["promoCards"]!.AsObject());
+        Assert.Empty(defaults["marks"]!.AsObject());   // senza i loghi dei kit: il marchio di serie, la scritta di Satispay
         Assert.Equal(30, (int)defaults["thanksSeconds"]!);
         Assert.False((bool)defaults["pricesOnlyOnBill"]!);
         Assert.Null(defaults["ticker"]);
@@ -255,6 +263,8 @@ public sealed class AppearanceTests
         a.Media.Add(Video('b', "forno.mp4"));
         a.Media.Add(new MediaItem { Id = new string('f', 20) + ".png", Nome = "logo-scuro.png", Tipo = "image/png" });
         a.LogoChiaro = a.Media[2].Id;
+        a.LogoBluetechChiaro = a.Media[2].Id;
+        a.LogoSatispay = a.Media[0].Id;
         a.Promozioni.Add(new PromoConfig { Id = "promo1", Nome = "Spritz", Immagine = a.Media[0].Id, Titolo = "Spritz a 5 €" });
         a.Promozioni.Add(new PromoConfig { Id = "promo2", Nome = "Registrati", Titolo = "Diventa cliente", Qr = "https://example.com/registrati", QrDidascalia = "Inquadra e registrati" });
         a.Set.Add(new AdSetConfig { Id = "set1", Nome = "Solo bar", Dove = ["attesa"], Casse = ["cassa2"], Elementi = [new() { Id = a.Media[1].Id }] });
@@ -278,6 +288,10 @@ public sealed class AppearanceTests
         Assert.Equal("La Vela", (string)config["venue"]!["name"]!);
         Assert.Null(config["venue"]!["logo"]);
         Assert.Equal("/media/" + a.Media[2].Id, (string)config["venue"]!["logoLight"]!);   // il logo per i fondi chiari
+        var marks = config["marks"]!.AsObject();
+        Assert.Equal(["bluetechLight", "satispay"], marks.Select(m => m.Key));   // solo quelli caricati
+        Assert.Equal("/media/" + a.Media[2].Id, (string)marks["bluetechLight"]!);
+        Assert.Equal("/media/" + a.Media[0].Id, (string)marks["satispay"]!);
         Assert.Equal("Aperitivo dalle 18", (string)config["ticker"]!);
         Assert.Equal(40, (int)config["thanksSeconds"]!);
 
@@ -365,12 +379,14 @@ public sealed class AppearanceTests
         var look = await Json(await agent.Admin.GetAsync("/api/bo/aspetto"));
         var aspetto = look["Aspetto"]!.AsObject();
         aspetto["Logo"] = id;
+        aspetto["LogoBluetech"] = id;
         aspetto["NomeLocale"] = "La Vela";
         Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PutAsJsonAsync("/api/bo/aspetto", aspetto)).StatusCode);
         var inUse = await Json(await agent.Admin.DeleteAsync("/api/bo/media/" + id));
-        Assert.Contains("lo usa il logo", (string)inUse["errore"]!);
+        Assert.Contains("lo usa il logo, il logo Bluetech", (string)inUse["errore"]!);
 
         aspetto["Logo"] = null;
+        aspetto["LogoBluetech"] = null;
         Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PutAsJsonAsync("/api/bo/aspetto", aspetto)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await agent.Admin.DeleteAsync("/api/bo/media/" + id)).StatusCode);
         Assert.False(File.Exists(Path.Combine(agent.DataFolder, "media", id)));
@@ -517,6 +533,7 @@ public sealed class AppearanceTests
                 s.Aspetto.Media.Add(new MediaItem { Id = kept, Nome = "logo.png", Tipo = "image/png" });
                 s.Aspetto.Media.Add(new MediaItem { Id = gone, Nome = "spritz.jpg", Tipo = "image/jpeg" });
                 s.Aspetto.Logo = kept;
+                s.Aspetto.LogoBluetechChiaro = gone;
                 s.Aspetto.Promozioni.Add(new PromoConfig { Id = "promo1", Nome = "Spritz", Immagine = gone });
                 s.Aspetto.Promozioni.Add(new PromoConfig { Id = "promo2", Nome = "Pizza", Titolo = "La pizza del mese", Immagine = gone });
                 s.Aspetto.Set.Add(new AdSetConfig { Id = "set1", Nome = "Sempre", Dove = ["attesa"], Elementi = [new() { Id = gone }, new() { Id = "promo1" }, new() { Id = "promo2" }] });
@@ -535,6 +552,7 @@ public sealed class AppearanceTests
             Assert.Contains(notes, n => n.Contains("la promozione Spritz è tolta"));
             Assert.Equal([kept], store.Current.Aspetto.Media.Select(m => m.Id));
             Assert.Equal(kept, store.Current.Aspetto.Logo);
+            Assert.Null(store.Current.Aspetto.LogoBluetechChiaro);   // la firma chiara torna al marchio di serie
             var pizza = Assert.Single(store.Current.Aspetto.Promozioni);   // la pizza ha ancora il titolo
             Assert.Null(pizza.Immagine);
             Assert.Equal(["promo2"], store.Current.Aspetto.Set[0].Elementi.Select(e => e.Id));

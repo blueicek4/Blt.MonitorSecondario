@@ -25,7 +25,8 @@ le funzioni nuove e le richieste dei locali.
   foto; la fine vendita si riconosce dalla riga `PAGATO` quando c'è.
 - **Funzioni nuove**: gallerie di foto, video e promozioni con QR; set di reclame per l'attesa, accanto al conto e nel
   Grazie, con orari, casse e regole di rotazione; Grazie con la promozione sotto; scontrino digitale a video con la
-  copia di carta su richiesta; display su palmari e tablet come app (PWA); disposizione forzata per dispositivo.
+  copia di carta su richiesta; display su palmari e tablet come app (PWA); disposizione forzata per dispositivo;
+  **tutti i loghi si caricano dal back office**, compresi il marchio Bluetech della firma e il logo di Satispay.
 - **Lo schermo che si vede oggi** è una pagina provvisoria dell'Agent (`/cliente`) con le misure, i temi e le
   animazioni del pacchetto, in attesa del display React. Le schermate allegate vengono da lì.
 
@@ -143,6 +144,11 @@ Come da SPEC §2.4: accanto al conto (lo scontrino si stringe) o a tutto schermo
 schermo sul 4:3, in verticale e sul palmare. Il QR arriva dalla cassa. Nessuna richiesta nuova sul QR. Da verificare:
 il passaggio dal conto al pagamento con le animazioni leggere (oggi una dissolvenza).
 
+**I loghi dei kit.** Il logo di Satispay (sotto l'istruzione, accanto al conto e a tutto schermo) e il marchio Bluetech
+della firma ora li carica il tecnico dal back office (Aspetto → Marchi), in due versioni: per i fondi scuri e per
+quelli chiari. Senza, il pagamento ha solo la scritta e la firma il marchio di serie. Non disegnateli: progettate il
+loro posto (altezza, spazio di rispetto, larghezza massima, allineamento in ogni formato) e lo stato senza logo.
+
 ### 5.5 Grazie
 
 **Oggi**: in alto "Grazie e arrivederci" (testo del locale) e l'importo pagato con il metodo e il resto; **sotto, un
@@ -199,7 +205,7 @@ abilita. Password diversa per ogni locale.
 | Casse | Una per punto cassa, con il percorso del file di Passepartout |
 | Dispositivi | Abbinamento con il codice; elenco con cassa mostrata, stampante della copia, **disposizione** (automatica, larga, stretta, verticale, palmare), collegato, ultimo accesso, copie; modifica e revoca |
 | Stampanti | Le stampanti della copia di carta (rete o coda di Windows), larghezza, stampa di prova |
-| Aspetto | Il locale (nome, sottotitolo, logo per i fondi scuri e per quelli chiari); il tema (4 temi, giorno, notte o automatico con le ore); i colori del locale con il controllo del contrasto (sotto 4,5:1 non salva e propone la correzione più vicina); caratteri, angoli, vetro, firma chiara o scura; sfondo (tinta, sfumato, luci, immagine, video); animazioni; QR del pagamento accanto o a tutto schermo; righe più grandi sul 4:3; prezzi solo sul conto; le scritte (benvenuto, titolo del conto, saluto, testo scorrevole, durata del Grazie con il QR) |
+| Aspetto | Il locale (nome, sottotitolo, logo per i fondi scuri e per quelli chiari); il tema (4 temi, giorno, notte o automatico con le ore); i colori del locale con il controllo del contrasto (sotto 4,5:1 non salva e propone la correzione più vicina); caratteri, angoli, vetro, firma chiara o scura; sfondo (tinta, sfumato, luci, immagine, video); animazioni; QR del pagamento accanto o a tutto schermo; righe più grandi sul 4:3; prezzi solo sul conto; le scritte (benvenuto, titolo del conto, saluto, testo scorrevole, durata del Grazie con il QR); i marchi (Bluetech per la firma scura e per la chiara, Satispay per i fondi scuri e per i chiari) |
 | Promozioni | Set di reclame, galleria delle promozioni, foto, video (sotto) |
 | Opzioni | Chiusura del conto per inattività, scontrino digitale e copia di carta, rete e HTTPS, back office anche dalla rete |
 | Statistiche | Per giorno e per cassa: vendite, pagate, incasso, QR di pagamento, scontrini digitali, copie |
@@ -257,6 +263,7 @@ impostazioni.json
    ├─ il tema      Tema, Modo, GiornoDalle, GiornoAlle, Colori (8), FontTitoli, FontTesto, Raggio, Vetro, Footer
    ├─ lo schermo   Fondo, FondoMedia, Animazioni, QrPagamento, RigheCompatte, PrezziSoloSulConto
    ├─ le scritte   Benvenuto, Scorrevole, TitoloConto, Grazie, SecondiGrazie
+   ├─ i marchi     LogoBluetech, LogoBluetechChiaro, LogoSatispay, LogoSatispayChiaro
    ├─ Promozioni[] { Id, Nome, Titolo, Testo, Immagine, Qr, QrDidascalia, DalGiorno, AlGiorno }
    ├─ Set[]        { Id, Nome, Attivo, Dove[], Ordine, QrDopo, Secondi, Elementi[{ Id, Secondi }],
    │                 Casse[], Giorni[], Dalle, Alle, DalGiorno, AlGiorno }
@@ -282,7 +289,9 @@ Dove la struttura mostra i suoi limiti (da rivedere, non solo da ridisegnare):
 - **La divisione tra le schede segue il codice, non la testa del titolare**: lo scontrino digitale e la chiusura del
   conto sono in Opzioni anche se cambiano lo schermo del cliente; la durata del Grazie con il QR è in Aspetto, quella
   dello scontrino digitale in Opzioni.
-- **Un solo ruolo**: la stessa password per il titolare e per il tecnico, e le stesse schede per tutti e due.
+- **Un solo ruolo**: la stessa password per il titolare e per il tecnico, e le stesse schede per tutti e due. Anche i
+  marchi di Bluetech e di Satispay stanno in Aspetto, dove il titolare li può cambiare: dovrebbero essere del tecnico,
+  a livello di installazione.
 - Le stampanti sono entità a parte, usate solo dalla copia di carta, e si scelgono dispositivo per dispositivo.
 
 Proponete una struttura rivista: livelli (installazione, locale o marchio, cassa, schermo), cosa eredita da cosa,
@@ -343,6 +352,7 @@ conto. Il dettaglio è in `design/ALLINEAMENTO.md` §8; qui l'essenziale per il 
 | `playlists` | `idle`, `sale`, `thanks`: elementi `{ id, kind: image \| video \| promo, src?, durationMs? }`, già in ordine |
 | `promoCards` | Per ogni promozione: `title`, `text`, `image?`, `qr?: { png, caption }` |
 | `thanksSeconds`, `pricesOnlyOnBill` | Durata massima del Grazie con un QR; prezzi solo sul conto |
+| `marks` | I loghi dei kit, solo quelli caricati: `bluetech` e `bluetechLight` (firma scura e chiara), `satispay` e `satispayLight` (fondi scuri e chiari) |
 
 Messaggi del conto: apertura, righe (`item`, `discount`, `surcharge`, `void`, `note`, con id stabili), totale (con
 `bill` vero quando la cassa mostra il conto e i coperti), chiusura con il pagamento (metodo, importo, resto), QR di
@@ -407,5 +417,6 @@ Domande aperte, su cui aspettiamo una proposta più che un'esecuzione:
 - Il pacchetto del primo giro: `design/handoff/` (SPEC.md, MOTION.md, `src/tokens/*`,
   `src/types/protocol.ts`) e `design/ALLINEAMENTO.md`, se Claude Design può leggere i file. Il canvas del primo
   giro è <https://claude.ai/artifact/1Vqr5fioAwP73svEAoiMrD>.
-- Gli asset ancora mancanti dal primo giro: logo Bluetech ufficiale (chiaro e scuro), logo Satispay dal brand kit.
+- I loghi ufficiali, mancanti dal primo giro: Bluetech (per i fondi chiari e per quelli scuri) e Satispay dal suo kit.
+  Nel prodotto si caricano dal back office, ma il design li deve vedere al loro posto, non inventarli.
 - 3–4 foto vere di locali clienti e un logo di un locale vero (come segnaposto, senza dati reali da pubblicare).

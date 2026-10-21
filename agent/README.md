@@ -127,7 +127,7 @@ avvio:
 | `Casse` | `Id`, `Nome`, `FileCassa`: un `.txt`, fuori dalle cartelle dell'Agent. L'Agent lo cancella dopo averlo letto, quindi il back office rifiuta anche un file che c'è già e non sembra quello del monitor, e l'Agent non tocca mai un file di oltre 256 KB |
 | `Stampanti` | `Id`, `Nome`, `Collegamento` (`rete`, `windows`, `prova`), `Indirizzo`, `LarghezzaMm`, `Colonne`, `TabellaCaratteri`, `QrPuntiPerModulo`, `Taglio`, `TestoRitiro`, `TimeoutSecondi` |
 | `Dispositivi` | `Id`, `Nome`, `Cassa`, `Stampante`, `Disposizione` (vuota = automatica; `larga`, `stretta`, `verticale`, `palmare`: sotto), `AutorizzatoIl` e l'hash del token del dispositivo: il token vero lo ha solo il dispositivo, in un cookie |
-| `Aspetto` | Come appare lo schermo del cliente: `NomeLocale`, `Sottotitolo`, `Logo`, `LogoChiaro`, `Tema`, `Modo`, `GiornoDalle`/`GiornoAlle`, `Colori`, `FontTitoli`, `FontTesto`, `Raggio`, `Vetro`, `Footer`, `Fondo`/`FondoMedia`, `Animazioni`, `QrPagamento`, `RigheCompatte`, `PrezziSoloSulConto`, le scritte (`Benvenuto`, `Scorrevole`, `TitoloConto`, `Grazie`), `SecondiGrazie`, `Promozioni` (la galleria), `Set` (i set di reclame) e `Media` (l'elenco delle foto e dei video in `dati\media`): vedi sotto |
+| `Aspetto` | Come appare lo schermo del cliente: `NomeLocale`, `Sottotitolo`, `Logo`, `LogoChiaro`, i marchi (`LogoBluetech`, `LogoBluetechChiaro`, `LogoSatispay`, `LogoSatispayChiaro`), `Tema`, `Modo`, `GiornoDalle`/`GiornoAlle`, `Colori`, `FontTitoli`, `FontTesto`, `Raggio`, `Vetro`, `Footer`, `Fondo`/`FondoMedia`, `Animazioni`, `QrPagamento`, `RigheCompatte`, `PrezziSoloSulConto`, le scritte (`Benvenuto`, `Scorrevole`, `TitoloConto`, `Grazie`), `SecondiGrazie`, `Promozioni` (la galleria), `Set` (i set di reclame) e `Media` (l'elenco delle foto e dei video in `dati\media`): vedi sotto |
 
 Ogni modifica si salva subito e la versione prima resta in `impostazioni.json.bak`; se `impostazioni.json` sparisce,
 all'avvio torna dalla copia. Il file si può copiare come copia di
@@ -195,6 +195,11 @@ L'Agent manda a ogni display il messaggio `cfg` del protocollo del design (`them
   `ShowPricesDuringOrder=false` del vecchio monitor.
 - **Scritte**: il benvenuto (nell'attesa senza slide), il titolo del conto, il saluto dopo il pagamento, il testo che
   scorre in basso nell'attesa.
+- **Marchi**: i loghi ufficiali di Bluetech e di Satispay, presi dai loro kit (PNG trasparente; un SVG va esportato).
+  Bluetech in due versioni, per la firma scura e per la chiara: dove una manca, o il file non si carica, la firma usa il
+  marchio di serie, che su quel fondo si legge; "powered by" resta sempre. Satispay va sotto l'istruzione del
+  pagamento, accanto al conto e a tutto schermo; senza, c'è solo la scritta. Come per il logo del locale, la versione
+  per i fondi chiari è facoltativa.
 - **Tre gallerie** (scheda Promozioni): le **foto** e i **video** caricati (PNG, JPEG, WebP, GIF fino a 15 MB; MP4 H.264
   o WebM fino a 200 MB, senza audio; 3 GB in tutto) e le **promozioni**: un titolo, un testo, un'immagine e un QR
   (registrazione cliente, fidelity, recensioni, menu digitale: l'Agent fa il QR), tutti facoltativi ma almeno uno, con
