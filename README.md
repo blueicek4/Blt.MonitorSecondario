@@ -9,6 +9,7 @@ personalizzabile con il brand del locale e sempre firmata "powered by Bluetech".
 | [docs/01-analisi-monitorcliente.md](docs/01-analisi-monitorcliente.md) | Reverse engineering completo del monitor attuale: protocollo del file, regole di parsing, configurazione, bug |
 | [docs/02-piano-azione.md](docs/02-piano-azione.md) | Architettura, fasi, rischi, decisioni aperte |
 | [docs/claude-design-brief.md](docs/claude-design-brief.md) | **Il brief da dare a Claude Design** (file da allegare o incollare) |
+| [docs/claude-design-brief-2.md](docs/claude-design-brief-2.md) | **Il secondo brief**: tutti gli stati e i formati dello schermo, il back office, la struttura della configurazione, le richieste dei locali |
 | [docs/03-prompt-claude-design.md](docs/03-prompt-claude-design.md) | Cosa allegare al brief e come gestire le iterazioni |
 | [docs/reference/](docs/reference/) | Configurazione e modelli XML del monitor (a 30 colonne, quello originale; a 48, in uso dal 20/10) |
 | [samples/](samples/) | File reali scritti dalla cassa, usati nei test |

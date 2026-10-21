@@ -12,3 +12,10 @@ Senza allegati Claude Design inventerà un'identità Bluetech che poi andrà rif
 - Chiedi una seconda iterazione mirata su ciò che non convince (di solito: densità dello scontrino in 4:3,
   contrasto del footer sui temi scuri, leggibilità del totale).
 - Il pannello di amministrazione (editor del tema, media, simulatore) merita un brief separato dopo questo.
+
+## Il secondo giro
+
+Il brief è [claude-design-brief-2.md](claude-design-brief-2.md): lo schermo del cliente in tutti gli stati e i
+formati, il back office, la struttura della configurazione da rivedere, le richieste dei locali. Insieme allegare le
+schermate dello stato attuale, `design/handoff/` (SPEC.md, MOTION.md, token, `protocol.ts`) e
+`design/ALLINEAMENTO.md` dal ramo del design, e gli asset che mancavano dal primo giro.
