@@ -86,6 +86,10 @@ confrontando ogni versione del file con quella precedente.
 - Logo Bluetech ufficiale in SVG, variante chiara e scura.
 - Logo Satispay dal brand kit ufficiale, da usare secondo le loro linee guida.
 
+Dal 21/10 tutti e due si caricano dal back office dell'Agent (Aspetto → Marchi, in PNG) e arrivano al display in
+`cfg.marks` (§8): il display non ne ha bisogno dentro la build. Al design servono comunque i file, per vederli al loro
+posto.
+
 ## 6. Prossimi passi
 
 1. **Subito, contro il mock**: M0 e M1 del [TASKS.md](handoff/TASKS.md) in `display/` (scaffolding, font locali,
@@ -184,6 +188,7 @@ orario: già scelto per la cassa del display, il giorno e l'ora. Oltre a `theme`
 | `promoCards` | `{ [id]: { title, text, image?, qr?: { png, caption } } }`: le promozioni delle playlist, una volta sola anche se tornano tante volte. Il PNG del QR come quello di Satispay: un pixel per modulo, senza quiet zone | Le schede dei `kind: 'promo'`. Dove la colonna è stretta (`narrow`, verticale, palmare) con il QR la foto resta fuori |
 | `ads` | Le sole foto e video di `playlists.idle`, come `AdSlide` di `protocol.ts` | Per un display che non conosce ancora `playlists` |
 | `venue` | `{ name, tagline, logo?, logoLight? }`: `logo` per i fondi scuri e sopra le slide, `logoLight` (facoltativo) per i fondi chiari dei temi di giorno, dove un logo chiaro non si vedrebbe. `name` vuoto se il logo ha già il nome | Il logo del locale in alto (SPEC §2.1) e nella testata del conto |
+| `marks` | `{ bluetech?, bluetechLight?, satispay?, satispayLight? }`: i loghi ufficiali caricati dal back office, solo quelli che ci sono. `bluetech` per la firma scura (temi di notte, sopra le slide), `bluetechLight` per la chiara; `satispay` per i fondi scuri, `satispayLight` (facoltativo) per i chiari | I segnaposto 1 e 2 del `CLAUDE.md`. Firma: la versione del logo per la sua variante, altrimenti il marchio di serie (anche se il file non si carica); "powered by" resta sempre. Pagamento: il logo di Satispay sotto l'istruzione, accanto al conto e a tutto schermo; sui fondi chiari `satispayLight` se c'è, altrimenti `satispay`; senza, solo la scritta |
 | `texts` | `{ welcome, receipt, thanks }`: il benvenuto (attesa senza slide), l'etichetta del conto ("Il tuo conto"), il saluto del Grazie | Al posto dei testi fissi |
 | `thanksSeconds` | Quanto resta al massimo il Grazie con una promozione con il QR: 10-120, default 30 | Grazie fino al conto dopo, al massimo così; senza QR 8 s. Il QR dello scontrino digitale (`receipt.qr`) ha la precedenza sulla reclame |
 | `pricesOnlyOnBill` | L'opzione "prezzi solo sul conto" (`ShowPricesDuringOrder=false` della 6.0) | Niente importi né totale finché `bill` è falso, come detto per `sale.total.bill` |
