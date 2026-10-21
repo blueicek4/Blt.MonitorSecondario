@@ -106,7 +106,8 @@ Senza nessun set: logo, nome e benvenuto.
 - Come restano leggibili logo, testo scorrevole e footer sopra foto molto chiare o molto scure.
 - Le transizioni tra foto, video e promozioni (oggi dissolvenza; Ken Burns sulle foto solo con le animazioni piene).
 - Indicazioni per il locale sulle immagini: le foto con scritte già dentro si scontrano con il titolo della promozione
-  (lo abbiamo visto con le prime prove).
+  (lo abbiamo visto con le prime prove). E sugli schermi 4:3, verticali e sui palmari una foto 16:9 riempie lo
+  schermo tagliandosi ai lati, scritte comprese (si vede nelle schermate).
 
 ### 5.2 Conto in corso
 
@@ -127,7 +128,8 @@ né totale; quando la cassa mostra il conto (preconto, scontrino) importi e tota
 - La colonna laterale vuota: oggi è logo e nome, ma si può fare meglio (e senza logo né nome il conto resta solo al
   centro di uno schermo largo).
 - **Il conto senza prezzi**: con le righe allineate in basso e senza il totale, la card resta vuota in alto per metà
-  (si vede nelle schermate). Serve una soluzione.
+  (si vede nelle schermate). Serve una soluzione. In verticale succede anche con i prezzi, quando gli articoli sono
+  pochi.
 - La densità sui 10″ (`compactRows`, ancora aperto dal primo giro).
 
 ### 5.3 Messaggio dalla cassa
@@ -146,7 +148,8 @@ il passaggio dal conto al pagamento con le animazioni leggere (oggi una dissolve
 **Oggi**: in alto "Grazie e arrivederci" (testo del locale) e l'importo pagato con il metodo e il resto; **sotto, un
 elemento del set "grazie"**, uno per cliente, a rotazione da un cliente all'altro (mai due QR nello stesso Grazie). Con
 una promozione con QR il Grazie resta fino al conto dopo, al massimo i secondi scelti dal locale (30 di default),
-altrimenti 8 s. Se la cassa manda il QR dello **scontrino digitale**, al posto della reclame c'è quello. Sulla
+altrimenti 8 s. Se la cassa manda il QR dello **scontrino digitale** e lo scontrino a video (§5.6) è spento, al
+posto della reclame c'è quello; se è acceso, dal Grazie si passa allo scontrino. Sulla
 variante larga il Grazie sta nella colonna accanto allo scontrino ristretto; sul 4:3, in verticale e sul palmare,
 con il QR, la foto della promozione resta fuori.
 
@@ -157,13 +160,16 @@ inquadra e registrati".
 
 ### 5.6 Scontrino digitale (stato `receipt`, opzionale)
 
-**Oggi**: dopo il Grazie, se il locale l'ha attivato e la cassa manda il QR dello scontrino digitale: lo scontrino
-come uscirà sulla carta (intestazione, righe, totale, pagamento, data, QR piccolo, dicitura), il QR grande da
+**Oggi**: se il locale l'ha attivato, quando la cassa manda il QR dello scontrino digitale (a pagamento fatto) lo
+schermo lascia il Grazie e mostra lo scontrino come uscirà sulla carta (intestazione, righe, totale, pagamento, data,
+QR piccolo, dicitura), il QR grande da
 inquadrare, e un pulsante "Preferisci la copia di carta? Tocca qui" con i suoi stati (sto stampando; ritira la copia
 alla cassa; non riesco a stampare, chiedila alla cassa; già chiesta). Resta 45 s. Pensato per palmari e schermi touch.
 
 **Da progettare**: tutto lo stato, nei formati palmare, verticale e largo. Deroghe da dichiarare: un pulsante vero (la
-SPEC esclude l'interazione), il QR come protagonista al posto del totale, un QR piccolo sullo scontrino.
+SPEC esclude l'interazione), il QR come protagonista al posto del totale, un QR piccolo sullo scontrino. E lo
+scontrino lungo: oggi l'area scorre, che sul palmare va bene ma su un monitor senza touch nasconde il fondo (il totale,
+con 15–20 righe). Serve un modo di farlo stare: riassunto, scala, due colonne.
 
 ### 5.7 Connessione assente
 
@@ -389,7 +395,15 @@ Domande aperte, su cui aspettiamo una proposta più che un'esecuzione:
 
 ## Allegati da dare insieme a questo brief
 
-- Le schermate dello stato attuale (schermo del cliente nei quattro formati, back office).
+- Le schermate dello stato attuale (`schermate-stato-attuale.zip`, 81 immagini):
+  - lo schermo del cliente in quattro formati (1920×1080, 1024×768, 1080×1920, palmare 390×844) e in ogni stato:
+    attesa senza reclame, promozioni e foto, conto con la colonna, Satispay, Grazie con la promozione e con il QR dello
+    scontrino digitale, scontrino a video, conto senza prezzi, un tema di giorno, connessione persa;
+  - le pagine del dispositivo (l'abbinamento);
+  - il back office, scheda per scheda, a 1366×768 e a 390 px.
+
+  "La Vela" è un locale inventato; le righe del conto vengono da una registrazione vera della cassa, anonimizzata. Il
+  percorso del file nella scheda Stato è quello del PC di prova.
 - Il pacchetto del primo giro: `design/handoff/` (SPEC.md, MOTION.md, `src/tokens/*`,
   `src/types/protocol.ts`) e `design/ALLINEAMENTO.md`, se Claude Design può leggere i file. Il canvas del primo
   giro è <https://claude.ai/artifact/1Vqr5fioAwP73svEAoiMrD>.
