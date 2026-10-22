@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Come si organizzano i contenuti</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+</style>
+</helmet>
+
+<div style="width: 1900px; height: 2600px; box-sizing: border-box; padding: 56px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 42px">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; flex-shrink: 0">
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: #6F7E95">Architettura dell'informazione</div>
+      <h1 style="margin: 0; font-family: 'Archivo', sans-serif; font-size: 54px; font-weight: 700; line-height: 1.04; letter-spacing: -0.025em">Cosa, dove, quando, come</h1>
+    </div>
+    <div style="max-width: 70ch; font-size: 17px; line-height: 1.6; color: #9AA6BA">Oggi queste quattro cose vivono nello stesso oggetto: un set porta con sé gli elementi, i posti, gli orari e le casse. Funziona finché i set sono tre. Al decimo, il titolare non sa più perché a mezzogiorno sul monitor del bar esce la promozione del brunch. Separarle è l'unico modo perché la domanda <strong style="color: #E6EAF2; font-weight: 600">“perché vedo questo adesso?”</strong> abbia una risposta in una riga.</div>
+  </div>
+
+  <!-- I QUATTRO PIANI -->
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px">
+      <sc-for list="{{piani}}" as="p" hint-placeholder-count="4">
+        <div style="{{p.card}}">
+          <div style="display: flex; align-items: baseline; gap: 12px">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 34px; font-weight: 700; color: {{p.col}}">{{p.q}}</div>
+            <div style="font-family: 'Archivo', sans-serif; font-size: 21px; font-weight: 600">{{p.nome}}</div>
+          </div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: {{p.col}}">{{p.ent}}</div>
+          <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">{{p.desc}}</p>
+          <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; font-size: 14px; line-height: 1.5; color: #6F7E95">{{p.oggi}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- LA CATENA -->
+  <div style="display: flex; flex-direction: column; gap: 20px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 24px">La domanda a cui il sistema deve saper rispondere sempre</div>
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 30px; display: flex; flex-direction: column; gap: 22px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 28px; font-weight: 600">Cassa 1, posto “accanto al conto”, venerdì 19:14 — cosa va in onda?</div>
+
+      <div style="display: flex; align-items: stretch; gap: 14px">
+        <sc-for list="{{passi}}" as="s" hint-placeholder-count="4">
+          <div style="{{s.box}}">
+            <div style="display: flex; align-items: center; gap: 10px">
+              <div style="{{s.num}}">{{s.n}}</div>
+              <div style="font-family: 'Archivo', sans-serif; font-size: 17px; font-weight: 600">{{s.titolo}}</div>
+            </div>
+            <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #9AA6BA">{{s.desc}}</p>
+            <div style="margin-top: auto; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #3DDC97">{{s.esito}}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 18px; font-size: 16px; line-height: 1.6; color: #9AA6BA">
+        Il back office scrive questa catena in chiaro sotto ogni set: <span style="color: #E6EAF2">“In onda su Cassa 1 e Cassa 2, accanto al conto, perché è il primo set valido alle 19:14 del venerdì. Copre: Sempre.”</span> Quattro righe di spiegazione valgono più di qualunque diagramma, perché rispondono alla domanda che il titolare si fa davvero.
+      </div>
+    </div>
+  </div>
+
+  <!-- STATI DI UN SET -->
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 24px">I cinque stati di un set, sempre visibili nell'elenco</div>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px">
+      <sc-for list="{{stati}}" as="s" hint-placeholder-count="5">
+        <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+          <div style="{{s.pill}}">{{s.nome}}</div>
+          <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #9AA6BA">{{s.desc}}</p>
+        </div>
+      </sc-for>
+    </div>
+    <div style="background: rgba(242,163,60,0.08); border: 1px solid rgba(242,163,60,0.35); border-radius: 16px; padding: 20px 26px; font-size: 16px; line-height: 1.6; color: #E9D6B8">
+      <strong style="font-weight: 600; color: #F2A33C">“Coperto” è lo stato che salva le chiamate al supporto.</strong> Un set attivo, con elementi dentro e nell'orario giusto, che però non va in onda perché un altro più in alto lo precede: senza una parola per dirlo, il titolare pensa che il prodotto sia rotto. Con la parola — e con il nome del set che lo copre, cliccabile — ci arriva da solo.
+    </div>
+  </div>
+
+  <!-- RIUSO E CANCELLAZIONE -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex-shrink: 0">
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600">Il riuso va mostrato, non impedito</div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: rgba(61,220,151,0.08); border: 1px solid rgba(61,220,151,0.35)">
+          <div style="font-size: 15px; font-weight: 600; flex-grow: 1">Diventa cliente</div>
+          <div style="font-size: 13px; color: #3DDC97">in 3 set</div>
+        </div>
+        <div style="padding-left: 22px; display: flex; flex-direction: column; gap: 7px; font-size: 14px; color: #9AA6BA">
+          <div>· Grazie — sempre</div>
+          <div>· Attesa — Aperitivo del venerdì</div>
+          <div>· Attesa — Sempre</div>
+        </div>
+      </div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Una promozione è un contenuto, non una copia: la stessa “Diventa cliente” sta in tre set. Modificarla li cambia tutti e tre, e il pannello lo dice <strong style="color: #E6EAF2">prima</strong> di salvare, non dopo. Eliminarla si può solo se non è usata da nessuno; altrimenti il pulsante elenca dove sta, con i link per toglierla.</p>
+    </div>
+
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600">Le parole sono quelle del titolare</div>
+      <div style="display: flex; flex-direction: column; gap: 9px">
+        <sc-for list="{{parole}}" as="w" hint-placeholder-count="6">
+          <div style="display: flex; align-items: center; gap: 14px; font-size: 15px">
+            <div style="width: 180px; flex-shrink: 0; font-family: 'IBM Plex Mono', monospace; color: #6F7E95; text-decoration: line-through">{{w.no}}</div>
+            <div style="color: #6F7E95">→</div>
+            <div style="font-weight: 600; color: #E6EAF2">{{w.si}}</div>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Non è cosmesi: “playlist” e “slot” costringono il titolare a imparare un modello mentale che non è il suo. “Vetrina” e “posto” li ha già.</p>
+    </div>
+  </div>
+
+  <!-- I LIVELLI -->
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 24px">A che livello vive ogni cosa</div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <sc-for list="{{livelli}}" as="l" hint-placeholder-count="4">
+        <div style="{{l.row}}">
+          <div style="width: 230px; flex-shrink: 0; display: flex; align-items: center; gap: 12px">
+            <div style="{{l.chip}}">{{l.n}}</div>
+            <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600">{{l.nome}}</div>
+          </div>
+          <div style="flex-grow: 1; min-width: 0; font-size: 15px; line-height: 1.55; color: #9AA6BA">{{l.cosa}}</div>
+          <div style="width: 300px; flex-shrink: 0; font-size: 14px; line-height: 1.5; color: #6F7E95">{{l.chi}}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="background: rgba(31,111,235,0.1); border: 1px solid rgba(31,111,235,0.35); border-radius: 16px; padding: 20px 26px; font-size: 16px; line-height: 1.6; color: #C6DAFB">
+      <strong style="font-weight: 600">Ogni livello eredita da quello sopra e può sovrascrivere.</strong> Un palmare può avere animazioni Leggere mentre il totem le ha Piene; una cassa può avere un benvenuto suo. Nel pannello un valore ereditato si vede com'è e dice da dove viene (“dal locale”); appena lo tocchi diventa tuo, con un “riporta al valore del locale” accanto. Senza quel ritorno, l'ereditarietà è una trappola: si sovrascrive per sbaglio e non si torna indietro.
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1900,"height":2600}}'>
+var PIANI = [
+  { q: 'Cosa', nome: 'il contenuto', col: '#6FA8FF', ent: 'Foto · Video · Promozione', desc: 'Un pezzo di contenuto esiste una volta sola e non sa dove finirà. Una promozione ha titolo, testo, immagine, QR e validità; non ha orari, non ha casse, non ha posti.', oggi: 'Oggi: già così. È la parte che funziona.' },
+  { q: 'Dove', nome: 'il posto', col: '#3DDC97', ent: 'Attesa · Conto · Grazie', desc: 'Tre posti fissi sullo schermo, con caratteristiche diverse: spazio, distanza, attenzione del cliente, resa di un QR. Non sono configurabili: sono il prodotto.', oggi: 'Oggi: un campo dentro al set. Diventa un asse a sé.' },
+  { q: 'Quando', nome: 'la regola', col: '#F2A33C', ent: 'Casse · Giorni · Ore · Date', desc: 'Una condizione che dice se un insieme vale adesso e qui. Vive separata dal contenuto, così la stessa regola si riusa: “il venerdì sera” serve a più vetrine.', oggi: 'Oggi: dentro al set, non riusabile.' },
+  { q: 'Come', nome: 'la resa', col: '#C06CFF', ent: 'Tema · Modello · Attrazione', desc: 'Come un contenuto viene disegnato: quale modello di slide, quale tema, quanto si muove. Non appartiene al contenuto né al set: appartiene allo schermo.', oggi: 'Oggi: metà in Aspetto, metà implicito.' }
+];
+
+var PASSI = [
+  { n: '1', titolo: 'Filtra per posto', desc: 'Resta solo chi dichiara di valere per “accanto al conto”.', esito: '4 vetrine su 9' },
+  { n: '2', titolo: 'Filtra per regola', desc: 'Cassa 1 compresa, venerdì compreso, 19:14 dentro la fascia, data dentro la validità.', esito: '2 vetrine su 4' },
+  { n: '3', titolo: 'Scarta le vuote', desc: 'Una vetrina senza elementi validi oggi non va in onda, anche se la regola la dice valida.', esito: '2 vetrine su 2' },
+  { n: '4', titolo: 'Prende la prima', desc: 'Vince quella più in alto nell ordine. Le altre restano “coperte”, e il pannello lo dice.', esito: 'Aperitivo venerdì' }
+];
+
+var STATI = [
+  { nome: 'In onda', c: '#3DDC97', desc: 'Sta andando adesso, su queste casse, in questo posto. Il pannello mostra anche quale elemento è a schermo in questo momento.' },
+  { nome: 'Coperta', c: '#F2A33C', desc: 'Varrebbe, ma un altra più in alto la precede. Il nome di chi la copre è scritto e cliccabile.' },
+  { nome: 'Fuori orario', c: '#9AA6BA', desc: 'Valida, ma non adesso. Il pannello dice quando tornerà: “torna venerdì alle 18”.' },
+  { nome: 'Vuota', c: '#9AA6BA', desc: 'Nessun elemento valido oggi: tutte le promozioni dentro sono scadute o senza contenuto.' },
+  { nome: 'Spenta', c: '#6F7E95', desc: 'Disattivata dal titolare. Resta in fondo all elenco, grigia, pronta da riaccendere.' }
+];
+
+var PAROLE = [
+  { no: 'set', si: 'vetrina' },
+  { no: 'playlist', si: 'cosa gira' },
+  { no: 'slot / posto tecnico', si: 'dove si vede' },
+  { no: 'media', si: 'foto e video' },
+  { no: 'asset QR', si: 'codice da inquadrare' },
+  { no: 'override / disposizione', si: 'com è fatto questo schermo' }
+];
+
+var LIVELLI = [
+  { n: '1', nome: 'Installazione', cosa: 'Cartelle, rete, porta, HTTPS, password, back office dalla rete. Cose che si toccano una volta e poi mai più.', chi: 'Solo il tecnico Bluetech' },
+  { n: '2', nome: 'Locale o marchio', cosa: 'Nome, loghi, tema, colori, caratteri, scritte, scontrino digitale, chiusura del conto. Il grosso dell aspetto. Un installazione può averne più d uno: bar e ristorante nello stesso edificio.', chi: 'Il titolare' },
+  { n: '3', nome: 'Cassa', cosa: 'A quale marchio appartiene, quali vetrine valgono qui, il file del gestionale. Può sovrascrivere benvenuto e testo scorrevole.', chi: 'Il titolare, il tecnico per il file' },
+  { n: '4', nome: 'Schermo', cosa: 'Disposizione forzata, larghezza del conto, allineamento della card, intensità delle animazioni, stampante della copia. Quello che dipende dal pezzo di vetro, non dal locale.', chi: 'Il tecnico in installazione, poi il titolare' }
+];
+
+function colStyle(c) {
+  return { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '18px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' };
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      piani: PIANI.map(function (p) {
+        return { q: p.q, nome: p.nome, col: p.col, ent: p.ent, desc: p.desc, oggi: p.oggi, card: colStyle(p.col) };
+      }),
+      passi: PASSI.map(function (s) {
+        return {
+          n: s.n, titolo: s.titolo, desc: s.desc, esito: s.esito,
+          box: { flex: '1', minWidth: 0, borderRadius: '14px', padding: '18px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '10px' },
+          num: { width: '26px', height: '26px', flexShrink: 0, borderRadius: '8px', background: 'rgba(31,111,235,0.25)', border: '1px solid rgba(31,111,235,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600, color: '#9EC2FF' }
+        };
+      }),
+      stati: STATI.map(function (s) {
+        return {
+          nome: s.nome, desc: s.desc,
+          pill: { alignSelf: 'flex-start', borderRadius: '999px', padding: '5px 14px', fontSize: '14px', fontWeight: 600, color: s.c, border: '1px solid ' + s.c + '66', background: s.c + '18' }
+        };
+      }),
+      parole: PAROLE,
+      livelli: LIVELLI.map(function (l, i) {
+        return {
+          n: l.n, nome: l.nome, cosa: l.cosa, chi: l.chi,
+          row: { display: 'flex', alignItems: 'flex-start', gap: '24px', padding: '18px 22px', borderRadius: '14px', background: i % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' },
+          chip: { width: '30px', height: '30px', flexShrink: 0, borderRadius: '9px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 600, color: '#9AA6BA' }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

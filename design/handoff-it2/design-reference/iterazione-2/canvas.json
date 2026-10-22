@@ -1,0 +1,444 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-22T09:00:00Z"
+  },
+  "title": "Bluetech Display — Iterazione 2",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "designSystems": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1800,
+      "h": 3400,
+      "title": "Diagnosi — cosa non funziona oggi"
+    },
+    "Attrazione.dc.html": {
+      "x": 1880,
+      "y": 0,
+      "w": 1600,
+      "h": 3000,
+      "title": "I livelli di attrazione — da Sobrio a TROPPO"
+    },
+    "Fondo.dc.html": {
+      "x": 3560,
+      "y": 0,
+      "w": 1400,
+      "h": 2600,
+      "title": "Il fondo: video, blur, scrim"
+    },
+    "Motion2.dc.html": {
+      "x": 5040,
+      "y": 0,
+      "w": 1400,
+      "h": 3200,
+      "title": "Motion — una curva per ogni tipo di riga"
+    },
+    "Griglia.dc.html": {
+      "x": 6520,
+      "y": 0,
+      "w": 1500,
+      "h": 2400,
+      "title": "Griglia a 24 colonne — larghezza del conto"
+    },
+    "Temi.dc.html": {
+      "x": 8100,
+      "y": 0,
+      "w": 2400,
+      "h": 1560,
+      "title": "Dieci temi — cinque scuri, cinque chiari"
+    },
+    "Reclame-Modelli.dc.html": {
+      "x": 0,
+      "y": 3800,
+      "w": 1920,
+      "h": 1400,
+      "title": "I modelli di slide pubblicitaria"
+    },
+    "Reclame-SafeZone.dc.html": {
+      "x": 2000,
+      "y": 3800,
+      "w": 1920,
+      "h": 1200,
+      "title": "Safe zone e ritaglio sui quattro formati"
+    },
+    "Caroselli.dc.html": {
+      "x": 4000,
+      "y": 3800,
+      "w": 1600,
+      "h": 1200,
+      "title": "Caroselli, rotazione e transizioni"
+    },
+    "A-Attesa-Video.dc.html": {
+      "x": 0,
+      "y": 5600,
+      "w": 1920,
+      "h": 1080,
+      "title": "Attesa — video cinematografico"
+    },
+    "A-Attesa-Promo.dc.html": {
+      "x": 2000,
+      "y": 5600,
+      "w": 1920,
+      "h": 1080,
+      "title": "Attesa — promozione con QR"
+    },
+    "B-Conto.dc.html": {
+      "x": 4000,
+      "y": 5600,
+      "w": 1920,
+      "h": 1080,
+      "title": "Conto — video sfocato e colonna viva"
+    },
+    "B-Conto-SenzaPrezzi.dc.html": {
+      "x": 6000,
+      "y": 5600,
+      "w": 1920,
+      "h": 1080,
+      "title": "Conto senza prezzi — ruoli invertiti"
+    },
+    "C-Pagamento.dc.html": {
+      "x": 8000,
+      "y": 5600,
+      "w": 1920,
+      "h": 1080,
+      "title": "Pagamento Satispay"
+    },
+    "D-Grazie.dc.html": {
+      "x": 10000,
+      "y": 5600,
+      "w": 1920,
+      "h": 1080,
+      "title": "Grazie — il momento che converte"
+    },
+    "E-Receipt-169.dc.html": {
+      "x": 0,
+      "y": 7080,
+      "w": 1920,
+      "h": 1080,
+      "title": "Scontrino digitale — 16:9"
+    },
+    "E-Receipt-Lungo-169.dc.html": {
+      "x": 2000,
+      "y": 7080,
+      "w": 1920,
+      "h": 1080,
+      "title": "Scontrino lungo — due colonne"
+    },
+    "E-Receipt-Palmare.dc.html": {
+      "x": 4000,
+      "y": 7080,
+      "w": 390,
+      "h": 844,
+      "title": "Scontrino — palmare"
+    },
+    "E-Receipt-Stati.dc.html": {
+      "x": 4470,
+      "y": 7080,
+      "w": 1400,
+      "h": 900,
+      "title": "Copia di carta — i quattro stati"
+    },
+    "E-Receipt-Verticale.dc.html": {
+      "x": 5950,
+      "y": 7080,
+      "w": 1080,
+      "h": 1920,
+      "title": "Scontrino — verticale"
+    },
+    "BO-Architettura.dc.html": {
+      "x": 0,
+      "y": 10800,
+      "w": 1600,
+      "h": 1900,
+      "title": "Back office — architettura a due livelli"
+    },
+    "BO-Aspetto.dc.html": {
+      "x": 1680,
+      "y": 10800,
+      "w": 1366,
+      "h": 768,
+      "title": "Aspetto — temi, griglia, livello di attrazione"
+    },
+    "BO-Promozioni.dc.html": {
+      "x": 3126,
+      "y": 10800,
+      "w": 1366,
+      "h": 768,
+      "title": "Promozioni — anteprima nei tre contesti"
+    },
+    "BO-Set-Timeline.dc.html": {
+      "x": 4572,
+      "y": 10800,
+      "w": 1366,
+      "h": 768,
+      "title": "Vetrine — la timeline della giornata"
+    },
+    "BO-Schermi.dc.html": {
+      "x": 6018,
+      "y": 10800,
+      "w": 1366,
+      "h": 768,
+      "title": "Schermi — disposizione e contrasto"
+    },
+    "BO-PrimoAvvio.dc.html": {
+      "x": 7464,
+      "y": 10800,
+      "w": 1366,
+      "h": 900,
+      "title": "Primo avvio — cinque passi"
+    },
+    "BO-Mobile.dc.html": {
+      "x": 8910,
+      "y": 10800,
+      "w": 390,
+      "h": 844,
+      "title": "Back office a 390 px"
+    },
+    "Contenuti.dc.html": {
+      "x": 0,
+      "y": 13100,
+      "w": 1900,
+      "h": 2600,
+      "title": "Come si organizzano i contenuti"
+    },
+    "Config.dc.html": {
+      "x": 1980,
+      "y": 13100,
+      "w": 1800,
+      "h": 2800,
+      "title": "impostazioni.json v3 — livelli ed eredità"
+    },
+    "Dispositivo-Pagine.dc.html": {
+      "x": 3860,
+      "y": 13100,
+      "w": 1700,
+      "h": 1120,
+      "title": "Una pagina per schermo — cosa chiede il dispositivo"
+    },
+    "Prototipo2.dc.html": {
+      "x": 0,
+      "y": 16300,
+      "w": 2240,
+      "h": 1080,
+      "title": "Prototipo interattivo — iterazione 2",
+      "is_interactive": true
+    },
+    "F-Regole.dc.html": {
+      "x": 0,
+      "y": 17780,
+      "w": 1700,
+      "h": 1400,
+      "title": "Sei stati per sei formati — le regole"
+    },
+    "F-1366.dc.html": {
+      "x": 1780,
+      "y": 17780,
+      "w": 1366,
+      "h": 768,
+      "title": "Conto 1366×768 — Bluetech"
+    },
+    "F-1280.dc.html": {
+      "x": 3226,
+      "y": 17780,
+      "w": 1280,
+      "h": 800,
+      "title": "Conto 1280×800 — Giorno"
+    },
+    "F-1024.dc.html": {
+      "x": 4586,
+      "y": 17780,
+      "w": 1024,
+      "h": 768,
+      "title": "Conto 1024×768 — Forno"
+    },
+    "F-1024-Pagamento.dc.html": {
+      "x": 5690,
+      "y": 17780,
+      "w": 1024,
+      "h": 768,
+      "title": "Pagamento 1024×768 — Forno"
+    },
+    "F-Verticale.dc.html": {
+      "x": 6794,
+      "y": 17780,
+      "w": 1080,
+      "h": 1920,
+      "title": "Conto verticale — Notturno"
+    },
+    "F-Palmare.dc.html": {
+      "x": 7954,
+      "y": 17780,
+      "w": 390,
+      "h": 844,
+      "title": "Conto palmare — Brace"
+    },
+    "E-Receipt-Posizioni.dc.html": {
+      "x": 7110,
+      "y": 7080,
+      "w": 1920,
+      "h": 2300,
+      "title": "Scontrino digitale — ogni blocco dove vuoi"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Attrazione.dc.html",
+    "Fondo.dc.html",
+    "Motion2.dc.html",
+    "Griglia.dc.html",
+    "Temi.dc.html",
+    "Reclame-Modelli.dc.html",
+    "Reclame-SafeZone.dc.html",
+    "Caroselli.dc.html",
+    "A-Attesa-Video.dc.html",
+    "A-Attesa-Promo.dc.html",
+    "B-Conto.dc.html",
+    "B-Conto-SenzaPrezzi.dc.html",
+    "C-Pagamento.dc.html",
+    "D-Grazie.dc.html",
+    "E-Receipt-169.dc.html",
+    "E-Receipt-Lungo-169.dc.html",
+    "E-Receipt-Palmare.dc.html",
+    "E-Receipt-Stati.dc.html",
+    "E-Receipt-Verticale.dc.html",
+    "E-Receipt-Posizioni.dc.html",
+    "BO-Architettura.dc.html",
+    "BO-Aspetto.dc.html",
+    "BO-Promozioni.dc.html",
+    "BO-Set-Timeline.dc.html",
+    "BO-Schermi.dc.html",
+    "BO-PrimoAvvio.dc.html",
+    "BO-Mobile.dc.html",
+    "Contenuti.dc.html",
+    "Config.dc.html",
+    "Dispositivo-Pagine.dc.html",
+    "Prototipo2.dc.html",
+    "F-Regole.dc.html",
+    "F-1366.dc.html",
+    "F-1280.dc.html",
+    "F-1024.dc.html",
+    "F-1024-Pagamento.dc.html",
+    "F-Verticale.dc.html",
+    "F-Palmare.dc.html"
+  ],
+  "notes": {
+    "t1": {
+      "x": 0,
+      "y": -300,
+      "text": "Diagnosi e sistema",
+      "kind": "title1",
+      "maxW": 10500
+    },
+    "t2": {
+      "x": 0,
+      "y": 3500,
+      "text": "Il sistema pubblicitario",
+      "kind": "title1",
+      "maxW": 5600
+    },
+    "t3": {
+      "x": 0,
+      "y": 5300,
+      "text": "Gli stati del cliente, ridisegnati",
+      "kind": "title1",
+      "maxW": 11920
+    },
+    "t4": {
+      "x": 0,
+      "y": 6780,
+      "text": "Scontrino digitale e copia di carta",
+      "kind": "title1",
+      "maxW": 9030
+    },
+    "t5": {
+      "x": 0,
+      "y": 10500,
+      "text": "Back office — chi configura, e in quanti minuti",
+      "kind": "title1",
+      "maxW": 9300
+    },
+    "t6": {
+      "x": 0,
+      "y": 12800,
+      "text": "Organizzazione dei contenuti e configurazione",
+      "kind": "title1",
+      "maxW": 5560
+    },
+    "t7": {
+      "x": 0,
+      "y": 16000,
+      "text": "Prototipo interattivo",
+      "kind": "title1",
+      "maxW": 2240
+    },
+    "n1": {
+      "x": 10580,
+      "y": 0,
+      "text": "Questa iterazione parte dalle 81 schermate dello stato attuale, non da zero. La pagina Diagnosi elenca sei patologie che si vedono nelle schermate vere: ogni artboard che segue ne risolve almeno una, e lo dichiara in basso.",
+      "w": 440,
+      "fill": "blue"
+    },
+    "n2": {
+      "x": 5700,
+      "y": 3800,
+      "text": "Il livello di attrazione (Sobrio, Vivo, Spettacolo, TROPPO) è un token, non un refactor: cambia quanto si muove e quanto invade, mai cosa c'è a schermo né dove sta il totale.",
+      "w": 440,
+      "fill": "green"
+    },
+    "n3": {
+      "x": 12020,
+      "y": 5600,
+      "text": "Tutti gli stati qui sono a livello Spettacolo con animazioni Piena, perché è il caso peggiore: se regge qui, i livelli sotto sono sottrazioni.",
+      "w": 440,
+      "fill": "purple"
+    },
+    "n4": {
+      "x": 9110,
+      "y": 7080,
+      "text": "Lo stato receipt deroga a tre invarianti: un pulsante vero sui soli schermi touch, il QR al posto del totale come elemento dominante, un QR piccolo dentro la carta. Sono dichiarate in basso su ogni artboard.",
+      "w": 440,
+      "fill": "orange"
+    },
+    "n5": {
+      "x": 9400,
+      "y": 10800,
+      "text": "Il back office è disegnato a 1366×768, non a 1920: è la risoluzione del portatile del tecnico e del tablet del titolare. Se una schermata ha bisogno di scroll a 1366 vuol dire che chiede troppo in una volta.",
+      "w": 440,
+      "fill": "blue"
+    },
+    "n6": {
+      "x": 5660,
+      "y": 13100,
+      "text": "Le due pagine a sinistra sono la stessa cosa vista da due lati: Contenuti è il modello mentale che diamo al titolare (cosa, dove, quando, come), Config è il file che lo implementa. Se una delle due ha un concetto che l'altra non ha, è un bug di progetto.",
+      "w": 440,
+      "fill": "green"
+    },
+    "n7": {
+      "x": 2320,
+      "y": 16300,
+      "text": "Il prototipo è il collaudo, non la vetrina: serve a verificare che dieci temi × quattro livelli di attrazione × tre livelli di animazione × quattro disposizioni × nove larghezze di conto non producano mai una schermata illeggibile. Se trovi una combinazione che si rompe, è lì che va il prossimo giro.",
+      "w": 440,
+      "fill": "purple"
+    },
+    "t8": {
+      "x": 0,
+      "y": 17480,
+      "text": "Formati e temi, giorno e notte",
+      "kind": "title1",
+      "maxW": 8344
+    },
+    "n8": {
+      "x": 8424,
+      "y": 17780,
+      "text": "Cinque temi su sei formati: due chiari (Giorno, Forno) e tre scuri (Bluetech, Notturno, Brace). Sul chiaro lo scrim diventa bianco e il vetro diventa ombra. Scala tipografica invariata dall'iterazione 1. Due cose cambiano a 4:3, confermate da Gianluca: la colonna accanto al conto torna (solo testo) e il QR può stare accanto al conto. Griglia e prototipo sono allineati.",
+      "w": 440,
+      "fill": "orange"
+    }
+  }
+}

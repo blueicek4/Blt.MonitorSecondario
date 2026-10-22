@@ -5,6 +5,9 @@ e `src/tokens/*` restano la fonte autoritativa per l'interfaccia. Questo documen
 sappiamo davvero della cassa (reverse engineering in [docs/01](../docs/01-analisi-monitorcliente.md), file reali in
 [samples/](../samples/)) e dice cosa cambia nel [piano](../docs/02-piano-azione.md).
 
+Il pacchetto dell'iterazione 2 è in [`handoff-it2/`](handoff-it2/README.md), anch'esso copiato tale e quale; cosa ne ha fatto
+l'Agent e dove si discosta è nel §11.
+
 Riferimento visivo offline: i sorgenti dei 23 artboard in [`handoff/design-reference/`](handoff/design-reference/README.md)
 (da leggere, non da aprire nel browser). Lo stesso canvas navigabile: <https://claude.ai/artifact/1Vqr5fioAwP73svEAoiMrD>
 
@@ -121,6 +124,9 @@ Va fatta in sola opacità (due livelli, mai una transizione sui colori), sotto i
 il QR non si copre, quindi il cambio aspetta la fine del pagamento.
 
 ## 8. Aggiunte al protocollo fatte nell'Agent (da implementare in M5)
+
+> **Iterazione 2 (22/10)**: il messaggio `layout` non c'è più e `cfg` è la `ScreenConfig` di `config.ts`: vedi §11.
+> Il resto della tabella vale ancora.
 
 L'[Agent](../agent/README.md) manda i messaggi di `protocol.ts` con queste aggiunte. In `display/src/types/protocol.ts`
 vanno aggiunte con il trasporto WebSocket (M5). Le righe da `receipt.qr` a `pay.clear` vengono dal vecchio monitor 6.0
@@ -261,3 +267,64 @@ totale come elemento più grande (in questo stato il protagonista è il QR) e un
 360-430 px), perché la funzione è pensata per un palmare o uno schermo touch. La prova sul focus della cassa (§7.2
 dello studio) serve solo se lo schermo touch è un secondo monitor del PC della cassa.
 
+## 11. Iterazione 2 (22/10): cosa ha fatto l'Agent e dove si discosta
+
+Il pacchetto è in [`handoff-it2/`](handoff-it2/README.md). È implementato nell'Agent, non nel display React di M0-M1: la
+configurazione v3 con la migrazione (I7), lo schermo del cliente `/cliente` (I1-I6), il back office (I8) e le pagine del
+dispositivo. `config.ts` e `protocol.ts` sono la fonte dei nomi; queste sono le differenze, con il perché.
+
+**`cfg` è la `ScreenConfig`.** Arriva per primo al collegamento, prima di `sync`, e di nuovo a ogni modifica salvata e
+quando una vetrina entra o esce dal suo orario; l'eredità (installazione → marchio → cassa → schermo) l'ha già risolta
+l'Agent. Forma:
+
+| Campo | Cosa porta |
+|---|---|
+| `cassa` | `{ id, nome }`: il nome in alto a destra |
+| `screen` | `tema`, `modo` (`fisso` \| `auto`), `giornoDalle`, `giornoAlle`, `colori?` (solo con `fisso`), `fontTitoli?`, `fontTesto?`, `raggio?`, `vetro?`, `footerVariant?`, `fondo` (`mesh` \| `tinta` \| `sfumato` \| `immagine` \| `video`), `fondoMedia { src, poster?, posterBlur?, focus?, scritte }`, `identita { nomeLocale, sottotitolo, logo?, logoChiaro? }`, `attrazione`, `animazioni` (`full` \| `light` \| `eco`), `colonneConto`, `colonneContoPagamento`, `colonnaAllineamento`, `qrPagamento` (`beside` \| `fullscreen`), `prezziSoloSulConto`, `righeCompatte`, `showLastItemPhoto: false` (il file della cassa non ha le foto), `disposizione?`, `scritte { benvenuto, titoloConto, grazie, secondiGrazie }`, `receipt { attivo, blocchi, secondi, copiaCarta, dicitura }` |
+| `showcase` | Per `attesa`, `conto`, `grazie` (o assente): `{ vetrinaId, nome, qrOgni, elementi, sequenza }`. `elementi` sono gli `ShowcaseItem` validi oggi (`{ id, tipo, modello, media?, etichetta?, titolo?, testo?, qr?: { png, didascalia }, durataMs? }`), `sequenza` gli id già in fila |
+| `marks` | I loghi dei kit caricati: `bluetech`, `bluetechLight`, `satispay`, `satispayLight` (§8) |
+| `ticker` | Il testo che scorre, se c'è (anche della sola cassa) |
+
+**Differenze, con il perché.**
+
+- **La sequenza la fa l'Agent** (`sequenza`: in ordine, per nome o a caso con un seme fisso, con una promozione con il
+  QR ogni `qrOgni` elementi). In `config.ts` la poteva fare il display: due implementazioni divergono, e questa è la
+  stessa che il back office usa per spiegare cosa gira.
+- **ScegliVetrina** è una sola, in C# (`Aspetto/Showcases.cs`): la usano gli schermi, gli stati delle vetrine nel
+  pannello e il calendario "La settimana in onda" (`GET /api/bo/settimana`, a passi di un quarto d'ora). Il pannello
+  non ne ha una copia in JavaScript.
+- **Il messaggio `layout` non c'è più**: la disposizione forzata di uno schermo è `cfg.screen.disposizione`
+  (`wide` \| `narrow` \| `portrait` \| `palmare`), e cambia senza staccare lo schermo.
+- **Lo scontrino digitale tiene i nomi del §8** (`receipt.digital`, `receipt.paper.status`, `receipt.clear`, dal display
+  `receipt.paper`) invece di `receipt.show`, `receipt.print` e `receipt.print.request` di `protocol.ts`: sono in
+  produzione dal 20/10 e portano già di più (l'id per abbinare la richiesta, il conto, lo stato della copia per tutti
+  gli schermi della cassa). In più: `demo: true` nella modalità demo e `copy { lines, columns, large }`, la copia di
+  cortesia già impaginata a 42 colonne; la dicitura sotto la copia è `cfg.screen.receipt.dicitura`.
+- **I giorni delle regole vanno da 1 (lunedì) a 7 (domenica)**, non da 0 a 6 come in `config.ts`: è il formato del file
+  v2 che la migrazione porta alla v3, e nel pannello non si vede.
+- **Il pulsante della copia** compare solo sugli schermi touch con una stampante; sugli altri la riga "Preferisci la
+  copia di carta? Chiedila alla cassa". In modalità demo anche senza touch, per provarlo con il mouse.
+- **Scontrino digitale sul palmare**: il QR per primo e la carta sotto, che scorre (tavola E-Receipt-Palmare: il
+  telefono è a 30 cm, il QR deve essere subito lì); **in verticale** la carta sopra e il QR con il pulsante sotto (SPEC
+  §2.7, trasposto). Dove non c'è spazio: la carta in due colonne, poi le righe minori raggruppate ("Altri N articoli"),
+  poi cade la reclame, per ultima la carta.
+- **L'anteprima** del back office comanda `/cliente?anteprima=demo` con due messaggi `postMessage`: `cfg` (la bozza,
+  composta dall'Agent con `POST /api/bo/anteprima`) e `{ t: 'demo', fase, qr }` con `fase` = `attesa` \| `conto` \|
+  `prezzi` \| `pagamento` \| `grazie` \| `scontrino` \| `auto`. La pagina risponde `{ t: 'pronto' }` quando ascolta.
+- **I fotogrammi dei video** (`poster`, `posterBlur`) li prepara il back office nel browser al caricamento e li carica
+  con `?poster=<id del video>` (e `&sfocato=1`): il display non sfoca mai a runtime, come chiede la SPEC §15.
+- **Modalità demo** (Installazione): dopo un `PAGATO`, se la cassa non manda `QRCODESD` entro 4 s, l'Agent fa uno
+  scontrino digitale di prova con un QR finto verso `/prova/scontrino/{id}`; scontrino e copia accesi anche se il locale
+  li ha spenti, gli schermi senza stampante stampano su quella di prova (`log/copie`).
+
+**Non fatto, e perché.**
+
+- **Scansioni dei QR per vetrina** (Statistiche): il QR porta il telefono direttamente all'indirizzo della promozione,
+  senza passare dall'Agent, quindi non si possono contare. Il pannello lo dice e suggerisce un parametro nell'indirizzo.
+  Si potrebbe con un indirizzo di rimbalzo dell'Agent (`/q/{id}` che conta e reindirizza), ma il telefono del cliente
+  dovrebbe raggiungere l'Agent, che sta nella rete del locale: da decidere con il servizio dei buoni.
+- **La seconda foto verticale** caricata a parte e **la parallasse** delle slide: il verticale ritaglia la stessa foto
+  intorno al punto di messa a fuoco.
+- Le prove "prima del rilascio" di `TASKS.md` che chiedono hardware vero (un 10" da 70 cm, un video bianco come fondo,
+  un'ora in `eco` su una cassa lenta). In laboratorio: i sei formati, un tema chiaro e uno scuro, i quattro livelli di
+  attrazione, il giro dalla prima riga allo scontrino di prova e alla copia stampata.

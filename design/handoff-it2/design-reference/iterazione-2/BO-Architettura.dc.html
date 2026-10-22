@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Back office — architettura</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+</style>
+</helmet>
+
+<div style="width: 1600px; height: 1900px; box-sizing: border-box; padding: 56px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 36px">
+
+  <div style="display: flex; flex-direction: column; gap: 12px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: #6F7E95">Back office</div>
+    <h1 style="margin: 0; font-family: 'Archivo', sans-serif; font-size: 50px; font-weight: 700; line-height: 1.04; letter-spacing: -0.025em">Da nove schede a sei,<br>più una che il titolare non vede</h1>
+    <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #9AA6BA; max-width: 96ch">Le nove schede di oggi seguono il codice: Stato, Casse, Dispositivi, Stampanti, Aspetto, Promozioni, Opzioni, Statistiche, Log. Il titolare ne usa due e deve scavalcare le altre sette. La divisione nuova segue invece una domanda sola: <strong style="color: #E6EAF2; font-weight: 600">di chi è questo problema?</strong></p>
+  </div>
+
+  <!-- LA MAPPA -->
+  <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px">
+
+    <div style="display: flex; align-items: center; gap: 14px; flex-shrink: 0">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #3DDC97">Il titolare</div>
+      <div style="flex-grow: 1; height: 1px; background: rgba(61,220,151,0.3)"></div>
+    </div>
+
+    <sc-for list="{{titolare}}" as="s" hint-placeholder-count="6">
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 22px 26px; display: flex; gap: 28px; align-items: flex-start">
+        <div style="width: 230px; flex-shrink: 0; display: flex; flex-direction: column; gap: 5px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 23px; font-weight: 700">{{s.nome}}</div>
+          <div style="font-size: 14px; color: #6F7E95">{{s.ex}}</div>
+        </div>
+        <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; flex-wrap: wrap; gap: 7px">
+            <sc-for list="{{s.voci}}" as="v" hint-placeholder-count="5">
+              <div style="border-radius: 999px; padding: 5px 13px; font-size: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #C9D4E4">{{v.t}}</div>
+            </sc-for>
+          </div>
+          <div style="font-size: 15px; line-height: 1.55; color: #9AA6BA">{{s.nota}}</div>
+        </div>
+        <div style="width: 180px; flex-shrink: 0; font-size: 14px; line-height: 1.5; color: #3DDC97; text-align: right">{{s.salva}}</div>
+      </div>
+    </sc-for>
+
+    <div style="display: flex; align-items: center; gap: 14px; flex-shrink: 0; margin-top: 10px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #F2A33C">Solo il tecnico Bluetech</div>
+      <div style="flex-grow: 1; height: 1px; background: rgba(242,163,60,0.3)"></div>
+    </div>
+
+    <div style="background: #141B26; border: 1px solid rgba(242,163,60,0.3); border-radius: 18px; padding: 22px 26px; display: flex; gap: 28px; align-items: flex-start">
+      <div style="width: 230px; flex-shrink: 0; display: flex; flex-direction: column; gap: 5px">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 23px; font-weight: 700">Installazione</div>
+        <div style="font-size: 14px; color: #6F7E95">ex Casse, Stampanti, Opzioni, Log</div>
+      </div>
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; flex-wrap: wrap; gap: 7px">
+          <div style="border-radius: 999px; padding: 5px 13px; font-size: 14px; background: rgba(242,163,60,0.1); border: 1px solid rgba(242,163,60,0.3); color: #E9D6B8">Casse e file del gestionale</div>
+          <div style="border-radius: 999px; padding: 5px 13px; font-size: 14px; background: rgba(242,163,60,0.1); border: 1px solid rgba(242,163,60,0.3); color: #E9D6B8">Stampanti</div>
+          <div style="border-radius: 999px; padding: 5px 13px; font-size: 14px; background: rgba(242,163,60,0.1); border: 1px solid rgba(242,163,60,0.3); color: #E9D6B8">Rete e HTTPS</div>
+          <div style="border-radius: 999px; padding: 5px 13px; font-size: 14px; background: rgba(242,163,60,0.1); border: 1px solid rgba(242,163,60,0.3); color: #E9D6B8">Marchi</div>
+          <div style="border-radius: 999px; padding: 5px 13px; font-size: 14px; background: rgba(242,163,60,0.1); border: 1px solid rgba(242,163,60,0.3); color: #E9D6B8">Accessi</div>
+          <div style="border-radius: 999px; padding: 5px 13px; font-size: 14px; background: rgba(242,163,60,0.1); border: 1px solid rgba(242,163,60,0.3); color: #E9D6B8">Log</div>
+        </div>
+        <div style="font-size: 15px; line-height: 1.55; color: #9AA6BA">Entrando da titolare questa sezione non compare: non è grigia, non è bloccata, non c'è. Un percorso di file di Passepartout in mezzo alle promozioni è il modo più rapido per far sentire il titolare ospite nel suo pannello.</div>
+      </div>
+      <div style="width: 180px; flex-shrink: 0; font-size: 14px; line-height: 1.5; color: #F2A33C; text-align: right">a modulo, con riavvio chiesto dove serve</div>
+    </div>
+  </div>
+
+  <!-- PRINCIPI -->
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; flex-shrink: 0">
+    <div style="background: rgba(31,111,235,0.1); border: 1px solid rgba(31,111,235,0.35); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600; color: #9EC2FF">L'anteprima non è una scheda</div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #C6DAFB">È una colonna fissa a destra, presente in Adesso, Il locale, Vetrine e Contenuti. Si cambia formato e fase, e segue quello che stai modificando. Oggi esiste solo accanto a due schede: è la cosa che rende il pannello usabile, e va messa ovunque serva.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600">Il salvataggio si vede</div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Contenuti e vetrine salvano da soli, con un “salvato” che compare e sbiadisce. Il locale ha un pulsante, perché prima vuoi vedere l'anteprima. Oggi la differenza c'è ma non si nota: diventa una barra fissa in basso che dice cosa sta per cambiare e su quali schermi.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600">A 390 px resta tutto</div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Le sei sezioni diventano una lista, l'anteprima un pannello che si apre a schermo pieno. Niente funzioni tolte: il titolare che accende una vetrina dal telefono mentre è in sala è il caso d'uso più frequente dopo il primo mese.</p>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":1900}}'>
+var TITOLARE = [
+  {
+    nome: 'Adesso', ex: 'ex Stato', salva: 'solo lettura',
+    voci: ['Cosa è in onda, per cassa e per posto', 'Schermi collegati', 'Ultime stampe', 'Avvisi'],
+    nota: 'La home. Risponde alla domanda che il titolare si fa per prima: in questo momento, sul monitor del bar, cosa sta vedendo il cliente? Con la miniatura vera, non con un elenco di stati.'
+  },
+  {
+    nome: 'Il locale', ex: 'ex Aspetto', salva: 'pulsante Salva',
+    voci: ['Nome e loghi', 'Tema fra i dieci', 'Colori con controllo contrasto', 'Caratteri e angoli', 'Sfondo', 'Scritte'],
+    nota: 'Tutto quello che fa sembrare il monitor del locale e non di Bluetech. Con più marchi, qui in alto c è il selettore del marchio.'
+  },
+  {
+    nome: 'Vetrine', ex: 'ex Promozioni › Set',
+    salva: 'salva da sé',
+    voci: ['Elenco con stato in onda', 'Regole riusabili', 'La settimana in onda', 'Ordine di priorità'],
+    nota: 'Le vetrine e le regole. Ogni riga dice se è in onda, coperta, fuori orario, vuota o spenta, e perché. L ordine si trascina.'
+  },
+  {
+    nome: 'Contenuti', ex: 'ex Promozioni › gallerie', salva: 'salva da sé',
+    voci: ['Foto', 'Video', 'Promozioni', 'Dove è usato ogni file'],
+    nota: 'Le tre gallerie. Caricamento trascinando, selezione multipla, e per ogni file l elenco delle vetrine che lo usano. L editor della promozione si apre di lato con l anteprima nei tre posti.'
+  },
+  {
+    nome: 'Schermi', ex: 'ex Dispositivi', salva: 'salva da sé',
+    voci: ['Abbinamento col codice', 'Stato dal vivo', 'Disposizione forzata', 'Larghezza del conto', 'Animazioni'],
+    nota: 'Qui vivono tutti gli override per singolo schermo. Il titolare li vede e li cambia; il tecnico in più assegna cassa e stampante.'
+  },
+  {
+    nome: 'Statistiche', ex: 'uguale', salva: 'solo lettura',
+    voci: ['Vendite e incasso', 'QR di pagamento', 'Scontrini digitali', 'Copie di carta', 'Scansioni per vetrina'],
+    nota: 'Con una colonna nuova: quante volte è stato inquadrato il QR di ogni vetrina, se il servizio dei buoni è attivo. È l unico modo perché il titolare capisca quali posti rendono.'
+  }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      titolare: TITOLARE.map(function (s) {
+        return {
+          nome: s.nome, ex: s.ex, nota: s.nota, salva: s.salva,
+          voci: s.voci.map(function (v) { return { t: v }; })
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Grazie — 4:3 Trattoria</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;1,400&amp;family=Alegreya+Sans:wght@400;500;700&amp;display=swap">
+<style>
+body { margin: 0; background: #F6EEE2; }
+a { color: #9C3A1F; }
+a:hover { color: #6B2A14; }
+@keyframes bt-ring { 0% { transform: scale(0.6); opacity: 0.6; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes bt-rise { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: none; } }
+.bt-ring { animation: bt-ring 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
+.bt-ring2 { animation: bt-ring 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.14s infinite; }
+.bt-ring3 { animation: bt-ring 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.28s infinite; }
+.bt-rise { animation: bt-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) { .bt-ring, .bt-ring2, .bt-ring3, .bt-rise { animation: none; } }
+</style>
+</helmet>
+
+<div style="--c-primary: #9C3A1F; --c-accent: #1E6B4F; --c-bg: #F6EEE2; --c-surface: #FFFBF4; --c-text: #2B211A; --c-muted: #6B5B49; width: 1024px; height: 768px; box-sizing: border-box; position: relative; overflow: hidden; background: #F6EEE2; color: #2B211A; font-family: 'Alegreya Sans', 'Segoe UI', sans-serif">
+
+  <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 65% 58% at 34% 46%, rgba(201,138,94,0.32) 0%, rgba(201,138,94,0) 62%), linear-gradient(170deg, #F8F1E6 0%, #EFE3D2 100%)"></div>
+
+  <div style="position: absolute; left: 32%; top: 48%; transform: translate(-50%, -50%); width: 360px; height: 360px; display: flex; align-items: center; justify-content: center">
+    <div class="bt-ring" style="position: absolute; width: 280px; height: 280px; border-radius: 50%; border: 2px solid rgba(156,58,31,0.75)"></div>
+    <div class="bt-ring2" style="position: absolute; width: 280px; height: 280px; border-radius: 50%; border: 2px solid rgba(30,107,79,0.5)"></div>
+    <div class="bt-ring3" style="position: absolute; width: 280px; height: 280px; border-radius: 50%; border: 2px solid rgba(43,33,26,0.16)"></div>
+  </div>
+
+  <div style="position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 34px 40px; display: flex; flex-direction: column; gap: 16px">
+
+    <div style="height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 12px">
+      <svg width="30" height="30" viewBox="0 0 58 58" role="img" aria-label="Logo del locale (segnaposto)">
+        <circle cx="29" cy="29" r="27.5" fill="none" stroke="rgba(43,33,26,0.3)" stroke-width="2"></circle>
+        <path d="M20 40 Q29 14 38 40" fill="none" stroke="#9C3A1F" stroke-width="3.2" stroke-linecap="round"></path>
+        <line x1="20" y1="40" x2="38" y2="40" stroke="#2B211A" stroke-width="2.8"></line>
+      </svg>
+      <div style="font-family: 'Newsreader', Georgia, serif; font-size: 22px; font-weight: 600">Trattoria del Borgo</div>
+    </div>
+
+    <div class="bt-rise" style="flex-grow: 1; min-height: 0; display: flex; align-items: center; gap: 44px">
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+        <div style="font-family: 'Newsreader', Georgia, serif; font-size: 72px; font-weight: 600; line-height: 1.0; letter-spacing: -0.02em">Grazie<br>e arrivederci</div>
+        <div style="display: flex; align-items: baseline; gap: 14px">
+          <div style="font-size: 15px; letter-spacing: 0.2em; text-transform: uppercase; color: #6B5B49">Pagato</div>
+          <div style="font-family: 'Newsreader', Georgia, serif; font-size: 40px; font-weight: 600; font-variant-numeric: tabular-nums">€ 18,90</div>
+        </div>
+      </div>
+
+      <div style="width: 300px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 14px">
+        <div style="width: 240px; height: 240px; box-sizing: border-box; border-radius: 16px; background: #FFFFFF; padding: 32px; border: 1px solid rgba(43,33,26,0.1); display: flex; align-items: center; justify-content: center">
+          <div role="img" aria-label="Codice QR per lasciare una recensione" style="display: grid; grid-template-rows: repeat(25, 1fr); width: 176px; height: 176px; color: #000000">
+            <sc-for list="{{qr}}" as="row" hint-placeholder-count="25">
+              <div style="display: grid; grid-template-columns: repeat(25, 1fr)">
+                <sc-for list="{{row.cells}}" as="c" hint-placeholder-count="25">
+                  <div style="background: {{c.fill}}"></div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="text-align: center">
+          <div style="font-size: 22px; font-weight: 700">Com'è andata?</div>
+          <div style="font-size: 16px; color: #6B5B49; margin-top: 4px">Lascia una recensione</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px">
+      <div style="font-size: 14px; color: #6B5B49">Dopo 8 secondi torna in attesa.</div>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div style="font-size: 13px; color: #6B5B49">powered by</div>
+        <svg width="20" height="20" viewBox="0 0 34 34" role="img" aria-label="Marchio Bluetech (segnaposto)">
+          <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1F6FEB" stroke-width="2.6"></rect>
+          <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#2B211A" stroke-width="3" stroke-linecap="round"></path>
+        </svg>
+        <div style="font-family: 'Newsreader', Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0.16em; color: #2B211A">BLUETECH</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1024,"height":768}}'>
+class Component extends DCLogic {
+  qrRows(n, seed) {
+    var m = [], i, j, y, x;
+    for (i = 0; i < n; i++) { m.push(new Array(n).fill(0)); }
+    for (var f = 0; f < 3; f++) {
+      var r0 = f === 2 ? n - 7 : 0;
+      var c0 = f === 1 ? n - 7 : 0;
+      for (y = 0; y < 7; y++) {
+        for (x = 0; x < 7; x++) {
+          var on = (y === 0 || y === 6 || x === 0 || x === 6) || (y >= 2 && y <= 4 && x >= 2 && x <= 4);
+          m[r0 + y][c0 + x] = on ? 1 : 0;
+        }
+      }
+    }
+    for (i = 8; i < n - 8; i++) { m[6][i] = i % 2 === 0 ? 1 : 0; m[i][6] = i % 2 === 0 ? 1 : 0; }
+    for (y = 0; y < 5; y++) {
+      for (x = 0; x < 5; x++) {
+        var on2 = (y === 0 || y === 4 || x === 0 || x === 4) || (y === 2 && x === 2);
+        m[n - 9 + y][n - 9 + x] = on2 ? 1 : 0;
+      }
+    }
+    var s = seed;
+    function rnd() { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; }
+    function blocked(r, c) {
+      if (r < 9 && c < 9) { return true; }
+      if (r < 9 && c >= n - 8) { return true; }
+      if (r >= n - 8 && c < 9) { return true; }
+      if (r === 6 || c === 6) { return true; }
+      if (r >= n - 10 && r <= n - 4 && c >= n - 10 && c <= n - 4) { return true; }
+      return false;
+    }
+    for (i = 0; i < n; i++) {
+      for (j = 0; j < n; j++) { if (!blocked(i, j)) { m[i][j] = rnd() > 0.5 ? 1 : 0; } }
+    }
+    return m.map(function (row) {
+      return { cells: row.map(function (v) { return { fill: v ? 'currentColor' : 'transparent' }; }) };
+    });
+  }
+  renderVals() {
+    return { qr: this.qrRows(25, 77310410) };
+  }
+}
+</script>
+</body>
+</html>

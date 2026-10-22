@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Configurazione — livelli ed eredità</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+</style>
+</helmet>
+
+<div style="width: 1800px; height: 2800px; box-sizing: border-box; padding: 56px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 40px">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; flex-shrink: 0">
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: #6F7E95">impostazioni.json · versione 3</div>
+      <h1 style="margin: 0; font-family: 'Archivo', sans-serif; font-size: 52px; font-weight: 700; line-height: 1.04; letter-spacing: -0.025em">Quattro livelli, e il diritto<br>di tornare indietro</h1>
+    </div>
+    <div style="max-width: 64ch; font-size: 17px; line-height: 1.6; color: #9AA6BA">Resta un file JSON che il tecnico legge, copia e porta via: è un vincolo, non un compromesso. Cambia come è organizzato dentro — e cambia perché i cinque limiti che avete già individuato sono tutti conseguenze della stessa cosa, cioè che oggi esiste un solo piano.</div>
+  </div>
+
+  <!-- L'ALBERO -->
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 22px">L'albero nuovo</div>
+    <pre style="margin: 0; background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 28px 32px; font-family: 'IBM Plex Mono', monospace; font-size: 15px; line-height: 1.75; color: #C9D4E4; overflow: hidden">impostazioni.json
+├─ versione: 3
+│
+├─ <span style="color: #F2A33C">installazione</span>                      <span style="color: #6F7E95">tecnico · al riavvio dell'Agent</span>
+│  ├─ cartelle { dati, log, display, giorniLog }
+│  ├─ rete { porta, apertoInRete, https }
+│  ├─ backOfficeDallaRete
+│  └─ accessi[] { <span style="color: #3DDC97">ruolo: titolare | tecnico</span>, hash }
+│
+├─ <span style="color: #6FA8FF">marchi[]</span>                           <span style="color: #6F7E95">titolare · vale subito</span>
+│  ├─ id, nome                          <span style="color: #3DDC97">// più di uno: bar e ristorante</span>
+│  ├─ identita  { nomeLocale, sottotitolo, logo, logoChiaro }
+│  ├─ aspetto   { tema, modo, giornoDalle, giornoAlle, colori{8},
+│  │              fontTitoli, fontTesto, raggio, vetro, footer,
+│  │              fondo, fondoMedia }
+│  ├─ schermo   { animazioni, <span style="color: #3DDC97">attrazione</span>, <span style="color: #3DDC97">colonneConto</span>,
+│  │              <span style="color: #3DDC97">colonneContoPagamento</span>, <span style="color: #3DDC97">colonnaAllineamento</span>,
+│  │              qrPagamento, prezziSoloSulConto, righeCompatte }
+│  ├─ scritte   { benvenuto, scorrevole, titoloConto, grazie,
+│  │              secondiGrazie, <span style="color: #3DDC97">etichettaPromo</span> }
+│  ├─ vendita   { chiusuraDopoSecondi, scontrinoDigitale{...},
+│  │              <span style="color: #3DDC97">receipt{ carta, qr, reclame, ordine }</span> }
+│  └─ contenuti
+│     ├─ media[]      { id, nome, tipo, byte, caricatoIl,
+│     │                 <span style="color: #3DDC97">focus{x,y}, haScritte</span> }
+│     ├─ promozioni[] { id, nome, <span style="color: #3DDC97">etichetta</span>, titolo, testo, immagine,
+│     │                 <span style="color: #3DDC97">modello</span>, qr, qrDidascalia, dalGiorno, alGiorno }
+│     ├─ <span style="color: #3DDC97">regole[]</span>     { id, nome, casse[], giorni[], dalle, alle,
+│     │                 dalGiorno, alGiorno }   <span style="color: #6F7E95">// riusabili</span>
+│     └─ <span style="color: #3DDC97">vetrine[]</span>    { id, nome, attiva, posti[], <span style="color: #3DDC97">regola</span>, ordine,
+│                       qrOgni, secondi, elementi[{ id, secondi }] }
+│
+├─ <span style="color: #C06CFF">casse[]</span>                            <span style="color: #6F7E95">tecnico il file, titolare il resto</span>
+│  └─ { id, nome, <span style="color: #3DDC97">marchio</span>, fileCassa,
+│       <span style="color: #3DDC97">override? { scritte }</span> }
+│
+├─ <span style="color: #C06CFF">schermi[]</span>                          <span style="color: #6F7E95">ex “dispositivi” · vale subito</span>
+│  └─ { id, nome, token(hash), cassa, stampante, autorizzatoIl,
+│       <span style="color: #3DDC97">override? { disposizione, animazioni, attrazione,
+│                   colonneConto, colonnaAllineamento }</span> }
+│
+└─ stampanti[]                        <span style="color: #6F7E95">tecnico</span>
+   └─ { id, nome, collegamento, indirizzo, larghezzaMm, colonne,
+        tabellaCaratteri, qrPuntiPerModulo, taglio, testoRitiro,
+        timeoutSecondi }</pre>
+    <div style="font-size: 15px; color: #6F7E95">In verde quello che non esiste oggi.</div>
+  </div>
+
+  <!-- COSA SI SPOSTA -->
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 22px">Cosa si sposta, e perché</div>
+    <div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; overflow: hidden">
+      <div style="display: grid; grid-template-columns: 300px 300px 1fr; background: rgba(255,255,255,0.05); font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.08em">
+        <div style="padding: 15px 20px; color: #9AA6BA">Oggi sta in</div>
+        <div style="padding: 15px 20px; border-left: 1px solid rgba(255,255,255,0.08); color: #9AA6BA">Va in</div>
+        <div style="padding: 15px 20px; border-left: 1px solid rgba(255,255,255,0.08); color: #9AA6BA">Perché</div>
+      </div>
+      <sc-for list="{{spostamenti}}" as="s" hint-placeholder-count="7">
+        <div style="{{s.row}}">
+          <div style="padding: 14px 20px; font-size: 15px; color: #9AA6BA">{{s.da}}</div>
+          <div style="padding: 14px 20px; border-left: 1px solid rgba(255,255,255,0.08); font-size: 15px; font-weight: 500; color: #E6EAF2">{{s.a}}</div>
+          <div style="padding: 14px 20px; border-left: 1px solid rgba(255,255,255,0.08); font-size: 15px; line-height: 1.5; color: #9AA6BA">{{s.perche}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- EREDITÀ -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex-shrink: 0">
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 16px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600">Come si legge un valore</div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1)">
+          <div style="flex-grow: 1; font-size: 15px">Animazioni</div>
+          <div style="font-size: 15px; font-weight: 600">Piena</div>
+          <div style="font-size: 13px; color: #6F7E95">dal locale</div>
+        </div>
+        <div style="padding-left: 20px; font-size: 20px; color: #6F7E95">↓</div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-radius: 12px; background: rgba(31,111,235,0.12); border: 1px solid rgba(31,111,235,0.45)">
+          <div style="flex-grow: 1; font-size: 15px">Animazioni · palmare sala 2</div>
+          <div style="font-size: 15px; font-weight: 600; color: #9EC2FF">Leggera</div>
+          <div style="font-size: 13px; color: #6FA8FF">su questo schermo</div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; padding-top: 4px">
+          <div style="font-size: 14px; color: #3DDC97; border: 1px solid rgba(61,220,151,0.4); border-radius: 999px; padding: 5px 14px">riporta al valore del locale</div>
+        </div>
+      </div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Un valore ereditato si vede com'è e dice da dove viene. Appena lo tocchi diventa tuo, e accanto compare il ritorno. <strong style="color: #E6EAF2">Senza quel ritorno l'ereditarietà è una trappola</strong>: si sovrascrive per sbaglio e nessuno sa più quale fosse il valore buono.</p>
+    </div>
+
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 16px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600">Due ruoli, due back office</div>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <div style="border-radius: 14px; padding: 18px; background: rgba(61,220,151,0.08); border: 1px solid rgba(61,220,151,0.35)">
+          <div style="font-size: 17px; font-weight: 600; color: #3DDC97; margin-bottom: 6px">Titolare</div>
+          <div style="font-size: 15px; line-height: 1.55; color: #C7E8D8">Il locale, l'aspetto, le vetrine, le promozioni, le statistiche. Non vede casse, stampanti, rete, log. Non può rompere un'installazione.</div>
+        </div>
+        <div style="border-radius: 14px; padding: 18px; background: rgba(242,163,60,0.08); border: 1px solid rgba(242,163,60,0.35)">
+          <div style="font-size: 17px; font-weight: 600; color: #F2A33C; margin-bottom: 6px">Tecnico Bluetech</div>
+          <div style="font-size: 15px; line-height: 1.55; color: #E9D6B8">Tutto, più installazione, casse, schermi, stampanti, rete e log. Entra con la sua password, e il pannello mostra in alto che sta operando da tecnico.</div>
+        </div>
+      </div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Una password sola per due mestieri è il motivo per cui oggi il titolare si trova davanti il percorso di un file di Passepartout. Due hash nello stesso array, nessun server, nessun account: resta tutto dentro il file.</p>
+    </div>
+  </div>
+
+  <!-- MIGRAZIONE -->
+  <div style="background: rgba(31,111,235,0.1); border: 1px solid rgba(31,111,235,0.38); border-radius: 20px; padding: 30px; display: flex; flex-direction: column; gap: 16px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 24px; font-weight: 700; color: #9EC2FF">La migrazione gira da sola al primo avvio</div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 40px; font-size: 16px; line-height: 1.6; color: #C6DAFB">
+      <div>· <code>Aspetto</code> diventa <code>marchi[0]</code>, chiamato come il locale.</div>
+      <div>· <code>Dispositivi</code> diventano <code>schermi</code>; <code>Disposizione</code> finisce in <code>override</code>.</div>
+      <div>· Casse, giorni e orari di ogni <code>Set</code> diventano una <code>regola</code> col nome del set.</div>
+      <div>· <code>Password</code> diventa <code>accessi[0]</code> con ruolo titolare; il ruolo tecnico resta vuoto finché non lo si imposta.</div>
+      <div>· <code>Set</code> diventa <code>vetrina</code> e punta alla sua regola.</div>
+      <div>· <code>ScontrinoDigitale</code> e <code>ChiusuraVendita</code> entrano nel marchio.</div>
+      <div>· I token nuovi partono dai valori di oggi: attrazione <strong style="font-weight: 600">Vivo</strong>, colonneConto <strong style="font-weight: 600">16</strong>, allineamento <strong style="font-weight: 600">basso</strong>, receipt carta+QR.</div>
+      <div>· Il file vecchio resta come <code>impostazioni.v2.bak</code> e il log scrive riga per riga cosa è stato spostato.</div>
+    </div>
+    <div style="border-top: 1px solid rgba(31,111,235,0.3); padding-top: 14px; font-size: 16px; line-height: 1.6; color: #C6DAFB">
+      Due regole identiche generate da due set diversi vengono unite in una sola, col nome di entrambe (“Aperitivo · Serata jazz”). È il primo momento in cui il titolare vede che le regole sono riusabili, e lo vede su roba sua.
+    </div>
+  </div>
+
+  <!-- VINCOLI RISPETTATI -->
+  <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 24px 28px; font-size: 16px; line-height: 1.65; color: #9AA6BA; flex-shrink: 0">
+    <strong style="color: #E6EAF2; font-weight: 600">I vincoli restano tutti.</strong> Un file JSON solo, leggibile e copiabile; <code>dati\media\</code> accanto con l'impronta come nome; nessun database; tutto vale subito tranne la rete; ogni salvataggio validato con messaggi in italiano; si rifiuta solo una modifica che <em>aggiunge</em> un problema; il <code>.bak</code> del file precedente; la riparazione all'avvio di un file scritto male a mano. L'unica cosa che cresce è la profondità dell'albero — e in cambio sparisce il motivo per cui oggi un locale con due marchi non si può fare.
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1800,"height":2800}}'>
+var SPOST = [
+  { da: 'Aspetto (unico per l Agent)', a: 'marchi[].aspetto', perche: 'Un installazione può servire due marchi. Oggi le casse filtrano solo i set: l aspetto resta uno, e il bar si ritrova il tema del ristorante.' },
+  { da: 'Opzioni › Scontrino digitale', a: 'marchi[].vendita', perche: 'Cambia cosa vede il cliente a schermo. Stava in Opzioni perché il codice lo trattava come impostazione di servizio, non perché il titolare lo pensi lì.' },
+  { da: 'Opzioni › Chiusura conto', a: 'marchi[].vendita', perche: 'Stesso motivo: decide dopo quanti secondi lo schermo torna in attesa. È comportamento del display.' },
+  { da: 'Aspetto › Secondi Grazie', a: 'marchi[].scritte', perche: 'Sta accanto al testo del saluto che governa. Oggi una durata è in Aspetto e l altra in Opzioni: nessuno le trova.' },
+  { da: 'Set › casse, giorni, orari', a: 'contenuti.regole[]', perche: 'Una condizione come “il venerdì sera” serve a più vetrine. Dentro al set non è riusabile e va riscritta ogni volta, con gli errori che ne seguono.' },
+  { da: 'Dispositivi › Disposizione', a: 'schermi[].override', perche: 'È la prima di una famiglia: animazioni, attrazione, larghezza del conto, allineamento. Tutte dipendono dal pezzo di vetro, non dal locale.' },
+  { da: 'Password (una)', a: 'installazione.accessi[]', perche: 'Due mestieri diversi dietro la stessa porta. Il titolare non deve poter toccare il percorso di un file di Passepartout.' }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      spostamenti: SPOST.map(function (s, i) {
+        return {
+          da: s.da, a: s.a, perche: s.perche,
+          row: { display: 'grid', gridTemplateColumns: '300px 300px 1fr', borderTop: '1px solid rgba(255,255,255,0.08)', background: i % 2 === 1 ? 'rgba(255,255,255,0.02)' : 'transparent' }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

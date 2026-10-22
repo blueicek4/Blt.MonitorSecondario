@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Caroselli, rotazione e transizioni</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+@keyframes car-a { 0%, 42% { opacity: 1; } 50%, 92% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes car-b { 0%, 42% { opacity: 0; } 50%, 92% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes car-push-a { 0%, 40% { transform: translateX(0); } 52%, 92% { transform: translateX(-100%); } 100% { transform: translateX(0); } }
+@keyframes car-push-b { 0%, 40% { transform: translateX(100%); } 52%, 92% { transform: translateX(0); } 100% { transform: translateX(100%); } }
+@keyframes car-kb { from { transform: scale(1); } to { transform: scale(1.1) translateX(-10px); } }
+.car-a { animation: car-a 7s linear infinite; }
+.car-b { animation: car-b 7s linear infinite; }
+.car-pa { animation: car-push-a 7s cubic-bezier(0.16,1,0.3,1) infinite; }
+.car-pb { animation: car-push-b 7s cubic-bezier(0.16,1,0.3,1) infinite; }
+.car-kb { animation: car-kb 9s linear infinite alternate; }
+@media (prefers-reduced-motion: reduce) { .car-a, .car-b, .car-pa, .car-pb, .car-kb { animation: none; } }
+</style>
+</helmet>
+
+<div style="width: 1600px; height: 1200px; box-sizing: border-box; padding: 56px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 30px">
+
+  <div style="display: flex; flex-direction: column; gap: 12px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: #6F7E95">Sistema pubblicitario</div>
+    <h1 style="margin: 0; font-family: 'Archivo', sans-serif; font-size: 48px; font-weight: 700; line-height: 1.05; letter-spacing: -0.025em">La transizione dipende da cosa c'era e cosa viene</h1>
+    <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #9AA6BA; max-width: 100ch">Oggi la playlist usa sempre la dissolvenza. Funziona, ed è il motivo per cui due foto consecutive sembrano la stessa slide che respira. Una regola a tre righe risolve: la transizione la sceglie la <em>coppia</em> di elementi, non l'impostazione.</p>
+  </div>
+
+  <!-- LA REGOLA -->
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; flex-shrink: 0">
+
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+      <div style="position: relative; height: 150px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08)">
+        <div class="car-a" style="position: absolute; inset: 0; background: linear-gradient(130deg, #4A3526 0%, #1A120D 100%)"></div>
+        <div class="car-b" style="position: absolute; inset: 0; background: linear-gradient(130deg, #24404A 0%, #0D1A1F 100%)"></div>
+      </div>
+      <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600">Foto → foto</div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6FA8FF">dissolvenza 1200 ms · Ken Burns continuo</div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #9AA6BA">Due immagini si fondono. Il Ken Burns <strong style="color: #E6EAF2">non si ferma e non riparte</strong>: la seconda entra già in movimento, con direzione opposta alla prima. È quello che fa sembrare la playlist un filmato invece di un album.</p>
+    </div>
+
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+      <div style="position: relative; height: 150px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08)">
+        <div class="car-pa" style="position: absolute; inset: 0; background: #122034; display: flex; align-items: center; padding: 0 16px">
+          <div>
+            <div style="font-size: 9px; letter-spacing: 0.18em; color: #3DDC97">PROMOZIONE</div>
+            <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 700">Il brunch</div>
+          </div>
+        </div>
+        <div class="car-pb" style="position: absolute; inset: 0; background: #16283A; display: flex; align-items: center; padding: 0 16px">
+          <div>
+            <div style="font-size: 9px; letter-spacing: 0.18em; color: #3DDC97">QUESTA SETTIMANA</div>
+            <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 700">Serata jazz</div>
+          </div>
+        </div>
+      </div>
+      <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600">Promo → promo</div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6FA8FF">spinta laterale 520 ms</div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #9AA6BA">Due schede di testo che si dissolvono l'una nell'altra diventano illeggibili a metà strada. Spingendo, in ogni istante c'è <strong style="color: #E6EAF2">un solo testo a piena opacità</strong>. Direzione sempre la stessa: destra verso sinistra, come una lettura.</p>
+    </div>
+
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+      <div style="position: relative; height: 150px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08)">
+        <div class="car-kb" style="position: absolute; inset: 0; background: linear-gradient(130deg, #4A3526 0%, #1A120D 100%)"></div>
+        <div class="car-b" style="position: absolute; inset: 0; background: rgba(11,16,23,0.72); display: flex; align-items: center; padding: 0 16px">
+          <div>
+            <div style="font-size: 9px; letter-spacing: 0.18em; color: #3DDC97">PROMOZIONE</div>
+            <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 700">Il brunch</div>
+          </div>
+        </div>
+      </div>
+      <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600">Foto → promo (e viceversa)</div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6FA8FF">dissolvenza 900 ms + scrim a seguire</div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #9AA6BA">Prima entra l'immagine, poi scende lo scrim, poi sale il testo. Tre tempi, 900 + 200 + 420 ms. Se arrivassero insieme il titolo sembrerebbe stampato nella foto — il difetto numero uno di oggi.</p>
+    </div>
+  </div>
+
+  <!-- LA TIMELINE -->
+  <div style="display: flex; flex-direction: column; gap: 16px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 22px">La rotazione: ordine casuale con “un QR ogni 2”</div>
+
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; align-items: stretch; gap: 10px">
+        <sc-for list="{{seq}}" as="s" hint-placeholder-count="8">
+          <div style="{{s.box}}">
+            <div style="font-size: 11px; letter-spacing: 0.14em; color: {{s.kicker}}">{{s.tipo}}</div>
+            <div style="font-size: 15px; font-weight: 600; line-height: 1.25">{{s.nome}}</div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #6F7E95; margin-top: auto">{{s.dur}}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 32px; font-size: 15px; line-height: 1.6; color: #9AA6BA; flex-wrap: wrap">
+        <div style="flex: 1; min-width: 280px"><strong style="color: #E6EAF2; display: block; margin-bottom: 3px">Il QR non entra a caso</strong>La regola “uno ogni 2” lo inserisce a cadenza fissa dentro una sequenza casuale. Senza, il caso può metterne due di fila o nessuno per un giro intero.</div>
+        <div style="flex: 1; min-width: 280px"><strong style="color: #E6EAF2; display: block; margin-bottom: 3px">Il QR dura di più</strong>15 s contro i 7 delle altre. È il tempo minimo perché qualcuno noti, decida, prenda il telefono e inquadri. Sotto, il QR è decorazione.</div>
+        <div style="flex: 1; min-width: 280px"><strong style="color: #E6EAF2; display: block; margin-bottom: 3px">Il video non si interrompe</strong>Dura quanto dura, e sospende il conteggio degli altri. Un video tagliato a 7 s è peggio che non metterlo.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- I TRE CONTESTI -->
+  <div style="flex-grow: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px">
+    <sc-for list="{{ctx}}" as="c" hint-placeholder-count="3">
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600">{{c.nome}}</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #6FA8FF">{{c.ritmo}}</div>
+        </div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">{{c.desc}}</p>
+        <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; font-size: 14px; color: #3DDC97">{{c.resa}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":1200}}'>
+var SEQ = [
+  { tipo: 'FOTO', nome: 'Sala la sera', dur: '7 s', qr: false },
+  { tipo: 'PROMO', nome: 'Serata jazz', dur: '7 s', qr: false },
+  { tipo: 'PROMO + QR', nome: 'Diventa cliente', dur: '15 s', qr: true },
+  { tipo: 'VIDEO', nome: 'La cucina', dur: '24 s', qr: false },
+  { tipo: 'FOTO', nome: 'Il tagliere', dur: '7 s', qr: false },
+  { tipo: 'PROMO + QR', nome: 'Prenota il brunch', dur: '15 s', qr: true },
+  { tipo: 'FOTO', nome: 'La terrazza', dur: '7 s', qr: false },
+  { tipo: 'PROMO', nome: 'Chiuso il lunedì', dur: '7 s', qr: false }
+];
+
+var CTX = [
+  { nome: 'Attesa', ritmo: '7 s · 15 s con QR', desc: 'A tutto schermo, con il logo e il nastro sopra. È il contesto con più spazio e meno attenzione: il cliente è girato, sta parlando, sta per ordinare. Va trattato come digital signage, non come un messaggio diretto.', resa: 'resa bassa, copertura altissima' },
+  { nome: 'Accanto al conto', ritmo: '12 s · 8 s a Spettacolo', desc: 'Una colonna stretta mentre il cassiere batte. Il cliente guarda lo schermo per il totale, e la colonna è nel suo campo visivo per trenta secondi buoni. Niente QR qui, tranne durante il pagamento: le mani sono occupate.', resa: 'resa media, attenzione garantita' },
+  { nome: 'Grazie', ritmo: 'uno solo · fino a 30 s', desc: 'Un elemento per cliente, mai due QR. Il pagamento è finito, il telefono è già in mano, e nessuno ha fretta di andarsene nei tre secondi dopo aver pagato. È qui che un QR si trasforma in un cliente registrato.', resa: 'resa alta, una sola occasione' }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      seq: SEQ.map(function (s) {
+        return {
+          tipo: s.tipo, nome: s.nome, dur: s.dur,
+          kicker: s.qr ? '#3DDC97' : '#6F7E95',
+          box: {
+            flex: s.dur === '24 s' ? '1.6' : (s.qr ? '1.3' : '1'),
+            minWidth: 0,
+            borderRadius: '10px',
+            padding: '14px',
+            background: s.qr ? 'rgba(61,220,151,0.1)' : 'rgba(255,255,255,0.04)',
+            border: '1px solid ' + (s.qr ? 'rgba(61,220,151,0.4)' : 'rgba(255,255,255,0.1)'),
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '5px',
+            minHeight: '104px'
+          }
+        };
+      }),
+      ctx: CTX
+    };
+  }
+}
+</script>
+</body>
+</html>

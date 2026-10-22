@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Conto a 1280×800 — tema Giorno</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #F4F6FA; }
+@keyframes f8-pan { from { transform: scale(1.06); } to { transform: scale(1.12) translateX(-14px); } }
+@keyframes f8-row { 0% { opacity: 0; transform: translateY(14px) scale(0.985); } 46% { opacity: 1; transform: translateY(-2px); } 100% { opacity: 1; transform: none; } }
+@keyframes f8-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.014); } }
+.f8-pan { animation: f8-pan 18s linear infinite alternate; }
+.f8-pulse { animation: f8-pulse 3.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .f8-pan, .f8-pulse { animation: none; } }
+</style>
+</helmet>
+
+<div style="width: 1280px; height: 800px; box-sizing: border-box; position: relative; overflow: hidden; background: #F4F6FA; color: #10151D; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif">
+
+  <div class="f8-pan" style="position: absolute; inset: -5%">
+    <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 46% 56% at 62% 34%, #E8B480 0%, rgba(232,180,128,0) 60%), radial-gradient(ellipse 40% 50% at 20% 70%, #9DC4DE 0%, rgba(157,196,222,0) 58%), linear-gradient(145deg, #D8C3AC 0%, #AFC3D4 58%, #8FA3B8 100%)"></div>
+  </div>
+  <!-- tema chiaro: lo scrim e' bianco, non nero. Stesso principio, segno invertito. -->
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(244,246,250,0.72) 0%, rgba(244,246,250,0.82) 52%, rgba(244,246,250,0.9) 100%)"></div>
+
+  <div style="position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 32px 38px 26px; display: flex; flex-direction: column; gap: 15px">
+
+    <div style="height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 18px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <svg width="29" height="29" viewBox="0 0 58 58" role="img" aria-label="Logo del locale (segnaposto)">
+          <circle cx="29" cy="29" r="27.5" fill="none" stroke="rgba(16,21,29,0.3)" stroke-width="1.8"></circle>
+          <path d="M17 38 L29 16 L41 38 Z" fill="none" stroke="#10151D" stroke-width="3" stroke-linejoin="round"></path>
+          <line x1="17" y1="38" x2="41" y2="38" stroke="#0E7A52" stroke-width="3"></line>
+        </svg>
+        <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: 0.06em">LA VELA</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; color: #5A6679">
+        <div style="font-size: 15px">Cassa 1 · Tavolo 7</div>
+        <div style="width: 7px; height: 7px; border-radius: 50%; background: #0E7A52"></div>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1; min-height: 0; display: flex; gap: 24px; align-items: flex-end">
+
+      <!-- 16/24 di 1280 = 853, meno il gap -->
+      <div style="width: 790px; flex-shrink: 0; box-sizing: border-box; border-radius: 18px; padding: 22px 26px; background: rgba(255,255,255,0.74); border: 1px solid rgba(16,21,29,0.1); box-shadow: 0 10px 34px rgba(16,21,29,0.1); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 10px">
+
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 14px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #5A6679">Il tuo conto</div>
+          <div style="font-size: 14px; color: #5A6679; font-variant-numeric: tabular-nums">5 articoli · 2 coperti</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column">
+          <sc-for list="{{righe}}" as="r" hint-placeholder-count="6">
+            <div style="{{r.row}}">
+              <div style="{{r.nome}}">{{r.n}}</div>
+              <sc-if value="{{r.hasQ}}" hint-placeholder-val="{{ true }}">
+                <div style="{{r.q}}">{{r.qt}}</div>
+              </sc-if>
+              <sc-if value="{{r.hasP}}" hint-placeholder-val="{{ true }}">
+                <div style="{{r.p}}">{{r.pz}}</div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <div class="f8-pulse" style="margin-top: 2px; border-radius: 10px; padding: 16px 20px; background: #1757C2; border: 1px solid #1757C2; color: #FFFFFF; display: flex; align-items: flex-end; justify-content: space-between; gap: 18px">
+          <div style="display: flex; flex-direction: column; gap: 3px; padding-bottom: 10px">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase">Totale</div>
+            <div style="font-size: 13px; opacity: 0.88">IVA inclusa</div>
+          </div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 124px; font-weight: 700; line-height: 0.9; letter-spacing: -0.035em; font-variant-numeric: tabular-nums">€ 87,00</div>
+        </div>
+      </div>
+
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 10px">
+        <div style="border-radius: 18px; overflow: hidden; border: 1px solid rgba(16,21,29,0.1); background: rgba(255,255,255,0.74); box-shadow: 0 10px 34px rgba(16,21,29,0.1); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px)">
+          <div style="position: relative; height: 142px; background: linear-gradient(135deg, #BFD8C8 0%, #8FB3A0 100%)">
+            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); border: 1px dashed rgba(16,21,29,0.35); border-radius: 8px; padding: 7px 11px; font-size: 11px; letter-spacing: 0.12em; color: rgba(16,21,29,0.6)">FOTO 16:9</div>
+          </div>
+          <div style="padding: 17px 19px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #0E7A52">Il consiglio della casa</div>
+            <div style="font-family: 'Archivo', sans-serif; font-size: 23px; font-weight: 700; line-height: 1.08">Tiramisù della casa</div>
+            <div style="font-size: 14px; line-height: 1.4; color: #5A6679">Fatto stamattina. Sei euro.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 18px">
+      <div style="display: flex; align-items: center; gap: 9px; font-size: 11px; color: #5A6679">
+        <div style="border: 1px solid rgba(16,21,29,0.16); border-radius: 999px; padding: 4px 9px">disposizione larga · 1,60</div>
+        <div style="border: 1px solid rgba(14,122,82,0.45); border-radius: 999px; padding: 4px 9px; color: #0E7A52">tema chiaro: scrim bianco 0,72→0,90 · ombra al posto del bordo luminoso</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div style="font-size: 11px; color: #5A6679">powered by</div>
+        <svg width="17" height="17" viewBox="0 0 34 34" role="img" aria-label="Marchio Bluetech (segnaposto)">
+          <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1757C2" stroke-width="2.8"></rect>
+          <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#10151D" stroke-width="3.2" stroke-linecap="round"></path>
+        </svg>
+        <div style="font-family: 'Archivo', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.16em">BLUETECH</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+var RIGHE = [
+  { n: 'Tomino con Verdure Grigliate', pz: '12,00' },
+  { n: 'I 4 salumi', pz: '12,00' },
+  { n: 'Tagliere Emilia', qt: '×2', pz: '30,00' },
+  { n: 'senza lardo', nota: true },
+  { n: 'Cestino di tigelle 4 pezzi', qt: '×2', pz: '6,00', verde: true },
+  { n: 'Tagliere Vecchia Malga', qt: '×2', pz: '27,00', nuova: true }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      righe: RIGHE.map(function (r) {
+        return {
+          n: r.n, qt: r.qt, pz: r.pz, hasQ: !!r.qt, hasP: !!r.pz,
+          row: { display: 'flex', alignItems: 'baseline', gap: '14px', padding: r.nota ? '7px 0 7px 20px' : '9px 0', borderBottom: '1px solid rgba(16,21,29,0.1)', animation: r.nuova ? 'f8-row 420ms cubic-bezier(0.22,1.2,0.36,1) both' : 'none' },
+          nome: r.nota
+            ? { flexGrow: 1, fontSize: '17px', fontStyle: 'italic', color: '#5A6679' }
+            : { flexGrow: 1, fontSize: '24px', fontWeight: 500 },
+          q: { fontSize: '19px', color: r.verde ? '#0E7A52' : '#5A6679', fontWeight: r.verde ? 600 : 400, fontVariantNumeric: 'tabular-nums' },
+          p: { width: '104px', textAlign: 'right', fontSize: '26px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

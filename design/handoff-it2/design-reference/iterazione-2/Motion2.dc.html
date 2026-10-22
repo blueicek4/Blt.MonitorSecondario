@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Motion — una curva per ogni tipo di riga</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+
+@keyframes m-item { 0%, 10% { opacity: 0; transform: translateY(18px) scale(0.985); } 22% { opacity: 1; transform: translateY(-3px) scale(1.004); } 30%, 100% { opacity: 1; transform: none; } }
+@keyframes m-qty { 0%, 16% { opacity: 0; transform: scale(0.8); } 28%, 100% { opacity: 1; transform: none; } }
+@keyframes m-note { 0%, 10% { opacity: 0; transform: translateX(-14px); } 26%, 100% { opacity: 0.75; transform: none; } }
+@keyframes m-sweep { 0%, 22% { transform: translateX(-120%); } 44%, 100% { transform: translateX(260%); } }
+@keyframes m-void-strike { 0%, 20% { transform: scaleX(0); } 36%, 100% { transform: scaleX(1); } }
+@keyframes m-void-fade { 0%, 20% { opacity: 1; } 40% { opacity: 0.45; } 82% { opacity: 0.45; } 94%, 100% { opacity: 0; } }
+@keyframes m-void-collapse { 0%, 86% { transform: scaleY(1); } 100% { transform: scaleY(0); } }
+@keyframes m-bump { 0%, 24% { transform: scale(1); } 34% { transform: scale(1.3); } 46%, 100% { transform: scale(1); } }
+@keyframes m-flashrow { 0%, 22%, 100% { background: transparent; } 32% { background: rgba(61,220,151,0.16); } }
+@keyframes m-slide-in { 0%, 8% { opacity: 0; transform: translateY(24px) scale(1.02); } 26%, 92% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-14px); } }
+@keyframes m-col-swap { 0%, 6% { opacity: 0; transform: translateY(18px); } 20%, 86% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-18px); } }
+@keyframes m-price-in { 0%, 30% { opacity: 0; transform: translateX(12px); } 50%, 100% { opacity: 1; transform: none; } }
+
+.m-item { animation: m-item 4s cubic-bezier(0.22,1.2,0.36,1) infinite; }
+.m-qty { animation: m-qty 4s cubic-bezier(0.22,1.4,0.36,1) infinite; display: inline-block; }
+.m-note { animation: m-note 4s cubic-bezier(0.16,1,0.3,1) infinite; }
+.m-sweep { animation: m-sweep 4s cubic-bezier(0.16,1,0.3,1) infinite; }
+.m-strike { animation: m-void-strike 6s cubic-bezier(0.16,1,0.3,1) infinite; transform-origin: left center; }
+.m-voidfade { animation: m-void-fade 6s linear infinite; }
+.m-collapse { animation: m-void-collapse 6s cubic-bezier(0.16,1,0.3,1) infinite; transform-origin: center top; }
+.m-bump { animation: m-bump 4s cubic-bezier(0.22,1.4,0.36,1) infinite; display: inline-block; }
+.m-flashrow { animation: m-flashrow 4s linear infinite; }
+.m-slide { animation: m-slide-in 6s cubic-bezier(0.16,1,0.3,1) infinite; }
+.m-col { animation: m-col-swap 5s cubic-bezier(0.16,1,0.3,1) infinite; }
+.m-price { animation: m-price-in 4s cubic-bezier(0.16,1,0.3,1) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .m-item, .m-qty, .m-note, .m-sweep, .m-strike, .m-voidfade, .m-collapse, .m-bump, .m-flashrow, .m-slide, .m-col, .m-price { animation: none; }
+}
+</style>
+</helmet>
+
+<div style="width: 1400px; height: 3200px; box-sizing: border-box; padding: 56px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 42px">
+
+  <div style="display: flex; flex-direction: column; gap: 16px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: #6F7E95">Motion — estensione di MOTION.md</div>
+    <h1 style="margin: 0; font-family: 'Archivo', sans-serif; font-size: 56px; font-weight: 700; line-height: 1.05; letter-spacing: -0.025em">Il movimento dice<br>che tipo di riga è</h1>
+    <p style="margin: 0; font-size: 18px; line-height: 1.6; color: #9AA6BA; max-width: 88ch">Nel primo giro tutte le righe entravano allo stesso modo. È lo spreco più grande del prodotto: il cliente guarda lo schermo tre secondi, e in quei tre secondi il modo in cui una riga arriva può dirgli già che quello è uno sconto, che quella pizza è stata tolta, che la quantità è salita a due. Qui ogni variante ha la sua coreografia, e la differenza è leggibile anche senza leggere.</p>
+  </div>
+
+  <!-- LE VARIANTI DI RIGA -->
+  <div style="display: flex; flex-direction: column; gap: 16px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 22px">Sette comportamenti</div>
+
+    <!-- articolo normale -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: grid; grid-template-columns: 1fr 420px; gap: 26px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: baseline; gap: 12px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600">Articolo normale</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6FA8FF">420 ms · molla</div>
+        </div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Sale di 18 px con una sovraelongazione appena percettibile. È la base: deve notarsi che è arrivata qualcosa, senza che la riga chieda attenzione. Tutto il resto si misura rispetto a questa.</p>
+      </div>
+      <div style="height: 86px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; padding: 0 20px; overflow: hidden">
+        <div class="m-item" style="display: flex; align-items: baseline; justify-content: space-between; width: 100%">
+          <div style="font-size: 20px">Tomino con Verdure</div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums">12,00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- quantità -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: grid; grid-template-columns: 1fr 420px; gap: 26px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: baseline; gap: 12px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600">Con quantità</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6FA8FF">420 ms + 80 ms di ritardo</div>
+        </div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">La riga entra come le altre; il moltiplicatore arriva 80 ms dopo, scalando da 0,8. Quel ritardo minuscolo è ciò che fa percepire la quantità come un'informazione in più e non come parte del nome dell'articolo.</p>
+      </div>
+      <div style="height: 86px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; padding: 0 20px; overflow: hidden">
+        <div class="m-item" style="display: flex; align-items: baseline; justify-content: space-between; width: 100%; gap: 14px">
+          <div style="font-size: 20px; flex-grow: 1">Tagliere Emilia</div>
+          <div class="m-qty" style="font-size: 17px; color: #9AA6BA; font-variant-numeric: tabular-nums">×2</div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums">30,00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- riga ripetuta -->
+    <div style="background: #141B26; border: 1px solid rgba(61,220,151,0.3); border-radius: 18px; padding: 24px; display: grid; grid-template-columns: 1fr 420px; gap: 26px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: baseline; gap: 12px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600">Articolo già presente</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #3DDC97">nuovo · 340 ms</div>
+        </div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Oggi battere due volte lo stesso articolo crea due righe identiche — si vede nelle schermate, “Cestino di tigelle” compare due volte. Se la cassa le manda separate il display le riunisce: la quantità salta con un rimbalzo e la riga fa un lampo. <strong style="color: #E6EAF2; font-weight: 600">Una lista più corta è una lista più leggibile</strong>, e il movimento spiega da solo cosa è successo.</p>
+      </div>
+      <div style="height: 86px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; padding: 0 20px; overflow: hidden">
+        <div class="m-flashrow" style="display: flex; align-items: baseline; justify-content: space-between; width: 100%; gap: 14px; padding: 8px 10px; margin: 0 -10px; border-radius: 8px">
+          <div style="font-size: 20px; flex-grow: 1">Cestino di tigelle</div>
+          <div class="m-bump" style="font-size: 17px; color: #3DDC97; font-variant-numeric: tabular-nums; font-weight: 600">×2</div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums">6,00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- nota -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: grid; grid-template-columns: 1fr 420px; gap: 26px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: baseline; gap: 12px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600">Variante e testo libero</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6FA8FF">300 ms · uscita, da sinistra</div>
+        </div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Non sale: <strong style="color: #E6EAF2; font-weight: 600">scivola da sinistra</strong> e si ferma a opacità 0,75. Una variante è un commento alla riga sopra, non un fatto nuovo: muoversi su un asse diverso lo dice senza bisogno di un'icona o di un rientro più marcato.</p>
+      </div>
+      <div style="height: 86px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; justify-content: center; padding: 0 20px; gap: 6px; overflow: hidden">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; opacity: 0.45">
+          <div style="font-size: 18px">Pizza Margherita</div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums">8,50</div>
+        </div>
+        <div class="m-note" style="font-size: 17px; font-style: italic; color: #9AA6BA; padding-left: 22px">senza basilico</div>
+      </div>
+    </div>
+
+    <!-- sconto -->
+    <div style="background: #141B26; border: 1px solid rgba(61,220,151,0.4); border-radius: 18px; padding: 24px; display: grid; grid-template-columns: 1fr 420px; gap: 26px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: baseline; gap: 12px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600; color: #3DDC97">Sconto</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #3DDC97">420 ms + traccia 600 ms</div>
+        </div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Entra come un articolo, poi una traccia d'accento attraversa la riga da sinistra a destra. È l'unico momento in cui il display si permette di festeggiare qualcosa, e il motivo è commerciale: <strong style="color: #E6EAF2; font-weight: 600">uno sconto che il cliente non nota è uno sconto regalato</strong>. A livello TROPPO la traccia diventa un lampo sull'intera riga.</p>
+      </div>
+      <div style="height: 86px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; padding: 0 20px; overflow: hidden; position: relative">
+        <div class="m-item" style="display: flex; align-items: baseline; justify-content: space-between; width: 100%; color: #3DDC97; position: relative; overflow: hidden">
+          <div style="font-size: 20px">Sconto 10%</div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums">−3,00</div>
+          <div class="m-sweep" style="position: absolute; top: -14px; bottom: -14px; left: 0; width: 90px; background: linear-gradient(90deg, rgba(61,220,151,0) 0%, rgba(61,220,151,0.28) 50%, rgba(61,220,151,0) 100%)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- maggiorazione -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: grid; grid-template-columns: 1fr 420px; gap: 26px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: baseline; gap: 12px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600">Maggiorazione</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6FA8FF">420 ms · nessuna traccia</div>
+        </div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Stessa famiglia dello sconto, stesso colore d'accento, <strong style="color: #E6EAF2; font-weight: 600">ma nessuna traccia e nessun lampo</strong>. La differenza è voluta: una brutta notizia si mostra con chiarezza e non si festeggia. Chi guarda capisce che è della stessa natura dello sconto, e che non è la stessa cosa.</p>
+      </div>
+      <div style="height: 86px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; padding: 0 20px; overflow: hidden">
+        <div class="m-item" style="display: flex; align-items: baseline; justify-content: space-between; width: 100%; color: #3DDC97">
+          <div style="font-size: 20px">Maggiorazione festivo</div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums">+2,00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- storno -->
+    <div style="background: #141B26; border: 1px solid rgba(242,163,60,0.35); border-radius: 18px; padding: 24px; display: grid; grid-template-columns: 1fr 420px; gap: 26px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: baseline; gap: 12px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 600; color: #F2A33C">Storno</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #F2A33C">320 + 240 ms, poi 6 s, poi esce</div>
+        </div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA"><strong style="color: #E6EAF2; font-weight: 600">L'unica animazione in uscita del prodotto.</strong> La riga non entra: quella che c'è già si corregge. La barratura si disegna da sinistra a destra in 320 ms, il colore sbiadisce in 240 ms, la riga resta 6 s perché il cliente possa vedere cosa è stato tolto, poi collassa in altezza e sparisce. Il totale si aggiorna all'inizio della barratura, non alla fine: il numero non deve aspettare l'animazione.</p>
+      </div>
+      <div style="height: 86px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; padding: 0 20px; overflow: hidden">
+        <div class="m-collapse" style="width: 100%">
+          <div class="m-voidfade" style="display: flex; align-items: baseline; justify-content: space-between; width: 100%; position: relative">
+            <div style="font-size: 20px">Pizza Diavola</div>
+            <div style="font-family: 'Archivo', sans-serif; font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums">9,00</div>
+            <div class="m-strike" style="position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #9AA6BA"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LE NUOVE COREOGRAFIE -->
+  <div style="display: flex; flex-direction: column; gap: 16px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 22px">Le coreografie nuove del brief 2</div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: baseline; gap: 12px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600">Ingresso della slide promozione</div>
+        </div>
+        <div style="height: 130px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); overflow: hidden; padding: 16px; box-sizing: border-box">
+          <div class="m-slide" style="height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 6px">
+            <div style="font-size: 11px; letter-spacing: 0.18em; color: #3DDC97">PROMOZIONE</div>
+            <div style="font-family: 'Archivo', sans-serif; font-size: 24px; font-weight: 700">Il brunch della domenica</div>
+            <div style="font-size: 14px; color: #9AA6BA">Dalle 11 alle 15, su prenotazione.</div>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">L'immagine di fondo entra in dissolvenza (1200 ms) <strong style="color: #E6EAF2">prima</strong> del testo, che sale di 24 px con 260 ms di ritardo. Senza quel ritardo il titolo sembra stampato sulla foto; con il ritardo sembra appoggiato sopra. Il QR, se c'è, è l'ultimo: entra in sola opacità a 460 ms, perché un QR che si muove non si inquadra.</p>
+      </div>
+
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600">Rotazione della colonna laterale</div>
+        <div style="height: 130px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); overflow: hidden; padding: 16px; box-sizing: border-box; display: flex; gap: 12px">
+          <div style="flex-grow: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03)"></div>
+          <div style="width: 130px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; display: flex; align-items: center; justify-content: center">
+            <div class="m-col" style="text-align: center; padding: 8px">
+              <div style="font-size: 10px; letter-spacing: 0.16em; color: #3DDC97; margin-bottom: 4px">PROMOZIONE</div>
+              <div style="font-family: 'Archivo', sans-serif; font-size: 15px; font-weight: 700; line-height: 1.2">Aperitivo al tramonto</div>
+            </div>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">La scheda esce verso l'alto e la successiva entra dal basso, 420 ms, con 120 ms di sovrapposizione. <strong style="color: #E6EAF2">Mai durante l'ingresso di una riga</strong>: il display rimanda il cambio di 1,5 s se la cassa sta battendo. Due cose che si muovono insieme in punti diversi dello schermo si annullano.</p>
+      </div>
+
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600">I prezzi che compaiono</div>
+        <div style="height: 130px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); overflow: hidden; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 10px">
+          <div style="display: flex; justify-content: space-between; align-items: baseline">
+            <div style="font-size: 17px">Tagliere Emilia</div>
+            <div class="m-price" style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums">30,00</div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline">
+            <div style="font-size: 17px">Cestino di tigelle</div>
+            <div class="m-price" style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums">3,00</div>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Con “prezzi solo sul conto”, quando la cassa mostra il conto gli importi entrano <strong style="color: #E6EAF2">dall'esterno verso l'interno</strong>, 12 px da destra, a cascata dall'alto con 40 ms fra una riga e l'altra. Il totale arriva per ultimo, 300 ms dopo l'ultimo importo. È il momento più teatrale di tutto il prodotto e dura meno di un secondo.</p>
+      </div>
+
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600">Grazie, e poi lo scontrino</div>
+        <div style="height: 130px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); overflow: hidden; padding: 16px; box-sizing: border-box; display: flex; align-items: center; gap: 10px">
+          <div style="flex: 1; text-align: center; font-family: 'Archivo', sans-serif; font-size: 16px; font-weight: 700">Grazie</div>
+          <div style="color: #6F7E95; font-size: 20px">→</div>
+          <div style="flex: 1; display: flex; align-items: center; justify-content: center"><div style="width: 54px; height: 54px; background: #FFFFFF; border-radius: 6px"></div></div>
+          <div style="color: #6F7E95; font-size: 20px">→</div>
+          <div style="flex: 1; display: flex; align-items: center; justify-content: center"><div style="width: 40px; height: 54px; background: #F7F4EE; border-radius: 4px"></div></div>
+        </div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">La celebrazione (900 ms) finisce <strong style="color: #E6EAF2">prima</strong> che la reclame entri: due spettacoli insieme non si vedono. La reclame sale a 420 ms dalla fine degli anelli. Se poi arriva il QR dello scontrino digitale, è lui l'elemento condiviso che si ingrandisce verso il centro, con la carta che si srotola sotto, 520 ms.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABELLA LIVELLI -->
+  <div style="display: flex; flex-direction: column; gap: 16px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 22px">Le stesse sette, nei tre livelli di animazione</div>
+    <div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; overflow: hidden">
+      <div style="display: grid; grid-template-columns: 240px repeat(3, minmax(0, 1fr)); background: rgba(255,255,255,0.05); font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.08em">
+        <div style="padding: 14px 18px; color: #9AA6BA">Variante</div>
+        <div style="padding: 14px 18px; border-left: 1px solid rgba(255,255,255,0.08)">Piena</div>
+        <div style="padding: 14px 18px; border-left: 1px solid rgba(255,255,255,0.08)">Leggera</div>
+        <div style="padding: 14px 18px; border-left: 1px solid rgba(255,255,255,0.08)">Eco</div>
+      </div>
+      <sc-for list="{{lev}}" as="r" hint-placeholder-count="7">
+        <div style="{{r.rowStyle}}">
+          <div style="padding: 13px 18px; font-size: 15px; font-weight: 500">{{r.v}}</div>
+          <div style="padding: 13px 18px; border-left: 1px solid rgba(255,255,255,0.08); font-size: 14px; color: #9AA6BA">{{r.p}}</div>
+          <div style="padding: 13px 18px; border-left: 1px solid rgba(255,255,255,0.08); font-size: 14px; color: #9AA6BA">{{r.l}}</div>
+          <div style="padding: 13px 18px; border-left: 1px solid rgba(255,255,255,0.08); font-size: 14px; color: #9AA6BA">{{r.e}}</div>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #6F7E95">In Eco le sette varianti restano distinguibili: cambia il colore, il barrato, il rientro, il moltiplicatore. Si perde il movimento, non l'informazione. È la prova che la differenziazione non è decorazione.</p>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1400,"height":3200}}'>
+var LEV = [
+  { v: 'Articolo normale', p: 'molla 420 ms, sovraelongazione', l: 'uscita 300 ms, nessun rimbalzo', e: 'opacità 160 ms' },
+  { v: 'Con quantità', p: 'moltiplicatore a 80 ms, scala 0,8', l: 'moltiplicatore insieme alla riga', e: 'nessun ritardo' },
+  { v: 'Articolo già presente', p: 'rimbalzo del numero + lampo riga', l: 'rimbalzo ridotto, nessun lampo', e: 'il numero cambia e basta' },
+  { v: 'Variante / testo libero', p: 'scivola da sinistra, 300 ms', l: 'scivola 220 ms', e: 'opacità 140 ms' },
+  { v: 'Sconto', p: 'traccia d accento 600 ms', l: 'traccia 400 ms, meno intensa', e: 'nessuna traccia, solo colore' },
+  { v: 'Maggiorazione', p: 'come articolo, colore accento', l: 'uguale', e: 'uguale' },
+  { v: 'Storno', p: 'barratura 320 + sbiadita 240 + collasso', l: 'barratura 220, collasso secco', e: 'compare già barrata, poi sparisce' }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      lev: LEV.map(function (r, i) {
+        return {
+          v: r.v, p: r.p, l: r.l, e: r.e,
+          rowStyle: {
+            display: 'grid',
+            gridTemplateColumns: '240px repeat(3, minmax(0, 1fr))',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+            background: i % 2 === 1 ? 'rgba(255,255,255,0.02)' : 'transparent'
+          }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

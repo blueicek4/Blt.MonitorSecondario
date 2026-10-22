@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Quattro temi, giorno e notte</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Newsreader:ital,wght@0,400;0,600&amp;family=Alegreya+Sans:wght@400;500;700&amp;family=Cormorant+Garamond:wght@400;600&amp;family=Jost:wght@300;400;500&amp;family=Syne:wght@600;800&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+</style>
+</helmet>
+
+<div style="width: 1960px; height: 960px; box-sizing: border-box; padding: 40px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 26px">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-shrink: 0">
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95">Confronto temi</div>
+      <h1 style="margin: 0; font-family: 'Archivo', sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -0.02em">Quattro temi, ciascuno in giorno e notte</h1>
+    </div>
+    <div style="font-size: 16px; line-height: 1.55; color: #9AA6BA; max-width: 56ch; text-align: right">Stesso layout, stesse proporzioni, stessa posizione del totale e del footer Bluetech. Cambiano solo i token. Ogni locale scegli il tema e se vuole la variante giorno, la variante notte, o il passaggio automatico sull'orario di apertura.</div>
+  </div>
+
+  <div style="flex-grow: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 24px">
+    <sc-for list="{{panels}}" as="t" hint-placeholder-count="8">
+      <div style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+
+        <!-- miniatura dello stato Conto, 16:9 -->
+        <div style="{{t.screen}}">
+          <div style="{{t.glow}}"></div>
+          <div style="position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+
+            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0">
+              <div style="{{t.mark}}"></div>
+              <div style="{{t.venue}}">LA VELA</div>
+            </div>
+
+            <div style="{{t.card}}">
+              <div style="{{t.row}}">
+                <div style="{{t.desc}}">Pizza Margherita</div>
+                <div style="{{t.amount}}">8,50</div>
+              </div>
+              <div style="{{t.row}}">
+                <div style="{{t.desc}}">Acqua naturale 0,75 l</div>
+                <div style="{{t.amount}}">2,50</div>
+              </div>
+              <div style="{{t.rowAccent}}">
+                <div style="{{t.descAccent}}">Sconto 10%</div>
+                <div style="{{t.amountAccent}}">−2,10</div>
+              </div>
+              <div style="flex-grow: 1"></div>
+              <div style="{{t.totalBox}}">
+                <div style="{{t.totalLabel}}">Totale</div>
+                <div style="{{t.totalValue}}">€ 18,90</div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 5px; flex-shrink: 0">
+              <div style="{{t.powered}}">powered by</div>
+              <div style="{{t.footMark}}"></div>
+              <div style="{{t.footWord}}">BLUETECH</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- didascalia -->
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600">{{t.name}}</div>
+          <div style="{{t.badge}}">{{t.mode}}</div>
+        </div>
+
+        <!-- token principali -->
+        <div style="display: flex; gap: 6px">
+          <sc-for list="{{t.swatches}}" as="s" hint-placeholder-count="5">
+            <div style="{{s.box}}"></div>
+          </sc-for>
+        </div>
+
+        <div style="font-size: 13px; line-height: 1.45; color: #9AA6BA">{{t.note}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1960,"height":960}}'>
+var PALETTES = {
+  'bluetech-notte': { bg: '#0B1017', panel: 'rgba(255,255,255,0.06)', panelSolid: '#141B26', line: 'rgba(255,255,255,0.1)', text: '#E6EAF2', muted: '#9AA6BA', primary: '#1F6FEB', onPrimary: '#FFFFFF', accent: '#3DDC97', fd: "'Archivo', sans-serif", ft: "'IBM Plex Sans', sans-serif", radius: 10, totalFill: 'linear-gradient(180deg, rgba(31,111,235,0.22), rgba(31,111,235,0.05))', totalBorder: 'rgba(31,111,235,0.45)', totalText: '#E6EAF2' },
+  'bluetech-giorno': { bg: '#F4F6FA', panel: '#FFFFFF', panelSolid: '#FFFFFF', line: 'rgba(16,21,29,0.1)', text: '#10151D', muted: '#5A6679', primary: '#1757C2', onPrimary: '#FFFFFF', accent: '#0E7A52', fd: "'Archivo', sans-serif", ft: "'IBM Plex Sans', sans-serif", radius: 10, totalFill: '#1757C2', totalBorder: '#1757C2', totalText: '#FFFFFF' },
+  'trattoria-notte': { bg: '#1C1512', panel: 'rgba(242,231,217,0.07)', panelSolid: '#261D18', line: 'rgba(242,231,217,0.14)', text: '#F2E7D9', muted: '#B8A694', primary: '#D4714A', onPrimary: '#1C1512', accent: '#7FC4A3', fd: "'Newsreader', Georgia, serif", ft: "'Alegreya Sans', sans-serif", radius: 6, totalFill: '#D4714A', totalBorder: '#D4714A', totalText: '#1C1512' },
+  'trattoria-giorno': { bg: '#F6EEE2', panel: '#FFFBF4', panelSolid: '#FFFBF4', line: 'rgba(43,33,26,0.13)', text: '#2B211A', muted: '#6B5B49', primary: '#9C3A1F', onPrimary: '#FFFFFF', accent: '#1E6B4F', fd: "'Newsreader', Georgia, serif", ft: "'Alegreya Sans', sans-serif", radius: 6, totalFill: '#9C3A1F', totalBorder: '#9C3A1F', totalText: '#FFFFFF' },
+  'fine-notte': { bg: '#0C0B09', panel: 'rgba(237,230,215,0.05)', panelSolid: '#16140F', line: 'rgba(237,230,215,0.14)', text: '#EDE6D7', muted: '#A39781', primary: '#C9A227', onPrimary: '#141210', accent: '#8FB39B', fd: "'Cormorant Garamond', Georgia, serif", ft: "'Jost', sans-serif", radius: 2, totalFill: 'transparent', totalBorder: '#C9A227', totalText: '#EDE6D7' },
+  'fine-giorno': { bg: '#F7F4EC', panel: '#FFFDF7', panelSolid: '#FFFDF7', line: 'rgba(26,23,18,0.13)', text: '#1A1712', muted: '#6E6454', primary: '#8A6D14', onPrimary: '#FFFFFF', accent: '#3F6B55', fd: "'Cormorant Garamond', Georgia, serif", ft: "'Jost', sans-serif", radius: 2, totalFill: 'transparent', totalBorder: '#8A6D14', totalText: '#1A1712' },
+  'cocktail-notte': { bg: '#0A0616', panel: 'rgba(240,234,255,0.07)', panelSolid: '#16102B', line: 'rgba(240,234,255,0.15)', text: '#F0EAFF', muted: '#A99BC8', primary: '#C06CFF', onPrimary: '#0A0616', accent: '#35F5C8', fd: "'Syne', sans-serif", ft: "'Space Grotesk', sans-serif", radius: 9, totalFill: 'linear-gradient(180deg, rgba(192,108,255,0.28), rgba(53,245,200,0.08))', totalBorder: 'rgba(192,108,255,0.6)', totalText: '#F0EAFF' },
+  'cocktail-giorno': { bg: '#F6F2FD', panel: '#FFFFFF', panelSolid: '#FFFFFF', line: 'rgba(23,15,35,0.1)', text: '#170F23', muted: '#5C5270', primary: '#7A2BC4', onPrimary: '#FFFFFF', accent: '#0C7A6B', fd: "'Syne', sans-serif", ft: "'Space Grotesk', sans-serif", radius: 9, totalFill: '#7A2BC4', totalBorder: '#7A2BC4', totalText: '#FFFFFF' }
+};
+
+var ORDER = [
+  { key: 'bluetech-notte', name: 'Bluetech', mode: 'Notte', note: 'Il default. Inchiostro freddo, blu tecnico, vetro sulla card. Il tema su cui gira la demo.' },
+  { key: 'trattoria-notte', name: 'Trattoria', mode: 'Notte', note: 'Legno e terracotta su fondo scuro: per le sale serali con luci basse.' },
+  { key: 'fine-notte', name: 'Fine dining', mode: 'Notte', note: 'Nero caldo, oro, angoli vivi, molto respiro. Niente vetro, niente gradienti.' },
+  { key: 'cocktail-notte', name: 'Cocktail bar', mode: 'Notte', note: 'Viola e menta al neon, gradienti vivi. Il più aggressivo dei quattro.' },
+  { key: 'bluetech-giorno', name: 'Bluetech', mode: 'Giorno', note: 'Superficie bianca su grigio freddo, ombra leggera invece del vetro. Per le sale con vetrate.' },
+  { key: 'trattoria-giorno', name: 'Trattoria', mode: 'Giorno', note: 'Carta e terracotta: il tema che i ristoratori riconoscono subito come il loro.' },
+  { key: 'fine-giorno', name: 'Fine dining', mode: 'Giorno', note: 'Avorio e oro scuro. Il primario si scurisce per tenere il bianco sopra leggibile.' },
+  { key: 'cocktail-giorno', name: 'Cocktail bar', mode: 'Giorno', note: 'Gli stessi accenti, saturati e scuriti: il neon di giorno non si legge.' }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    var panels = ORDER.map(function (o) {
+      var p = PALETTES[o.key];
+      var r = p.radius + 'px';
+      var rowBase = { display: 'flex', alignItems: 'baseline', gap: '8px', padding: '5px 0', borderBottom: '1px solid ' + p.line };
+      var swatchKeys = [p.bg, p.panelSolid, p.primary, p.accent, p.text];
+      return {
+        name: o.name,
+        mode: o.mode,
+        note: o.note,
+        screen: { width: '100%', aspectRatio: '16 / 9', position: 'relative', overflow: 'hidden', borderRadius: '12px', background: p.bg, color: p.text, fontFamily: p.ft, border: '1px solid rgba(255,255,255,0.12)' },
+        glow: { position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 50% 45% at 20% 18%, ' + p.primary + ' 0%, transparent 62%)', opacity: 0.14 },
+        mark: { width: '12px', height: '12px', borderRadius: '50%', border: '1.5px solid ' + p.primary },
+        venue: { fontFamily: p.fd, fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em' },
+        card: { flexGrow: 1, minHeight: 0, boxSizing: 'border-box', borderRadius: r, padding: '10px 12px', background: p.panel, border: '1px solid ' + p.line, display: 'flex', flexDirection: 'column' },
+        row: rowBase,
+        rowAccent: { display: 'flex', alignItems: 'baseline', gap: '8px', padding: '5px 0', borderBottom: '1px solid ' + p.line, color: p.accent },
+        desc: { flexGrow: 1, minWidth: 0, fontSize: '10px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+        descAccent: { flexGrow: 1, minWidth: 0, fontSize: '10px', fontWeight: 500 },
+        amount: { fontSize: '11px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' },
+        amountAccent: { fontSize: '11px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' },
+        totalBox: { marginTop: '8px', borderRadius: Math.max(p.radius - 3, 2) + 'px', padding: '7px 10px', background: p.totalFill, border: '1px solid ' + p.totalBorder, color: p.totalText, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '8px' },
+        totalLabel: { fontFamily: p.fd, fontSize: '8px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', opacity: 0.86, paddingBottom: '4px' },
+        totalValue: { fontFamily: p.fd, fontSize: '40px', fontWeight: 700, lineHeight: 0.9, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' },
+        powered: { fontSize: '7px', color: p.muted },
+        footMark: { width: '9px', height: '9px', borderRadius: '3px', border: '1.5px solid #1F6FEB' },
+        footWord: { fontFamily: p.fd, fontSize: '8px', fontWeight: 600, letterSpacing: '0.16em', color: p.text },
+        badge: { borderRadius: '999px', padding: '3px 10px', fontSize: '12px', letterSpacing: '0.08em', border: '1px solid rgba(255,255,255,0.18)', color: '#9AA6BA' },
+        swatches: swatchKeys.map(function (c) {
+          return { box: { width: '100%', height: '22px', borderRadius: '5px', background: c, border: '1px solid rgba(255,255,255,0.14)' } };
+        })
+      };
+    });
+    return { panels: panels };
+  }
+}
+</script>
+</body>
+</html>

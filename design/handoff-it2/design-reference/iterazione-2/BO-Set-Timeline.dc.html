@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Back office — la settimana in onda</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0E1217; }
+a { color: #6FA8FF; }
+a:hover { color: #9EC2FF; }
+</style>
+</helmet>
+
+<div style="width: 1366px; height: 768px; box-sizing: border-box; display: flex; flex-direction: column; background: #0E1217; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; overflow: hidden">
+
+  <div style="height: 52px; flex-shrink: 0; border-bottom: 1px solid #1E242D; display: flex; align-items: center; gap: 18px; padding: 0 18px; background: #11161D">
+    <div style="display: flex; align-items: center; gap: 9px">
+      <svg width="20" height="20" viewBox="0 0 34 34" role="img" aria-label="Bluetech">
+        <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1F6FEB" stroke-width="2.8"></rect>
+        <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#E6EAF2" stroke-width="3.2" stroke-linecap="round"></path>
+      </svg>
+      <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.14em">BLUETECH DISPLAY</div>
+    </div>
+    <div style="width: 1px; height: 22px; background: #1E242D"></div>
+    <div style="font-size: 13px; color: #8793A3">La Vela · ristorante</div>
+    <div style="flex-grow: 1"></div>
+    <div style="display: flex; align-items: center; gap: 7px; font-size: 12px; color: #3DDC97"><div style="width: 6px; height: 6px; border-radius: 50%; background: #3DDC97"></div>Salvato</div>
+  </div>
+
+  <div style="flex-grow: 1; min-height: 0; display: flex">
+
+    <div style="width: 186px; flex-shrink: 0; border-right: 1px solid #1E242D; background: #11161D; padding: 12px 10px; display: flex; flex-direction: column; gap: 3px">
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="6">
+        <div style="{{n.item}}">
+          <div style="{{n.dot}}"></div>
+          <div style="flex-grow: 1; min-width: 0">{{n.t}}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="flex-grow: 1; min-width: 0; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-shrink: 0">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 23px; font-weight: 700">Vetrine</div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <div style="font-size: 12px; color: #8793A3">Mostra</div>
+          <div style="display: flex; gap: 4px">
+            <div style="font-size: 11.5px; border-radius: 7px; padding: 5px 11px; background: #1F6FEB; color: #fff">Attesa</div>
+            <div style="font-size: 11.5px; border-radius: 7px; padding: 5px 11px; background: #161C24; border: 1px solid #262D38; color: #8793A3">Accanto al conto</div>
+            <div style="font-size: 11.5px; border-radius: 7px; padding: 5px 11px; background: #161C24; border: 1px solid #262D38; color: #8793A3">Grazie</div>
+          </div>
+          <div style="width: 1px; height: 20px; background: #1E242D"></div>
+          <div style="font-size: 11.5px; border-radius: 7px; padding: 5px 11px; background: #161C24; border: 1px solid #262D38; color: #C9D4E4">Cassa 1</div>
+        </div>
+      </div>
+
+      <!-- LA SETTIMANA -->
+      <div style="flex-shrink: 0; border-radius: 12px; border: 1px solid #262D38; background: #11161D; padding: 14px; display: flex; flex-direction: column; gap: 9px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between">
+          <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #6F7E95">La settimana in onda</div>
+          <div style="font-size: 11.5px; color: #6F7E95">adesso: venerdì 19:14</div>
+        </div>
+        <div style="display: flex; gap: 7px">
+          <!-- asse ore -->
+          <div style="width: 38px; flex-shrink: 0; position: relative; height: 300px">
+            <sc-for list="{{ore}}" as="o" hint-placeholder-count="6">
+              <div style="{{o.pos}}">{{o.t}}</div>
+            </sc-for>
+          </div>
+          <!-- giorni -->
+          <sc-for list="{{giorni}}" as="g" hint-placeholder-count="7">
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px">
+              <div style="{{g.head}}">{{g.n}}</div>
+              <div style="position: relative; height: 300px; border-radius: 7px; background: #161C24; border: 1px solid #262D38; overflow: hidden">
+                <sc-for list="{{g.bande}}" as="b" hint-placeholder-count="3">
+                  <div style="{{b.box}}">{{b.t}}</div>
+                </sc-for>
+                <sc-if value="{{g.ora}}" hint-placeholder-val="{{ true }}">
+                  <div style="position: absolute; left: 0; right: 0; top: 66%; height: 2px; background: #FFFFFF"></div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- ELENCO CON STATI -->
+      <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 7px; overflow: hidden">
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #6F7E95">Ordine di priorità · trascina per cambiare</div>
+          <button type="button" style="min-height: 30px; border-radius: 8px; border: none; background: #1F6FEB; color: #fff; font: inherit; font-size: 12.5px; font-weight: 600; padding: 0 14px; cursor: pointer">Nuova vetrina</button>
+        </div>
+        <sc-for list="{{vetrine}}" as="v" hint-placeholder-count="4">
+          <div style="{{v.row}}">
+            <div style="width: 14px; flex-shrink: 0; color: #4A5565; font-size: 14px; letter-spacing: -2px">⠿</div>
+            <div style="{{v.pill}}">{{v.stato}}</div>
+            <div style="width: 160px; flex-shrink: 0; font-size: 13.5px; font-weight: 600">{{v.nome}}</div>
+            <div style="flex-grow: 1; min-width: 0; font-size: 12.5px; color: #8793A3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{v.quando}}</div>
+            <div style="width: 230px; flex-shrink: 0; font-size: 12px; color: #6F7E95; text-align: right">{{v.perche}}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1366,"height":768}}'>
+var NAV = [
+  { t: 'Adesso', on: false },
+  { t: 'Il locale', on: false },
+  { t: 'Vetrine', on: true },
+  { t: 'Contenuti', on: false },
+  { t: 'Schermi', on: false },
+  { t: 'Statistiche', on: false }
+];
+
+// scala: 06:00 → 02:00, 20 ore su 300 px = 15 px/ora
+var ORE = [
+  { t: '06', h: 6 }, { t: '10', h: 10 }, { t: '14', h: 14 },
+  { t: '18', h: 18 }, { t: '22', h: 22 }, { t: '02', h: 26 }
+];
+
+var COL = {
+  sempre: { bg: 'rgba(31,111,235,0.3)', bd: 'rgba(31,111,235,0.55)', fg: '#BBD4FF' },
+  pranzo: { bg: 'rgba(61,220,151,0.26)', bd: 'rgba(61,220,151,0.5)', fg: '#BDEBD6' },
+  aperi: { bg: 'rgba(242,163,60,0.3)', bd: 'rgba(242,163,60,0.6)', fg: '#F6DDB4' },
+  jazz: { bg: 'rgba(192,108,255,0.28)', bd: 'rgba(192,108,255,0.55)', fg: '#E3CCFF' }
+};
+
+function banda(k, da, a, t) {
+  return { k: k, da: da, a: a, t: t };
+}
+
+var GIORNI = [
+  { n: 'lun', ora: false, bande: [banda('sempre', 6, 12, 'Sempre'), banda('pranzo', 12, 15, 'Pranzo'), banda('sempre', 15, 26, 'Sempre')] },
+  { n: 'mar', ora: false, bande: [banda('sempre', 6, 12, 'Sempre'), banda('pranzo', 12, 15, 'Pranzo'), banda('sempre', 15, 26, 'Sempre')] },
+  { n: 'mer', ora: false, bande: [banda('sempre', 6, 12, 'Sempre'), banda('pranzo', 12, 15, 'Pranzo'), banda('sempre', 15, 26, 'Sempre')] },
+  { n: 'gio', ora: false, bande: [banda('sempre', 6, 12, 'Sempre'), banda('pranzo', 12, 15, 'Pranzo'), banda('sempre', 15, 26, 'Sempre')] },
+  { n: 'ven', ora: true, bande: [banda('sempre', 6, 12, 'Sempre'), banda('pranzo', 12, 15, 'Pranzo'), banda('sempre', 15, 18, 'Sempre'), banda('aperi', 18, 20, 'Aperitivo'), banda('sempre', 20, 21, 'Sempre'), banda('jazz', 21, 26, 'Serata jazz')] },
+  { n: 'sab', ora: false, bande: [banda('sempre', 6, 26, 'Sempre')] },
+  { n: 'dom', ora: false, bande: [banda('sempre', 6, 11, 'Sempre'), banda('pranzo', 11, 15, 'Brunch'), banda('sempre', 15, 26, 'Sempre')] }
+];
+
+var VETRINE = [
+  { nome: 'Aperitivo', stato: 'In onda', c: '#3DDC97', quando: 'venerdì 18:00–20:00 · Cassa 1, Cassa 2 · attesa e accanto al conto', perche: '4 elementi · 1 QR ogni 2' },
+  { nome: 'Serata jazz', stato: 'Fuori orario', c: '#9AA6BA', quando: 'venerdì 21:00–01:00 · tutte le casse · attesa', perche: 'torna fra 1 ora e 46 minuti' },
+  { nome: 'Pranzo', stato: 'Fuori orario', c: '#9AA6BA', quando: 'lun–ven 12:00–15:00 · tutte le casse · attesa', perche: 'torna lunedì alle 12:00' },
+  { nome: 'Sempre', stato: 'Coperta', c: '#F2A33C', quando: 'tutti i giorni · tutte le casse · tutti i posti', perche: 'coperta da Aperitivo' }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    var top = function (h) { return ((h - 6) / 20 * 100) + '%'; };
+    var hgt = function (da, a) { return ((a - da) / 20 * 100) + '%'; };
+    return {
+      nav: NAV.map(function (n) {
+        return {
+          t: n.t,
+          item: { display: 'flex', alignItems: 'center', gap: '9px', minHeight: '34px', borderRadius: '8px', padding: '0 10px', fontSize: '13px', fontWeight: n.on ? 600 : 400, color: n.on ? '#E6EAF2' : '#8793A3', background: n.on ? '#1B2430' : 'transparent' },
+          dot: { width: '5px', height: '5px', borderRadius: '50%', flexShrink: 0, background: n.on ? '#1F6FEB' : '#39424F' }
+        };
+      }),
+      ore: ORE.map(function (o) {
+        return { t: o.t, pos: { position: 'absolute', right: '6px', top: top(o.h), transform: 'translateY(-50%)', fontSize: '10.5px', color: '#5A6675', fontVariantNumeric: 'tabular-nums' } };
+      }),
+      giorni: GIORNI.map(function (g) {
+        return {
+          n: g.n, ora: g.ora,
+          head: { textAlign: 'center', fontSize: '11.5px', fontWeight: g.ora ? 700 : 500, color: g.ora ? '#E6EAF2' : '#8793A3', textTransform: 'uppercase', letterSpacing: '0.08em' },
+          bande: g.bande.map(function (b) {
+            var c = COL[b.k];
+            var tall = (b.a - b.da) >= 3;
+            return {
+              t: tall ? b.t : '',
+              box: { position: 'absolute', left: '2px', right: '2px', top: top(b.da), height: hgt(b.da, b.a), borderRadius: '4px', background: c.bg, border: '1px solid ' + c.bd, color: c.fg, fontSize: '9.5px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', writingMode: 'horizontal-tb', padding: '0 2px', textAlign: 'center', lineHeight: 1.1 }
+            };
+          })
+        };
+      }),
+      vetrine: VETRINE.map(function (v, i) {
+        return {
+          nome: v.nome, stato: v.stato, quando: v.quando, perche: v.perche,
+          row: { display: 'flex', alignItems: 'center', gap: '12px', minHeight: '46px', borderRadius: '10px', padding: '0 14px', background: i === 0 ? 'rgba(61,220,151,0.07)' : '#161C24', border: '1px solid ' + (i === 0 ? 'rgba(61,220,151,0.3)' : '#262D38') },
+          pill: { width: '94px', flexShrink: 0, textAlign: 'center', borderRadius: '999px', padding: '4px 0', fontSize: '11.5px', fontWeight: 600, color: v.c, border: '1px solid ' + v.c + '55', background: v.c + '14' }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

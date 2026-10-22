@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>I livelli di attrazione</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+@keyframes att-row-sobrio { 0%, 8% { opacity: 0; } 20%, 100% { opacity: 1; } }
+@keyframes att-row-vivo { 0%, 8% { opacity: 0; transform: translateY(10px); } 24%, 100% { opacity: 1; transform: none; } }
+@keyframes att-row-spett { 0%, 8% { opacity: 0; transform: translateY(18px) scale(0.985); } 18% { opacity: 1; transform: translateY(-3px) scale(1.004); } 26%, 100% { opacity: 1; transform: none; } }
+@keyframes att-row-troppo { 0%, 8% { opacity: 0; transform: translateY(26px) scale(0.96); } 17% { opacity: 1; transform: translateY(-8px) scale(1.02); } 23% { transform: translateY(3px) scale(0.995); } 30%, 100% { opacity: 1; transform: none; } }
+@keyframes att-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.018); } }
+@keyframes att-flash { 0%, 70%, 100% { background: transparent; } 80% { background: rgba(61,220,151,0.22); } }
+@keyframes att-mesh-slow { 0% { transform: translate3d(0,0,0) scale(1); } 100% { transform: translate3d(18px,-14px,0) scale(1.06); } }
+@keyframes att-mesh-fast { 0% { transform: translate3d(0,0,0) scale(1); } 100% { transform: translate3d(46px,-34px,0) scale(1.16); } }
+.att-sobrio { animation: att-row-sobrio 4s ease-out infinite; }
+.att-vivo { animation: att-row-vivo 4s cubic-bezier(0.16,1,0.3,1) infinite; }
+.att-spett { animation: att-row-spett 4s cubic-bezier(0.22,1.2,0.36,1) infinite; }
+.att-troppo { animation: att-row-troppo 4s cubic-bezier(0.22,1.5,0.36,1) infinite; }
+.att-pulse { animation: att-breathe 2.6s ease-in-out infinite; }
+.att-flash { animation: att-flash 4s linear infinite; }
+.att-mesh-1 { animation: att-mesh-slow 18s ease-in-out infinite alternate; }
+.att-mesh-2 { animation: att-mesh-fast 7s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .att-sobrio, .att-vivo, .att-spett, .att-troppo, .att-pulse, .att-flash, .att-mesh-1, .att-mesh-2 { animation: none; }
+}
+</style>
+</helmet>
+
+<div style="width: 1600px; height: 3000px; box-sizing: border-box; padding: 64px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 48px">
+
+  <!-- INTESTAZIONE -->
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: #6F7E95">Il sistema — risolve 01, 02, 06</div>
+    <h1 style="margin: 0; font-family: 'Archivo', sans-serif; font-size: 64px; font-weight: 700; line-height: 1.04; letter-spacing: -0.025em">Da sobrio a TROPPO,<br>senza toccare il codice</h1>
+    <p style="margin: 0; font-size: 19px; line-height: 1.6; color: #9AA6BA; max-width: 90ch">Lo spettacolo non è una modalità del software: è un token. Il locale sceglie quanto il monitor deve attaccare il cliente, e il display obbedisce senza che cambi una riga di layout. Perché funzioni serve tenere separate due cose che oggi si confondono.</p>
+  </div>
+
+  <!-- I DUE ASSI -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex-shrink: 0">
+    <div style="background: rgba(31,111,235,0.1); border: 1px solid rgba(31,111,235,0.38); border-radius: 20px; padding: 30px; display: flex; flex-direction: column; gap: 12px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #6FA8FF">Asse A · attrazione</div>
+      <div style="font-family: 'Archivo', sans-serif; font-size: 30px; font-weight: 700">Quanto il monitor vende</div>
+      <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #C6DAFB">È una <strong style="font-weight: 600">scelta commerciale del titolare</strong>. Quante reclame, quanto spesso ruotano, quanti QR, quanto il display si fa notare mentre il cliente paga. Quattro gradini: Sobrio, Vivo, Spettacolo, TROPPO.</p>
+    </div>
+    <div style="background: rgba(61,220,151,0.08); border: 1px solid rgba(61,220,151,0.35); border-radius: 20px; padding: 30px; display: flex; flex-direction: column; gap: 12px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #3DDC97">Asse B · animazione</div>
+      <div style="font-family: 'Archivo', sans-serif; font-size: 30px; font-weight: 700">Quanto la macchina regge</div>
+      <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #C7E8D8">È un <strong style="font-weight: 600">vincolo tecnico</strong>, già nel pacchetto del primo giro. Piena, Leggera, Eco; sotto 45 fps scala da sola. Non ha niente a che vedere con quanto il locale vuole vendere.</p>
+    </div>
+  </div>
+
+  <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 22px 28px; font-size: 17px; line-height: 1.6; color: #9AA6BA; flex-shrink: 0">
+    I due assi sono indipendenti. <strong style="color: #E6EAF2; font-weight: 600">TROPPO su una cassa lenta resta TROPPO</strong>: stessa quantità di reclame, stessi QR, stessi colori accesi — solo fermi. L'errore da evitare è legare la quantità di pubblicità alla potenza del PC: il titolare che ha comprato il pacchetto promozioni non deve vedersene mostrare meno perché ha un computer vecchio.
+  </div>
+
+  <!-- I QUATTRO GRADINI -->
+  <div style="display: flex; flex-direction: column; gap: 22px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 24px">I quattro gradini, cosa cambia davvero</div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+
+      <!-- SOBRIO -->
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 26px 28px; display: grid; grid-template-columns: 220px 1fr 300px; gap: 28px; align-items: center">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 28px; font-weight: 700">Sobrio</div>
+          <div style="font-size: 15px; color: #9AA6BA">fine dining, gastronomie, chi non vuole vendere dallo schermo</div>
+        </div>
+        <div style="font-size: 16px; line-height: 1.65; color: #9AA6BA">Fondo a tinta unita o immagine ferma. Nessuna reclame durante il conto: la colonna laterale non esiste e il conto sta al centro. Nell'attesa solo logo, nome e testo scorrevole. Nessun QR tranne quello del pagamento e quello dello scontrino digitale. Il Grazie dura 8 s e non propone niente.</div>
+        <div style="height: 92px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; overflow: hidden">
+          <div class="att-sobrio" style="font-size: 15px">Tagliere Emilia</div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums">30,00</div>
+        </div>
+      </div>
+
+      <!-- VIVO -->
+      <div style="background: #141B26; border: 1px solid rgba(31,111,235,0.4); border-radius: 20px; padding: 26px 28px; display: grid; grid-template-columns: 220px 1fr 300px; gap: 28px; align-items: center">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 28px; font-weight: 700">Vivo</div>
+            <div style="font-size: 12px; letter-spacing: 0.12em; color: #6FA8FF; border: 1px solid rgba(111,168,255,0.5); border-radius: 999px; padding: 2px 10px">DEFAULT</div>
+          </div>
+          <div style="font-size: 15px; color: #9AA6BA">trattorie, pizzerie, la grande maggioranza</div>
+        </div>
+        <div style="font-size: 16px; line-height: 1.65; color: #9AA6BA">Playlist nell'attesa con dissolvenze lente. Colonna accanto al conto con una scheda che cambia ogni 12 s. Le righe entrano con un movimento breve. Il totale scorre a contachilometri. Un QR nel Grazie, mai più di uno. Celebrazione con un anello.</div>
+        <div style="height: 92px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; overflow: hidden">
+          <div class="att-vivo" style="font-size: 15px">Tagliere Emilia</div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums">30,00</div>
+        </div>
+      </div>
+
+      <!-- SPETTACOLO -->
+      <div style="position: relative; overflow: hidden; background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 26px 28px; display: grid; grid-template-columns: 220px 1fr 300px; gap: 28px; align-items: center">
+        <div class="att-mesh-1" style="position: absolute; inset: -20%; background: radial-gradient(ellipse 40% 60% at 20% 30%, rgba(31,111,235,0.22) 0%, transparent 62%), radial-gradient(ellipse 36% 50% at 78% 70%, rgba(61,220,151,0.12) 0%, transparent 60%)"></div>
+        <div style="position: relative; display: flex; flex-direction: column; gap: 6px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 28px; font-weight: 700">Spettacolo</div>
+          <div style="font-size: 15px; color: #9AA6BA">cocktail bar, locali di passaggio, catene</div>
+        </div>
+        <div style="position: relative; font-size: 16px; line-height: 1.65; color: #9AA6BA">Video sempre a schermo, sfocato e scurito dietro lo scontrino. Ken Burns sulle foto. Colonna che ruota ogni 8 s con transizione condivisa. Le righe entrano con la molla. Il totale fa il battito a ogni aggiornamento. Grazie con celebrazione a tre anelli e QR grande.</div>
+        <div style="position: relative; height: 92px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; overflow: hidden">
+          <div class="att-spett" style="font-size: 15px">Tagliere Emilia</div>
+          <div class="att-pulse" style="font-family: 'Archivo', sans-serif; font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums">30,00</div>
+        </div>
+      </div>
+
+      <!-- TROPPO -->
+      <div style="position: relative; overflow: hidden; background: #141B26; border: 1px solid rgba(242,163,60,0.45); border-radius: 20px; padding: 26px 28px; display: grid; grid-template-columns: 220px 1fr 300px; gap: 28px; align-items: center">
+        <div class="att-mesh-2" style="position: absolute; inset: -30%; background: radial-gradient(ellipse 40% 60% at 16% 26%, rgba(242,163,60,0.3) 0%, transparent 60%), radial-gradient(ellipse 40% 55% at 82% 74%, rgba(192,108,255,0.26) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 50% 50%, rgba(61,220,151,0.16) 0%, transparent 62%)"></div>
+        <div style="position: relative; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 28px; font-weight: 700; color: #F2A33C">TROPPO</div>
+          </div>
+          <div style="font-size: 15px; color: #9AA6BA">fiere, aperture, la demo che vende il prodotto</div>
+        </div>
+        <div style="position: relative; font-size: 16px; line-height: 1.65; color: #B9C6D8">Tutto Spettacolo, più: mesh animato veloce dietro ogni stato, totale che respira in permanenza, righe con rimbalzo marcato, <strong style="color: #3DDC97; font-weight: 600">lampo d'accento sugli sconti</strong>, colonna che cambia ogni 5 s, celebrazione con tre ondate e il nome del locale che entra a lettere. Dichiaratamente eccessivo.</div>
+        <div style="position: relative; height: 92px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(242,163,60,0.3); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; overflow: hidden">
+          <div class="att-troppo att-flash" style="font-size: 15px; padding: 4px 8px; border-radius: 6px">Sconto 10%</div>
+          <div class="att-pulse" style="font-family: 'Archivo', sans-serif; font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; color: #3DDC97">−3,00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATRICE -->
+  <div style="display: flex; flex-direction: column; gap: 20px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 24px">Cosa cambia, voce per voce</div>
+
+    <div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; overflow: hidden">
+      <div style="display: grid; grid-template-columns: 240px repeat(4, minmax(0, 1fr)); background: rgba(255,255,255,0.05); font-family: 'Archivo', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.08em">
+        <div style="padding: 16px 20px; color: #9AA6BA">Voce</div>
+        <div style="padding: 16px 20px; border-left: 1px solid rgba(255,255,255,0.08)">Sobrio</div>
+        <div style="padding: 16px 20px; border-left: 1px solid rgba(255,255,255,0.08); color: #6FA8FF">Vivo</div>
+        <div style="padding: 16px 20px; border-left: 1px solid rgba(255,255,255,0.08)">Spettacolo</div>
+        <div style="padding: 16px 20px; border-left: 1px solid rgba(255,255,255,0.08); color: #F2A33C">TROPPO</div>
+      </div>
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="9">
+        <div style="{{r.rowStyle}}">
+          <div style="padding: 15px 20px; font-size: 16px; font-weight: 500; color: #E6EAF2">{{r.voce}}</div>
+          <div style="padding: 15px 20px; border-left: 1px solid rgba(255,255,255,0.08); font-size: 15px; color: #9AA6BA">{{r.a}}</div>
+          <div style="padding: 15px 20px; border-left: 1px solid rgba(255,255,255,0.08); font-size: 15px; color: #9AA6BA">{{r.b}}</div>
+          <div style="padding: 15px 20px; border-left: 1px solid rgba(255,255,255,0.08); font-size: 15px; color: #9AA6BA">{{r.c}}</div>
+          <div style="padding: 15px 20px; border-left: 1px solid rgba(255,255,255,0.08); font-size: 15px; color: #D9C2A0">{{r.d}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- COSA NON CAMBIA MAI -->
+  <div style="background: rgba(242,163,60,0.08); border: 1px solid rgba(242,163,60,0.35); border-radius: 20px; padding: 30px; display: flex; flex-direction: column; gap: 14px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 24px; font-weight: 700; color: #F2A33C">Cosa non cambia, nemmeno a TROPPO</div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 36px; font-size: 16px; line-height: 1.6; color: #E9D6B8">
+      <div>· Il totale resta l'elemento più grande dello schermo.</div>
+      <div>· Il footer Bluetech resta a schermo, nella stessa posizione.</div>
+      <div>· Il QR di pagamento non si anima, non si copre, non si deforma.</div>
+      <div>· Lo scontrino non viene mai coperto da una reclame.</div>
+      <div>· Nessun effetto allunga di un secondo il tempo per leggere il totale.</div>
+      <div>· Il contrasto minimo resta 4,5:1 su ogni combinazione.</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":3000}}'>
+var ROWS = [
+  { voce: 'Fondo', a: 'tinta o immagine ferma', b: 'immagine o sfumato, luci lente', c: 'video sempre, sfocato dietro il conto', d: 'video + mesh animato veloce' },
+  { voce: 'Attesa', a: 'logo, nome, scorrevole', b: 'playlist, dissolvenza 1,2 s', c: 'playlist + Ken Burns + parallasse', d: 'come Spettacolo, slide da 5 s' },
+  { voce: 'Colonna accanto al conto', a: 'assente, conto al centro', b: 'una scheda, cambia ogni 12 s', c: 'rotazione ogni 8 s, transizione condivisa', d: 'rotazione ogni 5 s' },
+  { voce: 'Ingresso riga', a: 'solo opacità, 160 ms', b: 'scorrimento breve, 300 ms', c: 'molla, 420 ms', d: 'molla marcata, 480 ms, rimbalzo doppio' },
+  { voce: 'Sconti e storni', a: 'colore d accento', b: 'accento + ingresso dedicato', c: 'accento + ingresso + traccia che scorre', d: 'lampo d accento sulla riga' },
+  { voce: 'Totale', a: 'sostituzione secca', b: 'contachilometri', c: 'contachilometri + battito', d: 'contachilometri + battito + respiro continuo' },
+  { voce: 'QR', a: 'solo pagamento e scontrino', b: 'uno nel Grazie', c: 'Grazie + uno in attesa', d: 'Grazie, attesa, e colonna quando non si batte' },
+  { voce: 'Grazie', a: '8 s, nessuna proposta', b: 'un anello, reclame sotto', c: 'tre anelli, reclame grande, 30 s con QR', d: 'tre ondate, nome del locale a lettere' },
+  { voce: 'Durata di una slide', a: '—', b: '7 s', c: '7 s', d: '5 s' }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      rows: ROWS.map(function (r, i) {
+        return {
+          voce: r.voce, a: r.a, b: r.b, c: r.c, d: r.d,
+          rowStyle: {
+            display: 'grid',
+            gridTemplateColumns: '240px repeat(4, minmax(0, 1fr))',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+            background: i % 2 === 1 ? 'rgba(255,255,255,0.02)' : 'transparent'
+          }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

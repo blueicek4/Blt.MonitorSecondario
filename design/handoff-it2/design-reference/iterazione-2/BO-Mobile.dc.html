@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Back office a 390 px</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0E1217; }
+a { color: #6FA8FF; }
+a:hover { color: #9EC2FF; }
+</style>
+</helmet>
+
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #0E1217; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; overflow: hidden">
+
+  <!-- testata -->
+  <div style="flex-shrink: 0; padding: 16px 16px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #1E242D">
+    <svg width="19" height="19" viewBox="0 0 34 34" role="img" aria-label="Bluetech">
+      <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1F6FEB" stroke-width="2.8"></rect>
+      <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#E6EAF2" stroke-width="3.2" stroke-linecap="round"></path>
+    </svg>
+    <div style="flex-grow: 1; min-width: 0">
+      <div style="font-size: 15px; font-weight: 600">Vetrine</div>
+      <div style="font-size: 11.5px; color: #6F7E95">La Vela · ristorante</div>
+    </div>
+    <div style="font-size: 11px; color: #3DDC97; border: 1px solid rgba(61,220,151,0.35); border-radius: 999px; padding: 3px 9px">Titolare</div>
+  </div>
+
+  <!-- cosa è in onda -->
+  <div style="flex-shrink: 0; margin: 12px 16px 0; border-radius: 12px; border: 1px solid rgba(61,220,151,0.3); background: rgba(61,220,151,0.07); padding: 13px 14px; display: flex; flex-direction: column; gap: 9px">
+    <div style="display: flex; align-items: center; gap: 8px">
+      <div style="width: 7px; height: 7px; border-radius: 50%; background: #3DDC97"></div>
+      <div style="font-size: 12px; font-weight: 600; color: #3DDC97; letter-spacing: 0.1em; text-transform: uppercase">In onda adesso</div>
+      <div style="flex-grow: 1"></div>
+      <div style="font-size: 11.5px; color: #8793A3">ven 19:14</div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center">
+      <div style="width: 84px; flex-shrink: 0; aspect-ratio: 16 / 9; border-radius: 7px; overflow: hidden; border: 1px solid rgba(255,255,255,0.12); background: #0B1017; position: relative">
+        <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 60% 70% at 40% 35%, rgba(242,163,60,0.45) 0%, transparent 64%)"></div>
+      </div>
+      <div style="flex-grow: 1; min-width: 0">
+        <div style="font-size: 14px; font-weight: 600">Aperitivo</div>
+        <div style="font-size: 11.5px; line-height: 1.45; color: #8793A3">attesa · Cassa 1 e Cassa 2 · elemento 2 di 4</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- elenco vetrine -->
+  <div style="flex-grow: 1; min-height: 0; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; overflow: hidden">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-shrink: 0">
+      <div style="font-size: 11.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #6F7E95">Tutte le vetrine</div>
+      <div style="font-size: 11.5px; color: #6F7E95">ordine di priorità</div>
+    </div>
+
+    <sc-for list="{{vetrine}}" as="v" hint-placeholder-count="4">
+      <div style="{{v.card}}">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div style="{{v.pill}}">{{v.stato}}</div>
+          <div style="flex-grow: 1; min-width: 0; font-size: 14.5px; font-weight: 600">{{v.nome}}</div>
+          <div style="{{v.sw}}"></div>
+        </div>
+        <div style="font-size: 12px; line-height: 1.45; color: #8793A3">{{v.quando}}</div>
+        <sc-if value="{{v.nota}}" hint-placeholder-val="{{ true }}">
+          <div style="font-size: 11.5px; color: #F2A33C">{{v.notaT}}</div>
+        </sc-if>
+      </div>
+    </sc-for>
+
+    <button type="button" style="flex-shrink: 0; min-height: 46px; border-radius: 11px; border: 1px dashed #2E3A49; background: transparent; color: #8793A3; font: inherit; font-size: 13.5px; cursor: pointer">Nuova vetrina</button>
+  </div>
+
+  <!-- barra inferiore -->
+  <div style="flex-shrink: 0; border-top: 1px solid #1E242D; background: #11161D; padding: 8px 10px 14px; display: flex; gap: 2px">
+    <sc-for list="{{tab}}" as="t" hint-placeholder-count="5">
+      <div style="{{t.item}}">
+        <div style="{{t.dot}}"></div>
+        <div style="font-size: 10.5px">{{t.n}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+var VETRINE = [
+  { nome: 'Aperitivo', stato: 'In onda', c: '#3DDC97', on: true, quando: 'venerdì 18:00–20:00 · attesa e conto', nota: false },
+  { nome: 'Serata jazz', stato: 'Più tardi', c: '#9AA6BA', on: true, quando: 'venerdì 21:00–01:00 · attesa', nota: true, notaT: 'torna fra 1 ora e 46 minuti' },
+  { nome: 'Pranzo', stato: 'Più tardi', c: '#9AA6BA', on: true, quando: 'lun–ven 12:00–15:00 · attesa', nota: false },
+  { nome: 'Sempre', stato: 'Coperta', c: '#F2A33C', on: true, quando: 'tutti i giorni · tutti i posti', nota: true, notaT: 'coperta da Aperitivo' }
+];
+
+var TAB = [
+  { n: 'Adesso', on: false }, { n: 'Locale', on: false }, { n: 'Vetrine', on: true },
+  { n: 'Contenuti', on: false }, { n: 'Schermi', on: false }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      vetrine: VETRINE.map(function (v, i) {
+        return {
+          nome: v.nome, stato: v.stato, quando: v.quando, nota: v.nota, notaT: v.notaT,
+          card: { borderRadius: '12px', border: '1px solid ' + (i === 0 ? 'rgba(61,220,151,0.3)' : '#262D38'), background: i === 0 ? 'rgba(61,220,151,0.05)' : '#161C24', padding: '12px 13px', display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 },
+          pill: { flexShrink: 0, borderRadius: '999px', padding: '3px 9px', fontSize: '10.5px', fontWeight: 600, color: v.c, border: '1px solid ' + v.c + '55', background: v.c + '14' },
+          sw: { width: '34px', height: '20px', flexShrink: 0, borderRadius: '999px', background: v.on ? '#1F6FEB' : '#2E3A49', position: 'relative', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)' }
+        };
+      }),
+      tab: TAB.map(function (t) {
+        return {
+          n: t.n,
+          item: { flex: '1', minWidth: 0, minHeight: '46px', borderRadius: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: t.on ? '#E6EAF2' : '#6F7E95', background: t.on ? '#1B2430' : 'transparent', fontWeight: t.on ? 600 : 400 },
+          dot: { width: '5px', height: '5px', borderRadius: '50%', background: t.on ? '#1F6FEB' : '#39424F' }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

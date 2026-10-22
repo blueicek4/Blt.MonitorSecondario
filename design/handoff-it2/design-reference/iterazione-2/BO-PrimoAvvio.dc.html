@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Back office — primo avvio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0E1217; }
+a { color: #6FA8FF; }
+a:hover { color: #9EC2FF; }
+</style>
+</helmet>
+
+<div style="width: 1366px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; background: #0E1217; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; overflow: hidden">
+
+  <!-- LA SCHERMATA -->
+  <div style="height: 640px; flex-shrink: 0; display: flex; border-bottom: 1px solid #1E242D">
+
+    <!-- passi -->
+    <div style="width: 282px; flex-shrink: 0; border-right: 1px solid #1E242D; background: #11161D; padding: 26px 22px; display: flex; flex-direction: column; gap: 22px">
+      <div style="display: flex; align-items: center; gap: 9px">
+        <svg width="22" height="22" viewBox="0 0 34 34" role="img" aria-label="Bluetech">
+          <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1F6FEB" stroke-width="2.8"></rect>
+          <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#E6EAF2" stroke-width="3.2" stroke-linecap="round"></path>
+        </svg>
+        <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.14em">BLUETECH DISPLAY</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <sc-for list="{{passi}}" as="p" hint-placeholder-count="5">
+          <div style="{{p.row}}">
+            <div style="{{p.num}}">{{p.n}}</div>
+            <div style="flex-grow: 1; min-width: 0">
+              <div style="{{p.t}}">{{p.titolo}}</div>
+              <div style="font-size: 11.5px; color: #5A6675">{{p.sub}}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="margin-top: auto; font-size: 12px; line-height: 1.55; color: #5A6675">Puoi uscire quando vuoi: quello che hai fatto resta. Il monitor funziona già dal passo 3.</div>
+    </div>
+
+    <!-- contenuto del passo -->
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+      <div style="flex-grow: 1; min-height: 0; padding: 34px 40px; display: flex; flex-direction: column; gap: 22px">
+
+        <div style="display: flex; flex-direction: column; gap: 9px; flex-shrink: 0">
+          <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #6F7E95">Passo 3 di 5</div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 36px; font-weight: 700; line-height: 1.1">Accendi il primo schermo</div>
+          <div style="font-size: 16px; line-height: 1.6; color: #8793A3; max-width: 72ch">Apri il browser sul monitor del cliente all'indirizzo qui sotto. Comparirà un codice di sei cifre: scrivilo qui e lo schermo si abbina da solo. Da quel momento il cliente vede già il conto.</div>
+        </div>
+
+        <div style="display: flex; gap: 26px; flex-shrink: 0">
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 16px">
+            <div style="border-radius: 12px; border: 1px solid #262D38; background: #161C24; padding: 18px 20px; display: flex; flex-direction: column; gap: 7px">
+              <div style="font-size: 12px; color: #8793A3">Indirizzo da aprire sul monitor</div>
+              <div style="font-family: 'Archivo', sans-serif; font-size: 25px; font-weight: 700; color: #9EC2FF">192.168.1.40:8088</div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 9px">
+              <div style="font-size: 12px; color: #8793A3">Codice che vedi sul monitor</div>
+              <div style="display: flex; gap: 9px">
+                <sc-for list="{{codice}}" as="c" hint-placeholder-count="6">
+                  <div style="{{c.box}}">{{c.v}}</div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 11px; border-radius: 10px; padding: 12px 14px; background: rgba(61,220,151,0.08); border: 1px solid rgba(61,220,151,0.35)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8.4l3 3L12.5 5" stroke="#3DDC97" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <div style="font-size: 13px; color: #C7E8D8">Trovato: <strong style="font-weight: 600">1920×1080</strong>, disposizione larga. Lo chiamo “Sala · monitor cassa 1”.</div>
+            </div>
+          </div>
+
+          <div style="width: 330px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px">
+            <div style="font-size: 12px; color: #8793A3">Quello che il monitor sta mostrando</div>
+            <div style="width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; border: 1px solid #262D38; background: #0B1017; position: relative">
+              <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 60% 70% at 50% 40%, rgba(31,111,235,0.3) 0%, transparent 64%)"></div>
+              <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px">
+                <div style="font-size: 9px; letter-spacing: 0.2em; color: rgba(255,255,255,0.55)">CODICE DI ABBINAMENTO</div>
+                <div style="font-family: 'Archivo', sans-serif; font-size: 38px; font-weight: 700; letter-spacing: 0.14em; color: #fff">492715</div>
+                <div style="font-size: 9px; color: rgba(255,255,255,0.45)">scade fra 8 minuti</div>
+              </div>
+            </div>
+            <div style="font-size: 12px; line-height: 1.5; color: #5A6675">Se il codice non compare, il monitor non raggiunge questo computer: controlla che siano sulla stessa rete.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height: 68px; flex-shrink: 0; border-top: 1px solid #1E242D; background: #11161D; display: flex; align-items: center; gap: 14px; padding: 0 40px">
+        <button type="button" style="min-height: 38px; border-radius: 9px; border: 1px solid #262D38; background: transparent; color: #8793A3; font: inherit; font-size: 13.5px; padding: 0 16px; cursor: pointer">Indietro</button>
+        <div style="flex-grow: 1"></div>
+        <button type="button" style="min-height: 38px; border-radius: 9px; border: none; background: transparent; color: #6F7E95; font: inherit; font-size: 13.5px; padding: 0 14px; cursor: pointer">Lo faccio dopo</button>
+        <button type="button" style="min-height: 38px; border-radius: 9px; border: none; background: #1F6FEB; color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; padding: 0 22px; cursor: pointer">Abbina e continua</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- I CINQUE PASSI SPIEGATI -->
+  <div style="flex-grow: 1; min-height: 0; padding: 22px 28px; display: flex; flex-direction: column; gap: 14px">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #6F7E95">Perché cinque passi e non nove schede</div>
+    <div style="flex-grow: 1; min-height: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px">
+      <sc-for list="{{spieg}}" as="s" hint-placeholder-count="5">
+        <div style="border-radius: 12px; border: 1px solid #262D38; background: #161C24; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: baseline; gap: 8px">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 700; color: #4A5565">{{s.n}}</div>
+            <div style="font-family: 'Archivo', sans-serif; font-size: 15px; font-weight: 600">{{s.t}}</div>
+          </div>
+          <div style="font-size: 12.5px; line-height: 1.55; color: #8793A3">{{s.d}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1366,"height":900}}'>
+var PASSI = [
+  { n: '1', titolo: 'La password', sub: 'fatto', st: 'done' },
+  { n: '2', titolo: 'La cassa', sub: 'fatto · Cassa 1', st: 'done' },
+  { n: '3', titolo: 'Il primo schermo', sub: 'in corso', st: 'now' },
+  { n: '4', titolo: 'Il locale', sub: 'nome, logo, tema', st: 'todo' },
+  { n: '5', titolo: 'La prima vetrina', sub: 'facoltativo', st: 'todo' }
+];
+
+var SPIEG = [
+  { n: '1', t: 'La password', d: 'Una per il titolare, una per il tecnico. Prima di tutto, perché senza non si va avanti e perché è il momento in cui il tecnico è ancora lì.' },
+  { n: '2', t: 'La cassa', d: 'Il file che Passepartout scrive. È l unico passo davvero tecnico: il wizard cerca il percorso da solo nelle posizioni note e lo propone.' },
+  { n: '3', t: 'Il primo schermo', d: 'Da qui in poi il prodotto funziona. Chiudere il wizard adesso lascia un impianto che fa il suo mestiere, solo senza aspetto e senza reclame.' },
+  { n: '4', t: 'Il locale', d: 'Nome, logo, tema. Il passo che il titolare vuole fare per primo e che va fatto per quarto: prima si fa funzionare, poi si fa bello.' },
+  { n: '5', t: 'La prima vetrina', d: 'Saltabile. Chi ha fretta la salta e torna dopo; chi la fa vede subito la propria promozione sul monitor, ed è quello che vende il prodotto.' }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    var sty = {
+      done: { bg: 'transparent', num: '#3DDC97', numBg: 'rgba(61,220,151,0.14)', numBd: 'rgba(61,220,151,0.4)', t: '#8793A3', w: 400 },
+      now: { bg: '#1B2430', num: '#fff', numBg: '#1F6FEB', numBd: '#1F6FEB', t: '#E6EAF2', w: 600 },
+      todo: { bg: 'transparent', num: '#5A6675', numBg: '#161C24', numBd: '#2E3A49', t: '#6F7E95', w: 400 }
+    };
+    return {
+      passi: PASSI.map(function (p) {
+        var s = sty[p.st];
+        return {
+          n: p.st === 'done' ? '✓' : p.n, titolo: p.titolo, sub: p.sub,
+          row: { display: 'flex', alignItems: 'center', gap: '12px', minHeight: '52px', borderRadius: '10px', padding: '0 12px', background: s.bg },
+          num: { width: '26px', height: '26px', flexShrink: 0, borderRadius: '8px', background: s.numBg, border: '1px solid ' + s.numBd, color: s.num, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600 },
+          t: { fontSize: '14px', fontWeight: s.w, color: s.t }
+        };
+      }),
+      codice: ['4', '9', '2', '7', '1', '5'].map(function (v) {
+        return { v: v, box: { width: '46px', height: '56px', borderRadius: '10px', background: '#0E1217', border: '1px solid #2E3A49', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Archivo', sans-serif", fontSize: '26px', fontWeight: 700, color: '#E6EAF2' } };
+      }),
+      spieg: SPIEG
+    };
+  }
+}
+</script>
+</body>
+</html>

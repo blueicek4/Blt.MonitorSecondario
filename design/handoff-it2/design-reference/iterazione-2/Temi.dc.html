@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Dieci temi</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Oswald:wght@400;500;600;700&amp;family=Syne:wght@600;800&amp;family=Space+Grotesk:wght@400;500;700&amp;family=Cormorant+Garamond:wght@400;600;700&amp;family=Jost:wght@300;400;500&amp;family=Spectral:wght@400;600;700&amp;family=Karla:wght@400;500;700&amp;family=Newsreader:wght@400;600&amp;family=Alegreya+Sans:wght@400;500;700&amp;family=Lora:wght@400;600;700&amp;family=Work+Sans:wght@400;500;600&amp;family=Outfit:wght@400;500;700&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+</style>
+</helmet>
+
+<div style="width: 2400px; height: 1560px; box-sizing: border-box; padding: 56px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 30px">
+
+  <!-- INTESTAZIONE -->
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; flex-shrink: 0">
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: #6F7E95">Il sistema · catalogo dei temi</div>
+      <h1 style="margin: 0; font-family: 'Archivo', sans-serif; font-size: 50px; font-weight: 700; line-height: 1.04; letter-spacing: -0.025em">Dieci temi: cinque scuri, cinque chiari</h1>
+    </div>
+    <div style="max-width: 72ch; font-size: 16px; line-height: 1.6; color: #9AA6BA">Stesso layout, stesse proporzioni, stessa posizione del totale e del footer Bluetech. Cambiano solo i token. Ogni tema è pensato per un tipo di sala, non per un gusto: il ristoratore sceglie dove lavora, non quale blu gli piace. Tutti i rapporti di contrasto sono calcolati, nessuno scende sotto 4,5:1.</div>
+  </div>
+
+  <!-- I DIECI -->
+  <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 30px">
+
+    <div style="display: flex; align-items: center; gap: 16px; flex-shrink: 0">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95">Scuri</div>
+      <div style="flex-grow: 1; height: 1px; background: rgba(255,255,255,0.12)"></div>
+      <div style="font-size: 14px; color: #6F7E95">sale serali, luci basse, locali di passaggio</div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 28px">
+      <sc-for list="{{dark}}" as="t" hint-placeholder-count="5">
+        <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+          <div style="{{t.screen}}">
+            <div style="{{t.glow}}"></div>
+            <div style="position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 14px 16px; display: flex; flex-direction: column; gap: 9px">
+              <div style="display: flex; align-items: center; gap: 7px; flex-shrink: 0">
+                <div style="{{t.mark}}"></div>
+                <div style="{{t.venue}}">LA VELA</div>
+              </div>
+              <div style="{{t.card}}">
+                <div style="{{t.row}}">
+                  <div style="{{t.desc}}">Tagliere Emilia</div>
+                  <div style="{{t.amount}}">30,00</div>
+                </div>
+                <div style="{{t.row}}">
+                  <div style="{{t.desc}}">Cestino di tigelle</div>
+                  <div style="{{t.amount}}">6,00</div>
+                </div>
+                <div style="{{t.rowAccent}}">
+                  <div style="{{t.descAccent}}">Sconto 10%</div>
+                  <div style="{{t.amountAccent}}">−3,60</div>
+                </div>
+                <div style="flex-grow: 1"></div>
+                <div style="{{t.totalBox}}">
+                  <div style="{{t.totalLabel}}">Totale</div>
+                  <div style="{{t.totalValue}}">€ 32,40</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: flex-end; gap: 5px; flex-shrink: 0">
+                <div style="{{t.powered}}">powered by</div>
+                <div style="{{t.footMark}}"></div>
+                <div style="{{t.footWord}}">BLUETECH</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 700">{{t.nome}}</div>
+            <div style="{{t.badge}}">{{t.gemello}}</div>
+          </div>
+          <div style="font-size: 14px; line-height: 1.45; color: #9AA6BA; min-height: 40px">{{t.uso}}</div>
+          <div style="display: flex; gap: 5px">
+            <sc-for list="{{t.swatches}}" as="s" hint-placeholder-count="5">
+              <div style="{{s.box}}"></div>
+            </sc-for>
+          </div>
+          <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: #6F7E95; font-family: 'IBM Plex Mono', monospace">
+            <div>{{t.fonts}}</div>
+            <div style="color: #3DDC97">{{t.ratio}}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 16px; flex-shrink: 0">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95">Chiari</div>
+      <div style="flex-grow: 1; height: 1px; background: rgba(255,255,255,0.12)"></div>
+      <div style="font-size: 14px; color: #6F7E95">vetrate, pranzi, banconi illuminati</div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 28px">
+      <sc-for list="{{light}}" as="t" hint-placeholder-count="5">
+        <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+          <div style="{{t.screen}}">
+            <div style="{{t.glow}}"></div>
+            <div style="position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 14px 16px; display: flex; flex-direction: column; gap: 9px">
+              <div style="display: flex; align-items: center; gap: 7px; flex-shrink: 0">
+                <div style="{{t.mark}}"></div>
+                <div style="{{t.venue}}">LA VELA</div>
+              </div>
+              <div style="{{t.card}}">
+                <div style="{{t.row}}">
+                  <div style="{{t.desc}}">Tagliere Emilia</div>
+                  <div style="{{t.amount}}">30,00</div>
+                </div>
+                <div style="{{t.row}}">
+                  <div style="{{t.desc}}">Cestino di tigelle</div>
+                  <div style="{{t.amount}}">6,00</div>
+                </div>
+                <div style="{{t.rowAccent}}">
+                  <div style="{{t.descAccent}}">Sconto 10%</div>
+                  <div style="{{t.amountAccent}}">−3,60</div>
+                </div>
+                <div style="flex-grow: 1"></div>
+                <div style="{{t.totalBox}}">
+                  <div style="{{t.totalLabel}}">Totale</div>
+                  <div style="{{t.totalValue}}">€ 32,40</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: flex-end; gap: 5px; flex-shrink: 0">
+                <div style="{{t.powered}}">powered by</div>
+                <div style="{{t.footMark}}"></div>
+                <div style="{{t.footWord}}">BLUETECH</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 22px; font-weight: 700">{{t.nome}}</div>
+            <div style="{{t.badge}}">{{t.gemello}}</div>
+          </div>
+          <div style="font-size: 14px; line-height: 1.45; color: #9AA6BA; min-height: 40px">{{t.uso}}</div>
+          <div style="display: flex; gap: 5px">
+            <sc-for list="{{t.swatches}}" as="s" hint-placeholder-count="5">
+              <div style="{{s.box}}"></div>
+            </sc-for>
+          </div>
+          <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: #6F7E95; font-family: 'IBM Plex Mono', monospace">
+            <div>{{t.fonts}}</div>
+            <div style="color: #3DDC97">{{t.ratio}}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- NOTE -->
+  <div style="flex-shrink: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+    <div style="background: rgba(31,111,235,0.1); border: 1px solid rgba(31,111,235,0.35); border-radius: 18px; padding: 22px 26px; display: flex; flex-direction: column; gap: 8px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 18px; font-weight: 600; color: #6FA8FF">Quattro coppie, due solitari</div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #C6DAFB">Bluetech↔Giorno, Brace↔Forno, Onda↔Menta, Riserva↔Sale si scambiano con <code>mode: auto</code> sull'orario di apertura. <strong style="font-weight: 600">Notturno e Latte no.</strong> Un cocktail bar non apre a colazione e una caffetteria non chiude a mezzanotte: inventare un gemello pallido per Notturno avrebbe prodotto un tema che nessuno userebbe. Su questi due l'automatico è disattivato, con una riga che dice perché invece di un interruttore che non fa niente.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 22px 26px; display: flex; flex-direction: column; gap: 8px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 18px; font-weight: 600">Quattordici famiglie di caratteri</div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Tutte open source con licenza che consente l'incorporazione. In subset latino sono circa 60 KB l'una: <strong style="color: #E6EAF2">meno di un megabyte in tutto</strong>, servite dall'Agent. Nessun CDN, nessun font remoto: il monitor parte identico col router staccato. Un locale ne usa due, ma l'Agent le tiene tutte per poter cambiare tema senza una connessione.</p>
+    </div>
+    <div style="background: rgba(242,163,60,0.08); border: 1px solid rgba(242,163,60,0.35); border-radius: 18px; padding: 22px 26px; display: flex; flex-direction: column; gap: 8px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 18px; font-weight: 600; color: #F2A33C">Il tema non è il colore preferito</div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #E9D6B8">Nel back office i dieci si scelgono dalla <strong style="font-weight: 600">sala</strong>, non dalla tavolozza: “griglia e carne”, “pizzeria”, “cucina di mare”, “cocktail”, “caffetteria”. Dopo la scelta il titolare può ritoccare gli otto colori, e lì scatta il controllo di contrasto. Chi parte da una tavolozza vuota produce un monitor illeggibile al primo tentativo.</p>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2400,"height":1560}}'>
+var A = "'Archivo', sans-serif";
+var P = "'IBM Plex Sans', sans-serif";
+var OS = "'Oswald', sans-serif";
+var SY = "'Syne', sans-serif";
+var SG = "'Space Grotesk', sans-serif";
+var CG = "'Cormorant Garamond', Georgia, serif";
+var JO = "'Jost', sans-serif";
+var SP = "'Spectral', Georgia, serif";
+var KA = "'Karla', sans-serif";
+var NR = "'Newsreader', Georgia, serif";
+var AS = "'Alegreya Sans', sans-serif";
+var LO = "'Lora', Georgia, serif";
+var WS = "'Work Sans', sans-serif";
+var OU = "'Outfit', sans-serif";
+
+var DARK = [
+  {
+    nome: 'Bluetech', gemello: 'auto ↔ Giorno', uso: 'Il default. Neutro e tecnologico, sta bene ovunque e non dice niente sul locale.',
+    fonts: 'Archivo · Plex Sans', ratio: '15,8:1', fd: A, ft: P, radius: 10,
+    bg: '#0B1017', surface: 'rgba(255,255,255,0.06)', solid: '#141B26', line: 'rgba(255,255,255,0.1)',
+    text: '#E6EAF2', muted: '#9AA6BA', primary: '#1F6FEB', accent: '#3DDC97',
+    totalFill: 'linear-gradient(180deg, rgba(31,111,235,0.24), rgba(31,111,235,0.06))', totalBorder: 'rgba(31,111,235,0.5)', totalText: '#E6EAF2'
+  },
+  {
+    nome: 'Brace', gemello: 'auto ↔ Forno', uso: 'Griglia, carne, steakhouse. Nero fumo e un primario di brace; il verde dello sconto stacca senza stonare.',
+    fonts: 'Oswald · Plex Sans', ratio: '15,7:1', fd: OS, ft: P, radius: 6,
+    bg: '#121010', surface: 'rgba(242,232,224,0.06)', solid: '#1C1817', line: 'rgba(242,232,224,0.13)',
+    text: '#F2E8E0', muted: '#B5A69C', primary: '#BC4A17', accent: '#7FC98F',
+    totalFill: '#BC4A17', totalBorder: '#BC4A17', totalText: '#FFFFFF'
+  },
+  {
+    nome: 'Notturno', gemello: 'sempre scuro', uso: 'Cocktail bar e locali serali. Il più aggressivo: viola e menta al neon, gradienti vivi, vetro al massimo.',
+    fonts: 'Syne · Space Grotesk', ratio: '17,1:1', fd: SY, ft: SG, radius: 9,
+    bg: '#0A0616', surface: 'rgba(240,234,255,0.07)', solid: '#16102B', line: 'rgba(240,234,255,0.15)',
+    text: '#F0EAFF', muted: '#A99BC8', primary: '#C06CFF', accent: '#35F5C8',
+    totalFill: 'linear-gradient(180deg, rgba(192,108,255,0.3), rgba(53,245,200,0.08))', totalBorder: 'rgba(192,108,255,0.6)', totalText: '#F0EAFF'
+  },
+  {
+    nome: 'Riserva', gemello: 'auto ↔ Sale', uso: 'Fine dining. Nero caldo, oro, angoli vivi, nessun vetro e nessun gradiente. Molto respiro.',
+    fonts: 'Cormorant · Jost', ratio: '15,8:1', fd: CG, ft: JO, radius: 2,
+    bg: '#0C0B09', surface: 'rgba(237,230,215,0.05)', solid: '#16140F', line: 'rgba(237,230,215,0.14)',
+    text: '#EDE6D7', muted: '#A39781', primary: '#C9A227', accent: '#8FB39B',
+    totalFill: 'transparent', totalBorder: '#C9A227', totalText: '#EDE6D7'
+  },
+  {
+    nome: 'Onda', gemello: 'auto ↔ Menta', uso: 'Cucina di mare. Verde-azzurro profondo e un ambra per gli sconti: due tinte lontane, leggibili anche da lontano.',
+    fonts: 'Spectral · Karla', ratio: '16,2:1', fd: SP, ft: KA, radius: 16,
+    bg: '#06151A', surface: 'rgba(230,242,242,0.06)', solid: '#0D2129', line: 'rgba(230,242,242,0.13)',
+    text: '#E6F2F2', muted: '#94B0B4', primary: '#15707F', accent: '#F2B544',
+    totalFill: '#15707F', totalBorder: '#15707F', totalText: '#FFFFFF'
+  }
+];
+
+var LIGHT = [
+  {
+    nome: 'Giorno', gemello: 'auto ↔ Bluetech', uso: 'Il default chiaro. Bianco su grigio freddo, ombra leggera al posto del vetro. Per sale con vetrate.',
+    fonts: 'Archivo · Plex Sans', ratio: '16,9:1', fd: A, ft: P, radius: 10,
+    bg: '#F4F6FA', surface: '#FFFFFF', solid: '#FFFFFF', line: 'rgba(16,21,29,0.1)',
+    text: '#10151D', muted: '#5A6679', primary: '#1757C2', accent: '#0E7A52',
+    totalFill: '#1757C2', totalBorder: '#1757C2', totalText: '#FFFFFF'
+  },
+  {
+    nome: 'Forno', gemello: 'auto ↔ Brace', uso: 'Pizzeria e trattoria. Carta e terracotta: è il tema che i ristoratori riconoscono subito come il loro.',
+    fonts: 'Newsreader · Alegreya', ratio: '13,7:1', fd: NR, ft: AS, radius: 6,
+    bg: '#F6EEE2', surface: '#FFFBF4', solid: '#FFFBF4', line: 'rgba(43,33,26,0.13)',
+    text: '#2B211A', muted: '#6B5B49', primary: '#9C3A1F', accent: '#1E6B4F',
+    totalFill: '#9C3A1F', totalBorder: '#9C3A1F', totalText: '#FFFFFF'
+  },
+  {
+    nome: 'Latte', gemello: 'sempre chiaro', uso: 'Caffetteria, forneria, gastronomia. Il più morbido: bianco panna, un marrone tostato, angoli larghi.',
+    fonts: 'Lora · Work Sans', ratio: '14,8:1', fd: LO, ft: WS, radius: 12,
+    bg: '#FBF7F2', surface: '#FFFFFF', solid: '#FFFFFF', line: 'rgba(42,33,26,0.1)',
+    text: '#2A211A', muted: '#6E6155', primary: '#7A5230', accent: '#1F6E52',
+    totalFill: '#7A5230', totalBorder: '#7A5230', totalText: '#FFFFFF'
+  },
+  {
+    nome: 'Sale', gemello: 'auto ↔ Riserva', uso: 'Fine dining di giorno. Avorio e oro scurito, perché il bianco sopra deve restare leggibile.',
+    fonts: 'Cormorant · Jost', ratio: '16,3:1', fd: CG, ft: JO, radius: 2,
+    bg: '#F7F4EC', surface: '#FFFDF7', solid: '#FFFDF7', line: 'rgba(26,23,18,0.13)',
+    text: '#1A1712', muted: '#6E6454', primary: '#8A6D14', accent: '#3F6B55',
+    totalFill: 'transparent', totalBorder: '#8A6D14', totalText: '#1A1712'
+  },
+  {
+    nome: 'Menta', gemello: 'auto ↔ Onda', uso: 'Bistrot e bar moderni. Verde bosco su bianco freddo, terracotta per gli sconti. Geometrico, pulito.',
+    fonts: 'Outfit · Karla', ratio: '15,2:1', fd: OU, ft: KA, radius: 14,
+    bg: '#F2F7F4', surface: '#FFFFFF', solid: '#FFFFFF', line: 'rgba(16,35,28,0.1)',
+    text: '#10231C', muted: '#51665E', primary: '#116B4F', accent: '#B4451A',
+    totalFill: '#116B4F', totalBorder: '#116B4F', totalText: '#FFFFFF'
+  }
+];
+
+function build(t) {
+  var r = t.radius + 'px';
+  return {
+    nome: t.nome, gemello: t.gemello, uso: t.uso, fonts: t.fonts, ratio: t.ratio,
+    screen: { width: '100%', aspectRatio: '16 / 9', position: 'relative', overflow: 'hidden', borderRadius: '12px', background: t.bg, color: t.text, fontFamily: t.ft, border: '1px solid rgba(255,255,255,0.14)' },
+    glow: { position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 52% 48% at 22% 20%, ' + t.primary + ' 0%, transparent 62%), radial-gradient(ellipse 44% 42% at 84% 78%, ' + t.accent + ' 0%, transparent 60%)', opacity: 0.14 },
+    mark: { width: '13px', height: '13px', borderRadius: '50%', border: '1.6px solid ' + t.primary },
+    venue: { fontFamily: t.fd, fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em' },
+    card: { flexGrow: 1, minHeight: 0, boxSizing: 'border-box', borderRadius: r, padding: '11px 13px', background: t.surface, border: '1px solid ' + t.line, display: 'flex', flexDirection: 'column' },
+    row: { display: 'flex', alignItems: 'baseline', gap: '8px', padding: '5px 0', borderBottom: '1px solid ' + t.line },
+    rowAccent: { display: 'flex', alignItems: 'baseline', gap: '8px', padding: '5px 0', borderBottom: '1px solid ' + t.line, color: t.accent },
+    desc: { flexGrow: 1, minWidth: 0, fontSize: '11px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+    descAccent: { flexGrow: 1, minWidth: 0, fontSize: '11px', fontWeight: 500 },
+    amount: { fontSize: '12px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' },
+    amountAccent: { fontSize: '12px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' },
+    totalBox: { marginTop: '9px', borderRadius: Math.max(t.radius - 3, 2) + 'px', padding: '8px 11px', background: t.totalFill, border: '1px solid ' + t.totalBorder, color: t.totalText, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '8px' },
+    totalLabel: { fontFamily: t.fd, fontSize: '8px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', opacity: 0.86, paddingBottom: '4px' },
+    totalValue: { fontFamily: t.fd, fontSize: '42px', fontWeight: 700, lineHeight: 0.9, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' },
+    powered: { fontSize: '7px', color: t.muted },
+    footMark: { width: '9px', height: '9px', borderRadius: '3px', border: '1.5px solid #1F6FEB' },
+    footWord: { fontFamily: t.fd, fontSize: '8px', fontWeight: 600, letterSpacing: '0.16em', color: t.text },
+    badge: { borderRadius: '999px', padding: '3px 10px', fontSize: '11px', letterSpacing: '0.06em', border: '1px solid rgba(255,255,255,0.18)', color: '#9AA6BA', whiteSpace: 'nowrap' },
+    swatches: [t.bg, t.solid, t.primary, t.accent, t.text].map(function (c) {
+      return { box: { width: '100%', height: '22px', borderRadius: '5px', background: c, border: '1px solid rgba(255,255,255,0.16)' } };
+    })
+  };
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    return { dark: DARK.map(build), light: LIGHT.map(build) };
+  }
+}
+</script>
+</body>
+</html>

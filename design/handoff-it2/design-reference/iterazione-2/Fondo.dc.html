@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Il sistema del fondo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+@keyframes fnd-pan { from { transform: scale(1.05) translate3d(0,0,0); } to { transform: scale(1.14) translate3d(-22px,-12px,0); } }
+.fnd-pan { animation: fnd-pan 14s linear infinite alternate; }
+@media (prefers-reduced-motion: reduce) { .fnd-pan { animation: none; } }
+</style>
+</helmet>
+
+<div style="width: 1400px; height: 2600px; box-sizing: border-box; padding: 56px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 44px">
+
+  <div style="display: flex; flex-direction: column; gap: 16px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: #6F7E95">Il fondo</div>
+    <h1 style="margin: 0; font-family: 'Archivo', sans-serif; font-size: 56px; font-weight: 700; line-height: 1.05; letter-spacing: -0.025em">Il video resta,<br>la leggibilità vince</h1>
+    <p style="margin: 0; font-size: 18px; line-height: 1.6; color: #9AA6BA; max-width: 86ch">Hai scelto il video sempre visibile, sfocato dietro il conto. È la scelta più cinematografica e anche quella che può rendere illeggibile uno scontrino, se il fondo non è costruito a strati con un minimo di contrasto garantito. Qui c'è la pila, i numeri e il punto esatto dove si degrada.</p>
+  </div>
+
+  <!-- LA PILA -->
+  <div style="display: flex; flex-direction: column; gap: 20px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 22px">I cinque strati, dal basso</div>
+
+    <div style="display: flex; gap: 28px; align-items: stretch">
+      <!-- esempio reale -->
+      <div style="width: 620px; flex-shrink: 0; position: relative; height: 420px; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.12)">
+        <div class="fnd-pan" style="position: absolute; inset: -8%; background: radial-gradient(ellipse 50% 60% at 30% 30%, #C97A3E 0%, rgba(201,122,62,0) 62%), radial-gradient(ellipse 60% 50% at 76% 70%, #2C5E8C 0%, rgba(44,94,140,0) 60%), linear-gradient(140deg, #3A2A1E 0%, #0E1726 60%, #060A10 100%)"></div>
+        <div style="position: absolute; inset: 0; backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px)"></div>
+        <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,12,18,0.46) 0%, rgba(8,12,18,0.72) 100%)"></div>
+        <div style="position: absolute; left: 36px; right: 36px; top: 44px; bottom: 44px; border-radius: 14px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.12); padding: 22px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; gap: 10px">
+          <div style="display: flex; justify-content: space-between; font-size: 19px"><span>Tagliere Emilia</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">30,00</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 19px"><span>Cestino di tigelle</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">3,00</span></div>
+          <div style="margin-top: 8px; border-radius: 10px; padding: 12px 16px; background: linear-gradient(180deg, rgba(31,111,235,0.22), rgba(31,111,235,0.06)); border: 1px solid rgba(31,111,235,0.45); display: flex; align-items: flex-end; justify-content: space-between">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 12px; letter-spacing: 0.2em; color: #9AA6BA; padding-bottom: 6px">TOTALE</div>
+            <div style="font-family: 'Archivo', sans-serif; font-size: 52px; font-weight: 700; line-height: 0.9; font-variant-numeric: tabular-nums">€ 33,00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- legenda degli strati -->
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 10px; justify-content: center">
+        <sc-for list="{{layers}}" as="l" hint-placeholder-count="5">
+          <div style="display: flex; gap: 16px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.07)">
+            <div style="{{l.chip}}">{{l.n}}</div>
+            <div style="flex-grow: 1; min-width: 0">
+              <div style="font-size: 17px; font-weight: 600; margin-bottom: 3px">{{l.nome}}</div>
+              <div style="font-size: 15px; line-height: 1.5; color: #9AA6BA">{{l.desc}}</div>
+            </div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6FA8FF; white-space: nowrap; padding-top: 2px">{{l.val}}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- IL CONTRASTO GARANTITO -->
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 22px">Il problema vero: un video non ha un colore</div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
+      <div style="background: rgba(242,163,60,0.08); border: 1px solid rgba(242,163,60,0.35); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600; color: #F2A33C">La tentazione: lo scrim adattivo</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #E9D6B8">Misurare la luminanza media di ogni fotogramma e scurire quanto serve. Elegante sulla carta. In pratica serve disegnare il video su una canvas e leggerne i pixel a ogni frame: è esattamente il tipo di lavoro che una grafica integrata non può permettersi, e introduce una pulsazione del fondo quando la scena cambia.</p>
+        <div style="font-size: 15px; color: #F2A33C; font-weight: 600">Scartato.</div>
+      </div>
+      <div style="background: rgba(61,220,151,0.08); border: 1px solid rgba(61,220,151,0.35); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600; color: #3DDC97">La scelta: scrim fisso, contrasto garantito</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #C7E8D8">Lo scrim è un gradiente fisso calcolato sul caso peggiore — un fotogramma bianco. Sotto la card dello scontrino scende a <strong style="font-weight: 600">0,72 di opacità</strong>: il testo chiaro resta sopra 4,5:1 anche se il video manda un frame completamente bianco. Costo: zero, è una sola superficie composita.</p>
+        <div style="font-size: 15px; color: #3DDC97; font-weight: 600">Il fondo può fare qualunque cosa. Il conto resta leggibile.</div>
+      </div>
+    </div>
+
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px 28px; font-size: 16px; line-height: 1.65; color: #9AA6BA">
+      Lo scrim non è uniforme: è un gradiente verticale che parte da 0,46 in alto (dove ci sono solo il logo e lo spazio) e arriva a 0,72 in basso (dove ci sono le righe e il totale). Nell'attesa, dove non c'è testo da leggere se non il nastro, scende a 0,20 in mezzo e risale ai bordi — è lì che il video deve respirare, ed è lì che il cliente non sta leggendo nulla.
+    </div>
+  </div>
+
+  <!-- I CINQUE STILI -->
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 22px">I cinque stili di fondo, già nei token</div>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px">
+      <sc-for list="{{styles}}" as="s" hint-placeholder-count="5">
+        <div style="border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column">
+          <div style="{{s.swatch}}"></div>
+          <div style="padding: 14px; background: #141B26; display: flex; flex-direction: column; gap: 5px; flex-grow: 1">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 16px; font-weight: 600">{{s.nome}}</div>
+            <div style="font-size: 13px; line-height: 1.5; color: #9AA6BA">{{s.desc}}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- DEGRADO -->
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 22px">Dove si rompe, e cosa succede</div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px">
+      <div style="background: #141B26; border: 1px solid rgba(31,111,235,0.4); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600">Animazioni Piena</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Video in riproduzione, <code>backdrop-filter: blur(22px)</code> sulla card, scrim a gradiente. Un solo elemento sfocato a schermo: la card. Mai due superfici con blur sovrapposte.</p>
+      </div>
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600">Animazioni Leggera</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Il video <strong style="color: #E6EAF2">si ferma sul fotogramma corrente</strong> appena si entra nel conto e riparte in attesa. Niente <code>backdrop-filter</code>: la card diventa una superficie semitrasparente pretinta. Visivamente quasi identico, costo di un decimo.</p>
+      </div>
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600">Animazioni Eco</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Nessun video in nessuno stato: si usa il primo fotogramma come immagine ferma, già sfocata e scurita a monte dall'Agent al caricamento del file. Zero costo a runtime e il risultato resta una scena, non un fondo piatto.</p>
+      </div>
+    </div>
+    <div style="background: rgba(31,111,235,0.1); border: 1px solid rgba(31,111,235,0.35); border-radius: 18px; padding: 22px 26px; font-size: 16px; line-height: 1.65; color: #C6DAFB">
+      <strong style="font-weight: 600">La chiave sta nell'Agent, non nel display.</strong> Quando il locale carica un video, l'Agent genera e conserva due derivati: il primo fotogramma a piena risoluzione e lo stesso fotogramma già sfocato e scurito. Il display non sfoca mai un'immagine a runtime per il fallback: la riceve già pronta. È l'unico modo perché Eco resti bello su una macchina che non può permettersi un filtro.
+    </div>
+  </div>
+
+  <!-- REGOLE PER IL VIDEO -->
+  <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600">Cosa dire al locale sul video di sfondo</div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 36px; font-size: 16px; line-height: 1.6; color: #9AA6BA">
+      <div>· Senza scritte dentro: il fondo sfocato le rende illeggibili e sembrano un difetto.</div>
+      <div>· Movimento lento e ampio. Una panoramica funziona, un montaggio a stacchi no.</div>
+      <div>· 1080p30 H.264, 20–40 s, senza audio. Oltre i 200 MB il back office lo rifiuta.</div>
+      <div>· Il loop deve chiudere: ultimo fotogramma simile al primo, o la ripartenza si vede.</div>
+      <div>· Niente visi in primo piano: sfocati diventano macchie inquietanti.</div>
+      <div>· Scene scure rendono meglio delle chiare: lo scrim lavora meno e il testo galleggia.</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1400,"height":2600}}'>
+var LAYERS = [
+  { n: '1', nome: 'Il media', desc: 'Video in riproduzione, o la sua immagine derivata nei livelli bassi. Copre tutto lo schermo, con un sovra-ritaglio dell 8% per il movimento.', val: 'object-fit: cover' },
+  { n: '2', nome: 'La sfocatura', desc: 'Applicata alla card, non al video: sfocare un livello a schermo intero costa quattro volte tanto e non serve, perché la parte che deve restare nitida è sotto la card.', val: 'blur(22px)' },
+  { n: '3', nome: 'Lo scrim', desc: 'Gradiente verticale fisso, calcolato sul fotogramma bianco. È lui a garantire il contrasto, non la fortuna del video.', val: '0,46 → 0,72' },
+  { n: '4', nome: 'Il vetro', desc: 'La superficie della card dello scontrino: bianco al 5,5% con un filo di bordo. Sopra lo scrim, non sopra il video.', val: 'rgba 0,055' },
+  { n: '5', nome: 'Il contenuto', desc: 'Righe, totale, colonna. Non sa niente del fondo e non deve saperne niente: i suoi colori vengono dai token, sempre gli stessi.', val: '--c-text' }
+];
+
+var STYLES = [
+  { nome: 'Tinta', desc: 'Il colore di fondo del tema. Il minimo, sempre disponibile.', bg: '#0E1726' },
+  { nome: 'Sfumato', desc: 'Due toni del tema su una diagonale. Fermo.', bg: 'linear-gradient(145deg, #16233A 0%, #0A0F17 100%)' },
+  { nome: 'Luci (mesh)', desc: 'Tre blob nei colori del tema. Lento in Spettacolo, fermo sotto.', bg: 'radial-gradient(ellipse 60% 60% at 30% 30%, rgba(31,111,235,0.5) 0%, transparent 62%), radial-gradient(ellipse 50% 50% at 75% 70%, rgba(61,220,151,0.3) 0%, transparent 60%), #0B1017' },
+  { nome: 'Immagine', desc: 'Una foto del locale, con la safe zone del formato.', bg: 'linear-gradient(120deg, #4A3526 0%, #1A120D 100%)' },
+  { nome: 'Video', desc: 'Il massimo. Con i due derivati generati al caricamento.', bg: 'radial-gradient(ellipse 50% 60% at 35% 35%, #C97A3E 0%, transparent 62%), linear-gradient(140deg, #3A2A1E 0%, #0E1726 70%)' }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      layers: LAYERS.map(function (l) {
+        return {
+          n: l.n, nome: l.nome, desc: l.desc, val: l.val,
+          chip: { width: '30px', height: '30px', flexShrink: 0, borderRadius: '8px', border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Archivo', sans-serif", fontSize: '14px', fontWeight: 600, color: '#9AA6BA' }
+        };
+      }),
+      styles: STYLES.map(function (s) {
+        return { nome: s.nome, desc: s.desc, swatch: { height: '110px', background: s.bg } };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

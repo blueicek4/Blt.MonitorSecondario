@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Sei stati per sei formati — le regole</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+</style>
+</helmet>
+
+<div style="width: 1700px; height: 1400px; box-sizing: border-box; padding: 64px 72px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 36px">
+
+  <div style="display: flex; flex-direction: column; gap: 12px; max-width: 1180px">
+    <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #6FA8FF">Formati</div>
+    <div style="font-family: 'Archivo', sans-serif; font-size: 44px; font-weight: 700; line-height: 1.08">Sei stati per sei formati: cosa cambia, e cosa no</div>
+    <div style="font-size: 18px; line-height: 1.6; color: #9AA6BA">Accanto ci sono, a grandezza vera, il conto in tutti i formati e il pagamento a 4:3: sono i due casi dove il formato decide davvero. Gli altri incroci seguono queste regole. La scala tipografica è quella dell'iterazione 1, invariata. La disposizione si sceglie dal rapporto tra i lati, non dalla larghezza: un 1366×768 è largo quanto un 1920×1080, solo con meno pixel.</div>
+  </div>
+
+  <!-- scala tipografica -->
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #9AA6BA">Scala per formato, in px</div>
+    <div style="display: grid; grid-template-columns: 230px repeat(6, minmax(0, 1fr)); border: 1px solid #1E2733; border-radius: 12px; overflow: hidden">
+      <sc-for list="{{scala}}" as="s" hint-placeholder-count="7">
+        <div style="{{s.c0}}">{{s.v0}}</div>
+        <div style="{{s.c}}">{{s.v1}}</div>
+        <div style="{{s.c}}">{{s.v2}}</div>
+        <div style="{{s.c}}">{{s.v3}}</div>
+        <div style="{{s.c}}">{{s.v4}}</div>
+        <div style="{{s.c}}">{{s.v5}}</div>
+        <div style="{{s.c}}">{{s.v6}}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- matrice stati × formati -->
+  <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #9AA6BA">Cosa fa ogni stato</div>
+    <div style="display: grid; grid-template-columns: 170px repeat(5, minmax(0, 1fr)); border: 1px solid #1E2733; border-radius: 12px; overflow: hidden">
+      <sc-for list="{{matrice}}" as="m" hint-placeholder-count="7">
+        <div style="{{m.c0}}">{{m.v0}}</div>
+        <div style="{{m.c}}">{{m.v1}}</div>
+        <div style="{{m.c}}">{{m.v2}}</div>
+        <div style="{{m.c}}">{{m.v3}}</div>
+        <div style="{{m.c}}">{{m.v4}}</div>
+        <div style="{{m.c}}">{{m.v5}}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 18px; flex-shrink: 0">
+    <div style="flex: 1; border-radius: 12px; border: 1px solid rgba(61,220,151,0.35); background: rgba(61,220,151,0.06); padding: 16px 20px; font-size: 15px; line-height: 1.55; color: #C7E8D8"><strong style="font-weight: 600; color: #3DDC97">Non cambia mai:</strong> il totale è l'elemento più grande, mai sotto 120 px per ogni 1080 del lato corto (85 a 768, 120 in verticale, 43 sul palmare, dove ne usiamo 96); il QR non si anima, non si copre, non si deforma e ha sempre 4 moduli di bordo bianco; la base con il marchio Bluetech sta fuori dagli stati.</div>
+    <div style="flex: 1; border-radius: 12px; border: 1px solid rgba(242,163,60,0.4); background: rgba(242,163,60,0.06); padding: 16px 20px; font-size: 15px; line-height: 1.55; color: #F1D9B5"><strong style="font-weight: 600; color: #F2A33C">Due cose cambiano rispetto all'iterazione 1, a 4:3:</strong> la colonna accanto al conto torna, ma solo testo, perché le righe si misurano in altezza e 645 px di larghezza bastano; e il QR può stare accanto al conto, perché a 288 px resta sopra il minimo di un terzo d'altezza. Sotto i 12" resta il limite delle righe a 23 px: compactRows le porta a 30, lo propone il wizard quando rileva un pannello piccolo.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1700,"height":1400}}'>
+var FORMATI = ['1920×1080', '1366×768', '1280×800', '1024×768', '1080×1920', '390×844'];
+var SCALA = [
+  ['', FORMATI],
+  ['Disposizione', ['larga 1,78', 'larga 1,78', 'larga 1,60', 'stretta 1,33', 'verticale 0,56', 'palmare 0,46']],
+  ['Nome riga', ['28', '23', '24', '23 · 30 compact', '32', '18']],
+  ['Prezzo riga', ['32', '25', '26', '25', '34', '20']],
+  ['Totale', ['150', '120', '124', '104', '150', '96']],
+  ['Minimo del totale', ['120', '85', '89', '85', '120', '43']],
+  ['Conto in vendita', ['16/24', '16/24', '16/24', '16/24', 'piena', 'piena']]
+];
+var MATRICE = [
+  ['', ['Larga 1920', 'Larga ridotta 1366 · 1280', 'Stretta 1024', 'Verticale 1080×1920', 'Palmare 390']],
+  ['Attesa', ['Video o carosello a pieno schermo, modelli A–D.', 'Uguale; testi delle slide in proporzione all’altezza.', 'Carosello pieno. Foto parlanti in letterbox, mute con focus point.', 'Slide verticali se caricate; altrimenti 16:9 in alto e testo sotto.', 'Solo modello A o foto verticale. Niente video sopra 720p.']],
+  ['Conto', ['Conto 16/24 + colonna con foto 16:9.', 'Conto 16/24, foto della colonna a 140–160 px.', 'Conto 16/24, colonna solo testo (modello A). Novità.', 'Scena sopra a larghezza piena, conto sotto.', 'Nessuna colonna. Una riga promo sopra il totale, a vendita ferma da 4 s.']],
+  ['Messaggio', ['Banda di 150 px che spinge la lista, mai sopra.', 'Stessa banda, in proporzione all’altezza.', 'Banda di 104 px, come nell iterazione 1.', 'Banda in testa al conto; la scena si accorcia.', 'Banda di 64 px: spinge la lista, il totale resta. Da provare.']],
+  ['Pagamento', ['beside: conto 10/24, QR 488 px. fullscreen: QR 404 px.', 'beside: conto 10/24, QR 360 px.', 'beside ora ammesso: QR 288 px, sopra il minimo di 256. Novità.', 'Sempre fullscreen: importo sopra, QR 660 px in card 880.', 'Sempre fullscreen: righe nascoste, totale sopra, QR 300 px.']],
+  ['Grazie', ['Saluto, riepilogo in due righe, reclame con QR.', 'Uguale.', 'Saluto, riepilogo, un solo invito.', 'Invito grande in alto, riepilogo sotto.', 'Saluto e un QR. Niente carosello.']],
+  ['Scontrino', ['Carta 580 + QR 440.', 'Carta 460 + QR 340.', 'Carta 420 + QR 300, affiancati.', 'Carta intera sopra, QR e pulsante sotto.', 'Carta che scorre, QR, pulsante stampa (touch).']]
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    function cell(head, first, last) {
+      return { padding: head ? '12px 14px' : '13px 14px', fontSize: head ? '13px' : '14px', lineHeight: 1.45, fontWeight: head || first ? 600 : 400, color: head ? '#9AA6BA' : (first ? '#E6EAF2' : '#C9D1DE'), background: head ? '#121923' : (first ? '#0F151E' : 'transparent'), borderTop: head ? 'none' : '1px solid #1E2733', borderLeft: first ? 'none' : '1px solid #1E2733', letterSpacing: head ? '0.04em' : 'normal', fontVariantNumeric: 'tabular-nums' };
+    }
+    function rows(list, n) {
+      return list.map(function (r, i) {
+        var o = { v0: r[0], c0: cell(i === 0, true), c: cell(i === 0, false) };
+        for (var k = 0; k < n; k++) { o['v' + (k + 1)] = r[1][k]; }
+        return o;
+      });
+    }
+    return { scala: rows(SCALA, 6), matrice: rows(MATRICE, 5) };
+  }
+}
+</script>
+</body>
+</html>

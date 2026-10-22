@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Back office — Schermi</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0E1217; }
+a { color: #6FA8FF; }
+a:hover { color: #9EC2FF; }
+@keyframes bs-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.bs-live { animation: bs-blink 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .bs-live { animation: none; } }
+</style>
+</helmet>
+
+<div style="width: 1366px; height: 768px; box-sizing: border-box; display: flex; flex-direction: column; background: #0E1217; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; overflow: hidden">
+
+  <div style="height: 52px; flex-shrink: 0; border-bottom: 1px solid #1E242D; display: flex; align-items: center; gap: 18px; padding: 0 18px; background: #11161D">
+    <div style="display: flex; align-items: center; gap: 9px">
+      <svg width="20" height="20" viewBox="0 0 34 34" role="img" aria-label="Bluetech">
+        <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1F6FEB" stroke-width="2.8"></rect>
+        <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#E6EAF2" stroke-width="3.2" stroke-linecap="round"></path>
+      </svg>
+      <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.14em">BLUETECH DISPLAY</div>
+    </div>
+    <div style="width: 1px; height: 22px; background: #1E242D"></div>
+    <div style="font-size: 13px; color: #8793A3">La Vela · ristorante</div>
+    <div style="flex-grow: 1"></div>
+    <div style="font-size: 12px; color: #3DDC97; border: 1px solid rgba(61,220,151,0.35); border-radius: 999px; padding: 4px 11px">Titolare</div>
+  </div>
+
+  <div style="flex-grow: 1; min-height: 0; display: flex">
+
+    <div style="width: 186px; flex-shrink: 0; border-right: 1px solid #1E242D; background: #11161D; padding: 12px 10px; display: flex; flex-direction: column; gap: 3px">
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="6">
+        <div style="{{n.item}}">
+          <div style="{{n.dot}}"></div>
+          <div style="flex-grow: 1; min-width: 0">{{n.t}}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- ELENCO -->
+    <div style="flex-grow: 1; min-width: 0; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-shrink: 0">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 23px; font-weight: 700">Schermi</div>
+        <button type="button" style="min-height: 32px; border-radius: 8px; border: none; background: #1F6FEB; color: #fff; font: inherit; font-size: 12.5px; font-weight: 600; padding: 0 14px; cursor: pointer">Abbina uno schermo</button>
+      </div>
+
+      <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow: hidden">
+        <sc-for list="{{schermi}}" as="s" hint-placeholder-count="4">
+          <div style="{{s.row}}">
+            <div style="{{s.live}}"></div>
+            <div style="width: 150px; flex-shrink: 0; display: flex; flex-direction: column; gap: 2px">
+              <div style="font-size: 13.5px; font-weight: 600">{{s.nome}}</div>
+              <div style="font-size: 11.5px; color: #6F7E95">{{s.risoluzione}}</div>
+            </div>
+            <div style="width: 118px; flex-shrink: 0; font-size: 12.5px; color: #8793A3">{{s.cassa}}</div>
+            <div style="{{s.dispPill}}">{{s.disp}}</div>
+            <div style="flex-grow: 1; min-width: 0; font-size: 12px; color: #6F7E95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{s.override}}</div>
+            <div style="width: 112px; flex-shrink: 0; font-size: 12px; color: #8793A3; text-align: right">{{s.stato}}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- ABBINAMENTO -->
+      <div style="flex-shrink: 0; border-radius: 12px; border: 1px solid rgba(31,111,235,0.4); background: rgba(31,111,235,0.08); padding: 16px 18px; display: flex; align-items: center; gap: 20px">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 5px">
+          <div style="font-size: 14px; font-weight: 600; color: #9EC2FF">Un nuovo schermo sta chiedendo di entrare</div>
+          <div style="font-size: 12.5px; line-height: 1.5; color: #C6DAFB">Scrivi qui il codice che vedi sul monitor. Scade fra 8 minuti.</div>
+        </div>
+        <div style="display: flex; gap: 6px">
+          <sc-for list="{{codice}}" as="c" hint-placeholder-count="6">
+            <div style="{{c.box}}">{{c.v}}</div>
+          </sc-for>
+        </div>
+        <button type="button" style="min-height: 36px; border-radius: 8px; border: none; background: #1F6FEB; color: #fff; font: inherit; font-size: 13px; font-weight: 600; padding: 0 18px; cursor: pointer">Abbina</button>
+      </div>
+    </div>
+
+    <!-- DETTAGLIO SCHERMO -->
+    <div style="width: 368px; flex-shrink: 0; border-left: 1px solid #1E242D; background: #11161D; display: flex; flex-direction: column">
+      <div style="height: 44px; flex-shrink: 0; border-bottom: 1px solid #1E242D; display: flex; align-items: center; padding: 0 14px; gap: 9px">
+        <div class="bs-live" style="width: 7px; height: 7px; border-radius: 50%; background: #3DDC97"></div>
+        <div style="font-size: 13px; font-weight: 600">Sala · monitor cassa 1</div>
+      </div>
+
+      <div style="flex-grow: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+
+        <div style="width: 100%; aspect-ratio: 16 / 9; border-radius: 9px; overflow: hidden; border: 1px solid #262D38; background: #0B1017; position: relative; flex-shrink: 0">
+          <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 50% 60% at 30% 30%, rgba(31,111,235,0.3) 0%, transparent 62%)"></div>
+          <div style="position: absolute; inset: 0; padding: 10px; box-sizing: border-box; display: flex; gap: 6px; align-items: flex-end">
+            <div style="flex: 16; min-width: 0; height: 74%; border-radius: 5px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12)"></div>
+            <div style="flex: 8; min-width: 0; height: 56%; border-radius: 5px; background: rgba(61,220,151,0.1); border: 1px solid rgba(61,220,151,0.3)"></div>
+          </div>
+          <div style="position: absolute; left: 8px; top: 8px; font-size: 9px; color: rgba(255,255,255,0.5)">in onda adesso</div>
+        </div>
+
+        <!-- OVERRIDE -->
+        <div style="display: flex; flex-direction: column; gap: 9px; flex-grow: 1; min-height: 0">
+          <div style="font-size: 11.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #6F7E95">Solo per questo schermo</div>
+
+          <sc-for list="{{over}}" as="o" hint-placeholder-count="4">
+            <div style="{{o.row}}">
+              <div style="flex-grow: 1; min-width: 0">
+                <div style="font-size: 12.5px; color: #C9D4E4">{{o.n}}</div>
+                <div style="font-size: 11px; color: #5A6675">{{o.src}}</div>
+              </div>
+              <div style="{{o.val}}">{{o.v}}</div>
+              <sc-if value="{{o.locale}}" hint-placeholder-val="{{ true }}">
+                <div style="font-size: 11px; color: #3DDC97; white-space: nowrap">↩ al locale</div>
+              </sc-if>
+            </div>
+          </sc-for>
+
+          <!-- larghezza conto -->
+          <div style="border-radius: 9px; border: 1px solid #262D38; background: #161C24; padding: 11px 12px; display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; align-items: baseline; justify-content: space-between">
+              <div style="font-size: 12.5px; color: #C9D4E4">Larghezza del conto</div>
+              <div style="font-size: 12.5px; font-weight: 600; color: #9EC2FF">16 / 24</div>
+            </div>
+            <div style="display: flex; gap: 2px">
+              <sc-for list="{{colonne}}" as="c" hint-placeholder-count="24">
+                <div style="{{c.box}}"></div>
+              </sc-for>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: #5A6675">
+              <span>min 9</span><span>1179 px di scontrino · 589 di card</span><span>max 17</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-radius: 9px; border: 1px solid #262D38; background: #161C24; padding: 11px 12px; font-size: 12px; line-height: 1.5; color: #8793A3; flex-shrink: 0">
+          Ultimo accesso adesso · 2 copie di carta oggi · firmware display 2.4.1
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1366,"height":768}}'>
+var NAV = [
+  { t: 'Adesso', on: false }, { t: 'Il locale', on: false }, { t: 'Vetrine', on: false },
+  { t: 'Contenuti', on: false }, { t: 'Schermi', on: true }, { t: 'Statistiche', on: false }
+];
+
+var SCHERMI = [
+  { nome: 'Sala · monitor cassa 1', risoluzione: '1920×1080', cassa: 'Cassa 1', disp: 'Automatica', dispC: '#8793A3', override: 'nessuna modifica locale', stato: 'collegato', live: '#3DDC97', sel: true },
+  { nome: 'Bar · monitor 10″', risoluzione: '1024×768', cassa: 'Cassa 2', disp: 'Automatica', dispC: '#8793A3', override: 'righe compatte · animazioni Leggera', stato: 'collegato', live: '#3DDC97', sel: false },
+  { nome: 'iPad Pro · banco', risoluzione: '1376×1032', cassa: 'Cassa 1', disp: 'Larga forzata', dispC: '#6FA8FF', override: 'disposizione larga · conto 14/24', stato: 'collegato', live: '#3DDC97', sel: false },
+  { nome: 'Palmare sala 2', risoluzione: '430×932', cassa: 'Cassa 1', disp: 'Palmare', dispC: '#8793A3', override: 'animazioni Leggera', stato: '2 ore fa', live: '#6F7E95', sel: false }
+];
+
+var OVER = [
+  { n: 'Disposizione', v: 'Automatica', src: 'calcolata dal rapporto d aspetto', locale: false },
+  { n: 'Animazioni', v: 'Piena', src: 'dal locale', locale: false },
+  { n: 'Attrazione', v: 'Vivo', src: 'dal locale', locale: false },
+  { n: 'Allineamento card', v: 'Basso', src: 'dal locale', locale: false }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      nav: NAV.map(function (n) {
+        return {
+          t: n.t,
+          item: { display: 'flex', alignItems: 'center', gap: '9px', minHeight: '34px', borderRadius: '8px', padding: '0 10px', fontSize: '13px', fontWeight: n.on ? 600 : 400, color: n.on ? '#E6EAF2' : '#8793A3', background: n.on ? '#1B2430' : 'transparent' },
+          dot: { width: '5px', height: '5px', borderRadius: '50%', flexShrink: 0, background: n.on ? '#1F6FEB' : '#39424F' }
+        };
+      }),
+      schermi: SCHERMI.map(function (s) {
+        return {
+          nome: s.nome, risoluzione: s.risoluzione, cassa: s.cassa, disp: s.disp, override: s.override, stato: s.stato,
+          row: { display: 'flex', alignItems: 'center', gap: '14px', minHeight: '52px', borderRadius: '10px', padding: '0 14px', background: s.sel ? '#1B2430' : '#161C24', border: '1px solid ' + (s.sel ? '#2E3A49' : '#262D38') },
+          live: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, background: s.live },
+          dispPill: { width: '116px', flexShrink: 0, textAlign: 'center', borderRadius: '999px', padding: '4px 0', fontSize: '11.5px', color: s.dispC, border: '1px solid ' + s.dispC + '44', background: s.dispC + '12' }
+        };
+      }),
+      codice: ['4', '9', '2', '7', '1', '5'].map(function (v) {
+        return { v: v, box: { width: '34px', height: '42px', borderRadius: '8px', background: '#0E1217', border: '1px solid #2E3A49', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Archivo', sans-serif", fontSize: '20px', fontWeight: 700, color: '#E6EAF2' } };
+      }),
+      over: OVER.map(function (o) {
+        return {
+          n: o.n, v: o.v, src: o.src, locale: o.locale,
+          row: { display: 'flex', alignItems: 'center', gap: '10px', borderRadius: '9px', border: '1px solid #262D38', background: '#161C24', padding: '9px 12px' },
+          val: { fontSize: '12.5px', fontWeight: 600, color: '#E6EAF2', whiteSpace: 'nowrap' }
+        };
+      }),
+      colonne: new Array(24).fill(0).map(function (_, i) {
+        return { box: { flex: '1', height: '18px', borderRadius: '2px', background: i < 16 ? 'rgba(31,111,235,0.6)' : 'rgba(61,220,151,0.3)', border: '1px solid ' + (i < 16 ? 'rgba(31,111,235,0.8)' : 'rgba(61,220,151,0.45)') } };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

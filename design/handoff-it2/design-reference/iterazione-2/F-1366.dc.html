@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Conto a 1366×768 — Bluetech notte</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+@keyframes f6-pan { from { transform: scale(1.06); } to { transform: scale(1.12) translateX(-14px); } }
+@keyframes f6-row { 0% { opacity: 0; transform: translateY(14px) scale(0.985); } 46% { opacity: 1; transform: translateY(-2px); } 100% { opacity: 1; transform: none; } }
+@keyframes f6-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.014); } }
+.f6-pan { animation: f6-pan 18s linear infinite alternate; }
+.f6-row { animation: f6-row 420ms cubic-bezier(0.22,1.2,0.36,1) both; }
+.f6-pulse { animation: f6-pulse 3.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .f6-pan, .f6-row, .f6-pulse { animation: none; } }
+</style>
+</helmet>
+
+<div style="width: 1366px; height: 768px; box-sizing: border-box; position: relative; overflow: hidden; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif">
+
+  <div class="f6-pan" style="position: absolute; inset: -5%">
+    <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 46% 56% at 62% 34%, #C9824A 0%, rgba(201,130,74,0) 60%), radial-gradient(ellipse 40% 50% at 20% 70%, #2E5D82 0%, rgba(46,93,130,0) 58%), linear-gradient(145deg, #3B2A1C 0%, #14202F 58%, #060A10 100%)"></div>
+  </div>
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,12,18,0.46) 0%, rgba(8,12,18,0.62) 52%, rgba(8,12,18,0.78) 100%)"></div>
+
+  <div style="position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 34px 40px 28px; display: flex; flex-direction: column; gap: 16px">
+
+    <div style="height: 42px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 18px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <svg width="30" height="30" viewBox="0 0 58 58" role="img" aria-label="Logo del locale (segnaposto)">
+          <circle cx="29" cy="29" r="27.5" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1.8"></circle>
+          <path d="M17 38 L29 16 L41 38 Z" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"></path>
+          <line x1="17" y1="38" x2="41" y2="38" stroke="#3DDC97" stroke-width="3"></line>
+        </svg>
+        <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: 0.06em">LA VELA</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; color: rgba(255,255,255,0.7)">
+        <div style="font-size: 15px">Cassa 1 · Tavolo 7</div>
+        <div style="width: 7px; height: 7px; border-radius: 50%; background: #3DDC97"></div>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1; min-height: 0; display: flex; gap: 26px; align-items: flex-end">
+
+      <!-- 16/24 di 1366 = 911 px -->
+      <div style="width: 844px; flex-shrink: 0; box-sizing: border-box; border-radius: 18px; padding: 22px 26px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.13); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 10px">
+
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 14px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.66)">Il tuo conto</div>
+          <div style="font-size: 14px; color: rgba(255,255,255,0.66); font-variant-numeric: tabular-nums">5 articoli · 2 coperti</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column">
+          <sc-for list="{{righe}}" as="r" hint-placeholder-count="6">
+            <div style="{{r.row}}">
+              <div style="{{r.nome}}">{{r.n}}</div>
+              <sc-if value="{{r.hasQ}}" hint-placeholder-val="{{ true }}">
+                <div style="{{r.q}}">{{r.qt}}</div>
+              </sc-if>
+              <sc-if value="{{r.hasP}}" hint-placeholder-val="{{ true }}">
+                <div style="{{r.p}}">{{r.pz}}</div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <div class="f6-pulse" style="margin-top: 2px; border-radius: 14px; padding: 16px 20px; background: linear-gradient(180deg, rgba(31,111,235,0.24), rgba(31,111,235,0.06)); border: 1px solid rgba(31,111,235,0.5); display: flex; align-items: flex-end; justify-content: space-between; gap: 18px">
+          <div style="display: flex; flex-direction: column; gap: 3px; padding-bottom: 10px">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.68)">Totale</div>
+            <div style="font-size: 13px; color: rgba(255,255,255,0.6)">IVA inclusa</div>
+          </div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 120px; font-weight: 700; line-height: 0.9; letter-spacing: -0.035em; font-variant-numeric: tabular-nums">€ 87,00</div>
+        </div>
+      </div>
+
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 10px">
+        <div style="border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,0.13); background: rgba(255,255,255,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px)">
+          <div style="position: relative; height: 158px; background: linear-gradient(135deg, #2F5C48 0%, #121E19 100%)">
+            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); border: 1px dashed rgba(255,255,255,0.3); border-radius: 8px; padding: 7px 11px; font-size: 11px; letter-spacing: 0.12em; color: rgba(255,255,255,0.7)">FOTO 16:9</div>
+          </div>
+          <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 7px">
+            <div style="font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #3DDC97">Il consiglio della casa</div>
+            <div style="font-family: 'Archivo', sans-serif; font-size: 25px; font-weight: 700; line-height: 1.08">Tiramisù della casa</div>
+            <div style="font-size: 14px; line-height: 1.4; color: rgba(255,255,255,0.72)">Fatto stamattina. Sei euro.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 18px">
+      <div style="display: flex; align-items: center; gap: 9px; font-size: 11px; color: rgba(255,255,255,0.42)">
+        <div style="border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; padding: 4px 9px">disposizione larga · 1,78</div>
+        <div style="border: 1px solid rgba(61,220,151,0.4); border-radius: 999px; padding: 4px 9px; color: #3DDC97">conto 16/24 = 844 px · righe 23/25 · totale 120 px (minimo 85)</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div style="font-size: 11px; color: rgba(255,255,255,0.6)">powered by</div>
+        <svg width="17" height="17" viewBox="0 0 34 34" role="img" aria-label="Marchio Bluetech (segnaposto)">
+          <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1F6FEB" stroke-width="2.8"></rect>
+          <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round"></path>
+        </svg>
+        <div style="font-family: 'Archivo', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.16em">BLUETECH</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1366,"height":768}}'>
+var RIGHE = [
+  { n: 'Tomino con Verdure Grigliate', pz: '12,00' },
+  { n: 'I 4 salumi', pz: '12,00' },
+  { n: 'Tagliere Emilia', qt: '×2', pz: '30,00' },
+  { n: 'senza lardo', nota: true },
+  { n: 'Cestino di tigelle 4 pezzi', qt: '×2', pz: '6,00', verde: true },
+  { n: 'Tagliere Vecchia Malga', qt: '×2', pz: '27,00', nuova: true }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      righe: RIGHE.map(function (r) {
+        var bordo = '1px solid rgba(255,255,255,0.1)';
+        return {
+          n: r.n, qt: r.qt, pz: r.pz, hasQ: !!r.qt, hasP: !!r.pz,
+          row: { display: 'flex', alignItems: 'baseline', gap: '14px', padding: r.nota ? '7px 0 7px 20px' : '9px 0', borderBottom: bordo, animation: r.nuova ? 'f6-row 420ms cubic-bezier(0.22,1.2,0.36,1) both' : 'none' },
+          nome: r.nota
+            ? { flexGrow: 1, fontSize: '17px', fontStyle: 'italic', color: 'rgba(255,255,255,0.72)' }
+            : { flexGrow: 1, fontSize: '23px', fontWeight: 500 },
+          q: { fontSize: '18px', color: r.verde ? '#3DDC97' : 'rgba(255,255,255,0.66)', fontWeight: r.verde ? 600 : 400, fontVariantNumeric: 'tabular-nums' },
+          p: { width: '104px', textAlign: 'right', fontSize: '25px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

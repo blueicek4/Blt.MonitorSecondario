@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>La griglia a 24 colonne</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+</style>
+</helmet>
+
+<div style="width: 1500px; height: 2400px; box-sizing: border-box; padding: 56px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 40px">
+
+  <div style="display: flex; flex-direction: column; gap: 14px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: #6F7E95">Il sistema · larghezze</div>
+    <h1 style="margin: 0; font-family: 'Archivo', sans-serif; font-size: 52px; font-weight: 700; line-height: 1.05; letter-spacing: -0.025em">Ventiquattro colonne,<br>con dei fermi</h1>
+    <p style="margin: 0; font-size: 18px; line-height: 1.6; color: #9AA6BA; max-width: 86ch">La larghezza dello scontrino diventa un token: il locale decide quanto spazio prende la lista e quanto ne resta alla reclame. La card accanto non ha mai una larghezza propria — riempie quello che avanza. Così c'è una misura sola da scegliere invece di due da far tornare.</p>
+  </div>
+
+  <!-- 12 O 24 -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px; flex-shrink: 0">
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600">Perché 24 e non 12</div>
+      <div style="display: flex; gap: 3px; height: 34px">
+        <sc-for list="{{twelve}}" as="c" hint-placeholder-count="12">
+          <div style="flex: 1; background: rgba(255,255,255,0.1); border-radius: 2px"></div>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 3px; height: 34px">
+        <sc-for list="{{twentyfour}}" as="c" hint-placeholder-count="24">
+          <div style="flex: 1; background: rgba(31,111,235,0.4); border-radius: 2px"></div>
+        </sc-for>
+      </div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Su 1920 un passo da 12 vale <strong style="color: #E6EAF2">150 px</strong>: fra una scelta e l'altra il totale cambia corpo e la reclame perde o guadagna una riga intera. Un passo da 24 vale 75 px, che è la granularità giusta per aggiustare senza rompere. Il back office mostra comunque il valore in dodicesimi quando capita pari, perché “16 su 24” si legge peggio di “due terzi”.</p>
+    </div>
+    <div style="background: rgba(242,163,60,0.08); border: 1px solid rgba(242,163,60,0.35); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 600; color: #F2A33C">I fermi non sono opzionali</div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #E9D6B8">Il cursore va da <strong style="font-weight: 600">9 a 17 colonne su 24</strong>, non da 1 a 24. Sotto 9 le descrizioni della cassa — che arrivano già troncate a 22 o 40 caratteri — vanno a capo o si tagliano di nuovo. Sopra 17 nella colonna non ci sta più un QR con la sua quiet zone, e la reclame diventa una striscia inutile. Un cursore che può produrre uno schermo rotto è un cursore progettato male.</p>
+      <div style="border-top: 1px solid rgba(242,163,60,0.3); padding-top: 12px; font-size: 15px; line-height: 1.6; color: #E9D6B8">Fuori dai fermi il campo non si blocca con un errore: semplicemente il cursore finisce lì, e sotto compare la ragione in una riga.</div>
+    </div>
+  </div>
+
+  <!-- I TRE PRESET -->
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 22px">Quattro larghezze tipiche, su 1920</div>
+
+    <sc-for list="{{presets}}" as="p" hint-placeholder-count="4">
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px">
+          <div style="display: flex; align-items: baseline; gap: 12px">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600">{{p.nome}}</div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6FA8FF">{{p.span}}</div>
+          </div>
+          <div style="font-size: 14px; color: #9AA6BA">{{p.px}}</div>
+        </div>
+
+        <div style="display: flex; gap: 10px; height: 92px">
+          <div style="{{p.left}}">
+            <div style="display: flex; flex-direction: column; gap: 5px; width: 100%">
+              <div style="height: 7px; border-radius: 3px; background: rgba(230,234,242,0.45)"></div>
+              <div style="height: 7px; border-radius: 3px; background: rgba(230,234,242,0.45)"></div>
+              <div style="height: 22px; border-radius: 5px; background: rgba(31,111,235,0.45); border: 1px solid rgba(31,111,235,0.6)"></div>
+            </div>
+          </div>
+          <div style="{{p.right}}">
+            <div style="font-size: 12px; color: #3DDC97; letter-spacing: 0.1em">{{p.carta}}</div>
+          </div>
+        </div>
+
+        <div style="font-size: 15px; line-height: 1.55; color: #9AA6BA">{{p.nota}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- ALLINEAMENTO VERTICALE -->
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 22px">L'allineamento verticale della card</div>
+    <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA; max-width: 96ch">Lo scontrino è sempre ancorato in basso: le righe nuove arrivano da lì e il totale non si sposta mai. La card accanto invece non ha un vincolo, quindi la scelta è del locale. Tre valori, e il default è <strong style="color: #E6EAF2">basso</strong>, perché allinea i due blocchi sulla stessa linea e fa sembrare la composizione progettata.</p>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px">
+      <sc-for list="{{aligns}}" as="a" hint-placeholder-count="3">
+        <div style="background: #141B26; border: 1px solid {{a.border}}; border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+          <div style="height: 180px; border-radius: 12px; background: #0D131C; border: 1px solid rgba(255,255,255,0.08); padding: 12px; box-sizing: border-box; display: flex; gap: 10px; {{a.items}}">
+            <div style="flex: 1.6; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); height: 118px; align-self: flex-end; display: flex; flex-direction: column; justify-content: flex-end; padding: 8px; gap: 4px">
+              <div style="height: 5px; border-radius: 3px; background: rgba(230,234,242,0.4)"></div>
+              <div style="height: 5px; border-radius: 3px; background: rgba(230,234,242,0.4)"></div>
+              <div style="height: 18px; border-radius: 4px; background: rgba(31,111,235,0.45)"></div>
+            </div>
+            <div style="flex: 1; border-radius: 8px; border: 1px solid rgba(61,220,151,0.4); background: rgba(61,220,151,0.08); height: 84px"></div>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <div style="font-family: 'Archivo', sans-serif; font-size: 18px; font-weight: 600">{{a.nome}}</div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #6FA8FF">{{a.val}}</div>
+          </div>
+          <div style="font-size: 15px; line-height: 1.55; color: #9AA6BA">{{a.desc}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- TOKEN E COMPORTAMENTO SUGLI ALTRI FORMATI -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px; flex-shrink: 0">
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600">I token nuovi</div>
+      <div style="display: flex; flex-direction: column; gap: 9px; font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: #C9D4E4">
+        <div><span style="color: #6FA8FF">colonneConto</span>: 9–17 &nbsp;<span style="color: #6F7E95">// su 24, default 16</span></div>
+        <div><span style="color: #6FA8FF">colonneContoPagamento</span>: 8–14 &nbsp;<span style="color: #6F7E95">// default 10</span></div>
+        <div><span style="color: #6FA8FF">colonnaAllineamento</span>: alto | centro | basso</div>
+        <div><span style="color: #6FA8FF">colonnaGutter</span>: 24 px &nbsp;<span style="color: #6F7E95">// fisso, non esposto</span></div>
+      </div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">La card accanto non ha un token di larghezza: è <code>1fr</code>. Esporre due numeri che devono sommare a 24 è il modo più rapido per ottenere installazioni con una striscia nera in mezzo.</p>
+    </div>
+
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 19px; font-weight: 600">Sugli altri formati</div>
+      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 1.55; color: #9AA6BA">
+        <div><strong style="color: #E6EAF2">1366 e 1280 larghi:</strong> lo stesso span, colonne più strette. A 1366 il massimo scende da 17 a 16, perché sotto 400 px la card non regge un QR.</div>
+        <div><strong style="color: #E6EAF2">Verticale e palmare:</strong> non c'è colonna, quindi il token non si applica. Il back office lo dice invece di nasconderlo: “questa impostazione non ha effetto sugli schermi verticali”. A 1024×768 la colonna c'è, solo testo, e il token vale.</div>
+        <div><strong style="color: #E6EAF2">Pagamento:</strong> usa il suo span, non quello del conto. È l'unico momento in cui ha senso che lo scontrino si stringa oltre il minimo normale, perché accanto c'è un QR che deve essere grande.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1500,"height":2400}}'>
+var PRESETS = [
+  { nome: 'Conto, default', span: '16 / 24', px: 'scontrino 1179 px · card 589 px', flex: 16, carta: 'FOTO + TITOLO + QR', nota: 'La misura di oggi. La card tiene una foto 16:9, un titolo su due righe e un QR da 320 px con la didascalia.' },
+  { nome: 'Reclame protagonista', span: '12 / 24', px: 'scontrino 884 px · card 884 px', flex: 12, carta: 'TUTTO, ANCHE UN VIDEO', nota: 'Per chi dallo schermo vuole vendere. Lo scontrino regge ancora descrizioni da 40 caratteri e un totale a 150 px: sotto questa soglia comincia a soffrire.' },
+  { nome: 'Conto protagonista', span: '17 / 24', px: 'scontrino 1252 px · card 516 px', flex: 17, carta: 'TITOLO + QR, SENZA FOTO', nota: 'Il massimo. La card perde la foto e tiene testo e QR. Oltre, il QR scenderebbe sotto il terzo di altezza: il fermo è lì per quello.' },
+  { nome: 'Pagamento', span: '10 / 24', px: 'scontrino 737 px · card 1031 px', flex: 10, carta: 'QR SATISPAY 488 px', nota: 'Span separato, applicato solo mentre il QR di pagamento è a schermo. Lo scontrino resta leggibile e il codice prende lo spazio che gli serve.' }
+];
+
+var ALIGNS = [
+  { nome: 'Basso', val: 'basso', border: 'rgba(61,220,151,0.4)', items: 'align-items: flex-end', desc: 'Il default. I due blocchi finiscono sulla stessa linea: è l allineamento che fa sembrare la composizione voluta.' },
+  { nome: 'Centro', val: 'centro', border: 'rgba(255,255,255,0.08)', items: 'align-items: center', desc: 'Per card basse, tipo una promozione di solo testo. Con lo scontrino corto i due blocchi galleggiano: va bene sui conti lunghi, meno sui corti.' },
+  { nome: 'Alto', val: 'alto', border: 'rgba(255,255,255,0.08)', items: 'align-items: flex-start', desc: 'La card parte sotto la testata e scende. Utile quando la card è alta quanto lo schermo e lo scontrino è corto, cosi la scena resta visibile in basso.' }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    var cell = function (on) { return { on: on }; };
+    return {
+      twelve: new Array(12).fill(0).map(cell),
+      twentyfour: new Array(24).fill(0).map(cell),
+      presets: PRESETS.map(function (p) {
+        return {
+          nome: p.nome, span: p.span, px: p.px, carta: p.carta, nota: p.nota,
+          left: {
+            flex: String(p.flex),
+            minWidth: 0,
+            borderRadius: '10px',
+            border: '1px solid rgba(255,255,255,0.14)',
+            background: 'rgba(255,255,255,0.05)',
+            padding: '12px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            alignItems: 'flex-end'
+          },
+          right: {
+            flex: String(24 - p.flex),
+            minWidth: 0,
+            borderRadius: '10px',
+            border: '1px solid rgba(61,220,151,0.4)',
+            background: 'rgba(61,220,151,0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0 8px',
+            textAlign: 'center'
+          }
+        };
+      }),
+      aligns: ALIGNS
+    };
+  }
+}
+</script>
+</body>
+</html>

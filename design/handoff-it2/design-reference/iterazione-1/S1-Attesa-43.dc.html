@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Attesa — 4:3 Trattoria</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;1,400&amp;family=Alegreya+Sans:wght@400;500;700&amp;display=swap">
+<style>
+body { margin: 0; background: #F6EEE2; }
+a { color: #9C3A1F; }
+a:hover { color: #6B2A14; }
+@keyframes bt-kb { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.07) translate3d(10px, -8px, 0); } }
+@keyframes bt-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.bt-kb { animation: bt-kb 8s linear infinite alternate; }
+.bt-ticker { animation: bt-ticker 22s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .bt-kb, .bt-ticker { animation: none; } }
+</style>
+</helmet>
+
+<div style="--c-primary: #9C3A1F; --c-accent: #1E6B4F; --c-bg: #F6EEE2; --c-surface: #FFFBF4; --c-text: #2B211A; --c-muted: #6B5B49; --radius: 14px; width: 1024px; height: 768px; box-sizing: border-box; position: relative; overflow: hidden; background: #F6EEE2; color: #2B211A; font-family: 'Alegreya Sans', 'Segoe UI', sans-serif">
+
+  <div class="bt-kb" style="position: absolute; inset: -30px; transform-origin: 40% 50%">
+    <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 70% 60% at 30% 30%, #E8D3B8 0%, rgba(232,211,184,0) 62%), radial-gradient(ellipse 60% 55% at 80% 76%, #C98A5E 0%, rgba(201,138,94,0) 60%), linear-gradient(150deg, #F6EEE2 0%, #E6D6C2 55%, #CDA583 100%)"></div>
+    <div style="position: absolute; left: 8%; top: 12%; width: 300px; height: 300px; border-radius: 50%; border: 1px solid rgba(43,33,26,0.1)"></div>
+    <div style="position: absolute; right: 12%; bottom: 22%; width: 220px; height: 220px; border-radius: 50%; border: 1px solid rgba(43,33,26,0.08)"></div>
+  </div>
+
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(246,238,226,0.86) 0%, rgba(246,238,226,0) 30%, rgba(246,238,226,0) 54%, rgba(246,238,226,0.94) 100%)"></div>
+
+  <div style="position: absolute; left: 50%; top: 48%; transform: translate(-50%, -50%); border: 1px dashed rgba(43,33,26,0.32); border-radius: 12px; padding: 20px 28px; text-align: center; display: flex; flex-direction: column; gap: 6px">
+    <div style="font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 600; letter-spacing: 0.16em; color: #2B211A">SLIDE DEL LOCALE</div>
+    <div style="font-size: 15px; color: #6B5B49">1024×768 · segnaposto</div>
+  </div>
+
+  <div style="position: absolute; left: 40px; top: 34px; display: flex; align-items: center; gap: 16px">
+    <svg width="46" height="46" viewBox="0 0 58 58" role="img" aria-label="Logo del locale (segnaposto)">
+      <circle cx="29" cy="29" r="27.5" fill="none" stroke="rgba(43,33,26,0.35)" stroke-width="1.6"></circle>
+      <path d="M20 40 Q29 14 38 40" fill="none" stroke="#9C3A1F" stroke-width="2.6" stroke-linecap="round"></path>
+      <line x1="20" y1="40" x2="38" y2="40" stroke="#2B211A" stroke-width="2.4"></line>
+    </svg>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <div style="font-family: 'Newsreader', Georgia, serif; font-size: 32px; font-weight: 600; line-height: 1.05">Trattoria del Borgo</div>
+      <div style="font-size: 14px; letter-spacing: 0.2em; text-transform: uppercase; color: #6B5B49">cucina casalinga dal 1974</div>
+    </div>
+  </div>
+
+  <div style="position: absolute; right: 40px; top: 44px; display: flex; align-items: center; gap: 8px">
+    <div style="width: 34px; height: 3px; border-radius: 2px; background: #9C3A1F"></div>
+    <div style="width: 16px; height: 3px; border-radius: 2px; background: rgba(43,33,26,0.25)"></div>
+    <div style="width: 16px; height: 3px; border-radius: 2px; background: rgba(43,33,26,0.25)"></div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 92px; overflow: hidden; padding: 12px 0; border-top: 1px solid rgba(43,33,26,0.14); border-bottom: 1px solid rgba(43,33,26,0.14); background: rgba(255,251,244,0.72)">
+    <div class="bt-ticker" style="display: flex; gap: 60px; white-space: nowrap; width: max-content; padding-left: 40px; font-size: 22px; font-weight: 500; color: #2B211A">
+      <span>Tagliatelle fatte in casa ogni mattina &nbsp;·&nbsp; Menù del giorno 14 € &nbsp;·&nbsp; Chiuso il martedì</span>
+      <span>Tagliatelle fatte in casa ogni mattina &nbsp;·&nbsp; Menù del giorno 14 € &nbsp;·&nbsp; Chiuso il martedì</span>
+    </div>
+  </div>
+
+  <div style="position: absolute; right: 40px; bottom: 28px; display: flex; align-items: center; gap: 10px; height: 40px">
+    <div style="font-size: 13px; color: #6B5B49">powered by</div>
+    <svg width="20" height="20" viewBox="0 0 34 34" role="img" aria-label="Marchio Bluetech (segnaposto)">
+      <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1F6FEB" stroke-width="2.6"></rect>
+      <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#2B211A" stroke-width="3" stroke-linecap="round"></path>
+    </svg>
+    <div style="font-family: 'Newsreader', Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0.16em; color: #2B211A">BLUETECH</div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1024,"height":768}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

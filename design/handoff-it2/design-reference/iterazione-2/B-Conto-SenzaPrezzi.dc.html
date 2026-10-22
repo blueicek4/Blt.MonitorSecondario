@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Conto senza prezzi — card risolta</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+@keyframes bz-pan { from { transform: scale(1.05); } to { transform: scale(1.12) translateX(-16px); } }
+@keyframes bz-row { 0% { opacity: 0; transform: translateY(14px); } 60% { opacity: 1; transform: translateY(-2px); } 100% { opacity: 1; transform: none; } }
+@keyframes bz-rise { 0% { opacity: 0; transform: translateY(22px); } 100% { opacity: 1; transform: none; } }
+.bz-pan { animation: bz-pan 18s linear infinite alternate; }
+.bz-row { animation: bz-row 420ms cubic-bezier(0.22,1.2,0.36,1) both; }
+.bz-rise { animation: bz-rise 620ms cubic-bezier(0.16,1,0.3,1) both; }
+@media (prefers-reduced-motion: reduce) { .bz-pan, .bz-row, .bz-rise { animation: none; } }
+</style>
+</helmet>
+
+<div style="width: 1920px; height: 1080px; box-sizing: border-box; position: relative; overflow: hidden; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif">
+
+  <div class="bz-pan" style="position: absolute; inset: -5%">
+    <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 50% 60% at 36% 38%, #C9824A 0%, rgba(201,130,74,0) 60%), radial-gradient(ellipse 44% 50% at 82% 74%, #2E5D82 0%, rgba(46,93,130,0) 58%), linear-gradient(140deg, #3B2A1C 0%, #14202F 60%, #060A10 100%)"></div>
+  </div>
+  <div style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(8,12,18,0.3) 0%, rgba(8,12,18,0.42) 56%, rgba(8,12,18,0.72) 100%)"></div>
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,12,18,0.42) 0%, rgba(8,12,18,0.18) 30%, rgba(8,12,18,0.72) 100%)"></div>
+
+  <div style="position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 56px 64px; display: flex; flex-direction: column; gap: 24px">
+
+    <div style="height: 60px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 24px">
+      <div style="display: flex; align-items: center; gap: 16px">
+        <svg width="42" height="42" viewBox="0 0 58 58" role="img" aria-label="Logo del locale (segnaposto)">
+          <circle cx="29" cy="29" r="27.5" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1.6"></circle>
+          <path d="M17 38 L29 16 L41 38 Z" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linejoin="round"></path>
+          <line x1="17" y1="38" x2="41" y2="38" stroke="#3DDC97" stroke-width="2.6"></line>
+        </svg>
+        <div style="font-family: 'Archivo', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0.06em">LA VELA</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px; color: rgba(255,255,255,0.7)">
+        <div style="font-size: 20px">Cassa 1 · Tavolo 7</div>
+        <div style="width: 9px; height: 9px; border-radius: 50%; background: #3DDC97"></div>
+      </div>
+    </div>
+
+    <!-- SENZA PREZZI I RUOLI SI INVERTONO: la scena prende il centro, la lista diventa un controllo -->
+    <div style="flex-grow: 1; min-height: 0; display: flex; gap: 44px; align-items: flex-end">
+
+      <!-- la scena, protagonista -->
+      <div class="bz-rise" style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 26px; padding-bottom: 12px">
+        <div style="font-size: 17px; letter-spacing: 0.22em; text-transform: uppercase; color: #3DDC97">Questa sera</div>
+        <div style="font-family: 'Archivo', sans-serif; font-size: 86px; font-weight: 700; line-height: 1.03; letter-spacing: -0.03em; max-width: 15ch; text-wrap: pretty">Il pescato arriva ogni mattina dal porto</div>
+        <div style="font-size: 27px; line-height: 1.45; color: rgba(255,255,255,0.78); max-width: 32ch">Chiedi al cameriere cosa c'è oggi: cambia tutti i giorni.</div>
+      </div>
+
+      <!-- la lista, controllo -->
+      <div style="width: 660px; flex-shrink: 0; box-sizing: border-box; border-radius: 22px; padding: 28px 30px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.13); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); display: flex; flex-direction: column; gap: 12px">
+
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.64)">Il tuo conto</div>
+          <div style="font-size: 17px; color: rgba(255,255,255,0.64); font-variant-numeric: tabular-nums">5 articoli</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column">
+          <div style="display: flex; align-items: baseline; gap: 14px; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.1)">
+            <div style="flex-grow: 1; font-size: 24px; font-weight: 500">Tomino con Verdure Grigliate</div>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 14px; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.1)">
+            <div style="flex-grow: 1; font-size: 24px; font-weight: 500">I 4 salumi</div>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 14px; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.1)">
+            <div style="flex-grow: 1; font-size: 24px; font-weight: 500">Tagliere Emilia</div>
+            <div style="font-size: 20px; color: rgba(255,255,255,0.64); font-variant-numeric: tabular-nums">×2</div>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 14px; padding: 8px 0 8px 24px; border-bottom: 1px solid rgba(255,255,255,0.1)">
+            <div style="flex-grow: 1; font-size: 21px; font-style: italic; color: rgba(255,255,255,0.7)">senza lardo</div>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 14px; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.1)">
+            <div style="flex-grow: 1; font-size: 24px; font-weight: 500">Cestino di tigelle 4 pezzi</div>
+            <div style="font-size: 20px; color: rgba(255,255,255,0.64); font-variant-numeric: tabular-nums">×2</div>
+          </div>
+          <div class="bz-row" style="display: flex; align-items: baseline; gap: 14px; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.1)">
+            <div style="flex-grow: 1; font-size: 24px; font-weight: 500">Tagliere Vecchia Malga</div>
+            <div style="font-size: 20px; color: rgba(255,255,255,0.64); font-variant-numeric: tabular-nums">×2</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 6px; display: flex; align-items: center; gap: 12px; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 16px">
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.4)"></div>
+          <div style="font-size: 18px; color: rgba(255,255,255,0.62)">Il totale compare quando il conto è pronto</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 24px">
+      <div style="display: flex; align-items: center; gap: 14px; font-size: 14px; color: rgba(255,255,255,0.42)">
+        <div style="border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; padding: 5px 12px">prezzi solo sul conto</div>
+        <div style="border: 1px solid rgba(61,220,151,0.4); border-radius: 999px; padding: 5px 12px; color: #3DDC97">ruoli invertiti — risolve 02</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <div style="font-size: 15px; color: rgba(255,255,255,0.66)">powered by</div>
+        <svg width="24" height="24" viewBox="0 0 34 34" role="img" aria-label="Marchio Bluetech (segnaposto)">
+          <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1F6FEB" stroke-width="2.6"></rect>
+          <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"></path>
+        </svg>
+        <div style="font-family: 'Archivo', sans-serif; font-size: 17px; font-weight: 600; letter-spacing: 0.16em; color: #FFFFFF">BLUETECH</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Conto sul palmare 390×844 — tema Brace</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&amp;family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap">
+<style>
+body { margin: 0; background: #121010; }
+@keyframes fp-row { 0% { opacity: 0; transform: translateY(10px) scale(0.985); } 46% { opacity: 1; transform: translateY(-2px); } 100% { opacity: 1; transform: none; } }
+@keyframes fp-strike { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.fp-strike { transform-origin: left center; animation: fp-strike 320ms cubic-bezier(0.33,1,0.68,1) both; }
+@media (prefers-reduced-motion: reduce) { .fp-strike { animation: none; } }
+</style>
+</helmet>
+
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #121010; color: #F2E8E0; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column">
+
+  <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 80% 40% at 50% 0%, rgba(188,74,23,0.22) 0%, transparent 70%); pointer-events: none"></div>
+
+  <div style="position: relative; flex-shrink: 0; padding: 20px 20px 12px; display: flex; align-items: center; justify-content: space-between">
+    <div style="font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 0.08em">BRACERIA 41</div>
+    <div style="font-size: 13px; color: #B5A69C">Tavolo 12</div>
+  </div>
+
+  <!-- niente colonna promo: non c'è posto. La promozione si riduce a una riga sopra il totale, e solo a vendita ferma per 4 s. -->
+  <div style="position: relative; flex-grow: 1; min-height: 0; padding: 4px 20px 0; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden">
+    <div style="font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #B5A69C; padding-bottom: 6px">Il tuo conto · 7 articoli</div>
+    <div style="display: flex; flex-direction: column">
+      <sc-for list="{{righe}}" as="r" hint-placeholder-count="9">
+        <div style="{{r.row}}">
+          <sc-if value="{{r.storno}}" hint-placeholder-val="{{ false }}">
+            <div class="fp-strike" style="position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #B5A69C"></div>
+          </sc-if>
+          <div style="{{r.nome}}">{{r.n}}</div>
+          <sc-if value="{{r.hasQ}}" hint-placeholder-val="{{ true }}">
+            <div style="{{r.q}}">{{r.qt}}</div>
+          </sc-if>
+          <sc-if value="{{r.hasP}}" hint-placeholder-val="{{ true }}">
+            <div style="{{r.p}}">{{r.pz}}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="position: relative; flex-shrink: 0; margin: 12px 20px 0; border-radius: 6px; padding: 9px 12px; border: 1px solid rgba(242,232,224,0.13); background: rgba(242,232,224,0.06); display: flex; align-items: center; gap: 10px">
+    <div style="width: 6px; height: 6px; border-radius: 50%; background: #7FC98F; flex-shrink: 0"></div>
+    <div style="font-size: 13.5px; line-height: 1.35; color: #F2E8E0">Martedì fiorentina per due a 55 €. Prenota alla cassa.</div>
+  </div>
+
+  <div style="position: relative; flex-shrink: 0; margin: 10px 20px 0; border-radius: 6px; padding: 14px 10px 12px 14px; background: #BC4A17; color: #FFFFFF; display: flex; flex-direction: column; gap: 2px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <div style="font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase">Totale</div>
+      <div style="font-size: 12.5px; opacity: 0.9">IVA inclusa</div>
+    </div>
+    <div style="font-family: 'Oswald', sans-serif; font-size: 96px; font-weight: 700; line-height: 0.95; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; text-align: right">€ 118,00</div>
+  </div>
+
+  <div style="position: relative; flex-shrink: 0; padding: 12px 20px 18px; display: flex; align-items: center; justify-content: space-between">
+    <div style="font-size: 11px; color: #B5A69C">palmare · 0,46 · totale 96 px (min 43, lato corto)</div>
+    <div style="display: flex; align-items: center; gap: 6px">
+      <svg width="13" height="13" viewBox="0 0 34 34" role="img" aria-label="Marchio Bluetech (segnaposto)">
+        <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1F6FEB" stroke-width="2.8"></rect>
+        <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#F2E8E0" stroke-width="3.2" stroke-linecap="round"></path>
+      </svg>
+      <div style="font-family: 'Oswald', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.16em">BLUETECH</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+var RIGHE = [
+  { n: 'Tagliata di manzo', qt: '×2', pz: '44,00' },
+  { n: 'cottura al sangue', nota: true },
+  { n: 'Patate al forno', qt: '×2', pz: '10,00' },
+  { n: 'Costine BBQ', pz: '19,00' },
+  { n: 'Chianti Classico 0,75', pz: '32,00' },
+  { n: 'Acqua frizzante', pz: '3,00', storno: true },
+  { n: 'Coperto', qt: '×2', pz: '5,00' },
+  { n: 'Birra artigianale 0,4', pz: '8,00' }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      righe: RIGHE.map(function (r, i) {
+        var ultima = i === RIGHE.length - 1;
+        return {
+          n: r.n, qt: r.qt, pz: r.pz, hasQ: !!r.qt, hasP: !!r.pz, storno: !!r.storno,
+          row: { position: 'relative', display: 'flex', alignItems: 'baseline', gap: '10px', padding: r.nota ? '4px 0 5px 14px' : '8px 0', borderBottom: '1px solid rgba(242,232,224,0.1)', opacity: r.storno ? 0.55 : 1, animation: ultima ? 'fp-row 420ms cubic-bezier(0.22,1.2,0.36,1) both' : 'none' },
+          nome: r.nota
+            ? { flexGrow: 1, minWidth: 0, fontSize: '14px', fontStyle: 'italic', color: '#B5A69C' }
+            : { flexGrow: 1, minWidth: 0, fontSize: '18px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+          q: { fontSize: '14px', color: '#B5A69C', fontVariantNumeric: 'tabular-nums' },
+          p: { width: '64px', textAlign: 'right', fontSize: '20px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

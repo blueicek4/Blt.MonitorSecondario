@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Scontrino digitale — ogni blocco dove vuoi</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+</style>
+</helmet>
+
+<div style="width: 1920px; height: 2300px; box-sizing: border-box; padding: 64px 72px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 44px">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 56px; flex-shrink: 0">
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: #6F7E95">Scontrino digitale · composizione libera</div>
+      <h1 style="margin: 0; font-family: 'Archivo', sans-serif; font-size: 54px; font-weight: 700; line-height: 1.04; letter-spacing: -0.025em">Ogni blocco dove vuoi.<br>Su una griglia, non su un foglio bianco.</h1>
+    </div>
+    <div style="max-width: 70ch; font-size: 17px; line-height: 1.6; color: #9AA6BA">Carta, QR e reclame si accendono uno per uno e si mettono in qualunque colonna, in alto, in basso o a tutta altezza. Quello che <strong style="color: #E6EAF2; font-weight: 600">non</strong> si fa è trascinarli a coordinate libere: una posizione in pixel scelta su un 16:9 non vuol dire niente su un palmare, e il locale con quattro schermi diversi se ne accorgerebbe in sala. Una griglia di sei posti invece si traduce in modo prevedibile su ogni formato, e lo si vede prima di salvare.</div>
+  </div>
+
+  <!-- EDITOR NEL BACK OFFICE -->
+  <div style="display: flex; gap: 32px; flex-shrink: 0">
+
+    <div style="width: 1180px; flex-shrink: 0; border-radius: 16px; border: 1px solid #262D38; background: #0E1217; overflow: hidden; display: flex; flex-direction: column">
+      <div style="height: 50px; flex-shrink: 0; border-bottom: 1px solid #1E242D; background: #11161D; display: flex; align-items: center; gap: 14px; padding: 0 20px">
+        <div style="font-size: 13px; color: #8793A3">Il locale ›</div>
+        <div style="font-size: 14px; font-weight: 600">Scontrino digitale</div>
+        <div style="flex-grow: 1"></div>
+        <div style="font-size: 12px; color: #8793A3">si vede per 45 s dopo il Grazie</div>
+      </div>
+
+      <div style="display: flex; gap: 26px; padding: 22px">
+        <!-- DOVE -->
+        <div style="width: 470px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px">
+          <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #6F7E95">Dove sta ogni blocco</div>
+          <div style="position: relative; width: 470px; height: 300px">
+            <div style="position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 10px">
+              <sc-for list="{{slots}}" as="s" hint-placeholder-count="6">
+                <div style="{{s.box}}">{{s.label}}</div>
+              </sc-for>
+            </div>
+            <div style="position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 10px">
+              <sc-for list="{{chips}}" as="c" hint-placeholder-count="3">
+                <div style="{{c.box}}">
+                  <div style="font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.1em">{{c.t}}</div>
+                  <div style="font-size: 11px; opacity: 0.8">{{c.sub}}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="font-size: 12.5px; line-height: 1.55; color: #8793A3">Trascina un blocco su un posto. Se è occupato, i due si scambiano: non esiste una sovrapposizione da risolvere dopo. Le colonne vuote spariscono, quindi la composizione resta sempre centrata.</div>
+
+          <div style="display: flex; flex-direction: column; gap: 7px">
+            <sc-for list="{{toggles}}" as="t" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 12px; border-radius: 9px; border: 1px solid #262D38; background: #161C24; padding: 9px 12px">
+                <div style="{{t.dot}}"></div>
+                <div style="flex-grow: 1; min-width: 0">
+                  <div style="font-size: 13px; font-weight: 600">{{t.n}}</div>
+                  <div style="font-size: 11.5px; color: #6F7E95">{{t.pos}}</div>
+                </div>
+                <div style="{{t.sw}}"><div style="{{t.knob}}"></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- COME VIENE -->
+        <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+          <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #6F7E95">Come viene, su ognuno dei tuoi schermi</div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <sc-for list="{{editorMain}}" as="f" hint-placeholder-count="1">
+              <div style="{{f.wrap}}"><div style="{{f.frame}}">
+                <div style="{{f.head}}"><div style="{{f.logo}}"></div><div style="{{f.venue}}">LA VELA</div></div>
+                <div style="{{f.area}}">
+                  <sc-for list="{{f.items}}" as="i" hint-placeholder-count="3">
+                    <div style="{{i.style}}">
+                      <sc-if value="{{i.isCarta}}" hint-placeholder-val="{{ true }}">
+                        <div style="{{i.paper}}">
+                          <div style="height: 22px; width: 46%; align-self: center; border-radius: 3px; background: rgba(21,17,12,0.55)"></div>
+                          <div style="height: 12px; width: 62%; align-self: center; border-radius: 3px; background: rgba(21,17,12,0.25)"></div>
+                          <div style="height: 1px; background: rgba(21,17,12,0.25); margin: 8px 0"></div>
+                          <sc-for list="{{i.bars}}" as="b" hint-placeholder-count="6">
+                            <div style="display: flex; justify-content: space-between; gap: 20px"><div style="{{b.l}}"></div><div style="height: 14px; width: 70px; border-radius: 3px; background: rgba(21,17,12,0.35)"></div></div>
+                          </sc-for>
+                          <div style="height: 1px; background: rgba(21,17,12,0.25); margin: 8px 0"></div>
+                          <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 30px; font-weight: 600"><span>TOTALE</span><span>87,00</span></div>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{i.isQr}}" hint-placeholder-val="{{ true }}">
+                        <div style="{{i.qrTitle}}">Il tuo scontrino</div>
+                        <div style="{{i.qrCard}}"><div style="{{i.qrCode}}">
+                          <div style="position: absolute; left: 0; top: 0; width: 28%; height: 28%; box-sizing: border-box; border: 14px solid #000; background: #fff"></div>
+                          <div style="position: absolute; right: 0; top: 0; width: 28%; height: 28%; box-sizing: border-box; border: 14px solid #000; background: #fff"></div>
+                          <div style="position: absolute; left: 0; bottom: 0; width: 28%; height: 28%; box-sizing: border-box; border: 14px solid #000; background: #fff"></div>
+                        </div></div>
+                      </sc-if>
+                      <sc-if value="{{i.isAd}}" hint-placeholder-val="{{ true }}">
+                        <div style="{{i.ad}}">
+                          <div style="flex-grow: 1; min-height: 0; background: linear-gradient(135deg, #2F5C48 0%, #121E19 100%)"></div>
+                          <div style="padding: 26px 30px; display: flex; flex-direction: column; gap: 8px">
+                            <div style="font-size: 18px; letter-spacing: 0.2em; color: #3DDC97">DIVENTA CLIENTE</div>
+                            <div style="font-family: 'Archivo', sans-serif; font-size: 40px; font-weight: 700; line-height: 1.05">Punti a ogni visita</div>
+                          </div>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="{{f.foot}}">powered by BLUETECH</div>
+              </div></div>
+              <div style="font-size: 12px; color: #8793A3">{{f.label}}</div>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 14px; align-items: flex-start">
+            <sc-for list="{{editorOthers}}" as="f" hint-placeholder-count="3">
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <div style="{{f.wrap}}"><div style="{{f.frame}}">
+                  <div style="{{f.head}}"><div style="{{f.logo}}"></div><div style="{{f.venue}}">LA VELA</div></div>
+                  <div style="{{f.area}}">
+                    <sc-for list="{{f.items}}" as="i" hint-placeholder-count="3">
+                      <div style="{{i.style}}">
+                        <sc-if value="{{i.isCarta}}" hint-placeholder-val="{{ true }}">
+                          <div style="{{i.paper}}">
+                            <div style="height: 22px; width: 46%; align-self: center; border-radius: 3px; background: rgba(21,17,12,0.55)"></div>
+                            <div style="height: 1px; background: rgba(21,17,12,0.25); margin: 8px 0"></div>
+                            <sc-for list="{{i.bars}}" as="b" hint-placeholder-count="6">
+                              <div style="display: flex; justify-content: space-between; gap: 20px"><div style="{{b.l}}"></div><div style="height: 14px; width: 70px; border-radius: 3px; background: rgba(21,17,12,0.35)"></div></div>
+                            </sc-for>
+                            <div style="height: 1px; background: rgba(21,17,12,0.25); margin: 8px 0"></div>
+                            <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 30px; font-weight: 600"><span>TOTALE</span><span>87,00</span></div>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{i.isQr}}" hint-placeholder-val="{{ true }}">
+                          <div style="{{i.qrTitle}}">Il tuo scontrino</div>
+                          <div style="{{i.qrCard}}"><div style="{{i.qrCode}}">
+                            <div style="position: absolute; left: 0; top: 0; width: 28%; height: 28%; box-sizing: border-box; border: 14px solid #000; background: #fff"></div>
+                            <div style="position: absolute; right: 0; top: 0; width: 28%; height: 28%; box-sizing: border-box; border: 14px solid #000; background: #fff"></div>
+                            <div style="position: absolute; left: 0; bottom: 0; width: 28%; height: 28%; box-sizing: border-box; border: 14px solid #000; background: #fff"></div>
+                          </div></div>
+                        </sc-if>
+                        <sc-if value="{{i.isAd}}" hint-placeholder-val="{{ true }}">
+                          <div style="{{i.ad}}">
+                            <div style="flex-grow: 1; min-height: 0; background: linear-gradient(135deg, #2F5C48 0%, #121E19 100%)"></div>
+                            <div style="padding: 26px 30px; display: flex; flex-direction: column; gap: 8px">
+                              <div style="font-size: 18px; letter-spacing: 0.2em; color: #3DDC97">DIVENTA CLIENTE</div>
+                              <div style="font-family: 'Archivo', sans-serif; font-size: 40px; font-weight: 700; line-height: 1.05">Punti a ogni visita</div>
+                            </div>
+                          </div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="{{f.foot}}">powered by BLUETECH</div>
+                </div></div>
+                <div style="font-size: 12px; color: #8793A3; max-width: 200px; line-height: 1.4">{{f.label}}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REGOLE -->
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95">Le regole della griglia</div>
+      <sc-for list="{{regole}}" as="r" hint-placeholder-count="6">
+        <div style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.09); background: #141B26; padding: 15px 18px; display: flex; flex-direction: column; gap: 5px">
+          <div style="font-size: 15px; font-weight: 600">{{r.t}}</div>
+          <div style="font-size: 14px; line-height: 1.55; color: #9AA6BA">{{r.d}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- SEI COMPOSIZIONI -->
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 24px">Sei composizioni che la griglia permette, a 1920×1080</div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px 28px">
+      <sc-for list="{{comps}}" as="f" hint-placeholder-count="6">
+        <div style="display: flex; flex-direction: column; gap: 9px">
+          <div style="{{f.wrap}}"><div style="{{f.frame}}">
+            <div style="{{f.head}}"><div style="{{f.logo}}"></div><div style="{{f.venue}}">LA VELA</div></div>
+            <div style="{{f.area}}">
+              <sc-for list="{{f.items}}" as="i" hint-placeholder-count="3">
+                <div style="{{i.style}}">
+                  <sc-if value="{{i.isCarta}}" hint-placeholder-val="{{ true }}">
+                    <div style="{{i.paper}}">
+                      <div style="height: 22px; width: 46%; align-self: center; border-radius: 3px; background: rgba(21,17,12,0.55)"></div>
+                      <div style="height: 12px; width: 62%; align-self: center; border-radius: 3px; background: rgba(21,17,12,0.25)"></div>
+                      <div style="height: 1px; background: rgba(21,17,12,0.25); margin: 8px 0"></div>
+                      <sc-for list="{{i.bars}}" as="b" hint-placeholder-count="6">
+                        <div style="display: flex; justify-content: space-between; gap: 20px"><div style="{{b.l}}"></div><div style="height: 14px; width: 70px; border-radius: 3px; background: rgba(21,17,12,0.35)"></div></div>
+                      </sc-for>
+                      <div style="height: 1px; background: rgba(21,17,12,0.25); margin: 8px 0"></div>
+                      <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 30px; font-weight: 600"><span>TOTALE</span><span>87,00</span></div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{i.isQr}}" hint-placeholder-val="{{ true }}">
+                    <div style="{{i.qrTitle}}">Il tuo scontrino</div>
+                    <div style="{{i.qrCard}}"><div style="{{i.qrCode}}">
+                      <div style="position: absolute; left: 0; top: 0; width: 28%; height: 28%; box-sizing: border-box; border: 14px solid #000; background: #fff"></div>
+                      <div style="position: absolute; right: 0; top: 0; width: 28%; height: 28%; box-sizing: border-box; border: 14px solid #000; background: #fff"></div>
+                      <div style="position: absolute; left: 0; bottom: 0; width: 28%; height: 28%; box-sizing: border-box; border: 14px solid #000; background: #fff"></div>
+                    </div></div>
+                  </sc-if>
+                  <sc-if value="{{i.isAd}}" hint-placeholder-val="{{ true }}">
+                    <div style="{{i.ad}}">
+                      <div style="flex-grow: 1; min-height: 0; background: linear-gradient(135deg, #2F5C48 0%, #121E19 100%)"></div>
+                      <div style="padding: 26px 30px; display: flex; flex-direction: column; gap: 8px">
+                        <div style="font-size: 18px; letter-spacing: 0.2em; color: #3DDC97">DIVENTA CLIENTE</div>
+                        <div style="font-family: 'Archivo', sans-serif; font-size: 40px; font-weight: 700; line-height: 1.05">Punti a ogni visita</div>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div style="{{f.foot}}">powered by BLUETECH</div>
+          </div></div>
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <div style="font-size: 15px; font-weight: 600">{{f.nome}}</div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #6FA8FF">{{f.code}}</div>
+          </div>
+          <div style="font-size: 13.5px; line-height: 1.5; color: #9AA6BA">{{f.nota}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- TOKEN -->
+  <div style="display: flex; gap: 24px; flex-shrink: 0">
+    <pre style="flex: 1.2; margin: 0; background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 22px 26px; font-family: 'IBM Plex Mono', monospace; font-size: 14px; line-height: 1.7; color: #C9D4E4; overflow: hidden">receipt: {
+  blocchi: [
+    { tipo: 'carta',   attivo: true,  colonna: 1, riga: 'piena' },
+    { tipo: 'qr',      attivo: true,  colonna: 2, riga: 'alto'  },
+    { tipo: 'reclame', attivo: true,  colonna: 2, riga: 'basso' }
+  ],
+  secondi: 45
+}
+<span style="color: #6F7E95">// sostituisce carta / qr / reclame / ordine del primo disegno.
+// La migrazione: carta-qr → carta col 1, qr col 2; qr-carta → il contrario.</span></pre>
+    <div style="flex: 1; border-radius: 16px; border: 1px solid rgba(242,163,60,0.4); background: rgba(242,163,60,0.07); padding: 22px 26px; font-size: 15px; line-height: 1.6; color: #E9D6B8; display: flex; flex-direction: column; gap: 10px">
+      <div style="font-weight: 600; color: #F2A33C">Quando lo schermo non ha posto</div>
+      <div>Il blocco che si toglie per primo è sempre la reclame, poi la carta. Il QR non si toglie mai: in questo stato è lui l'elemento dominante. Il pannello lo scrive sotto l'anteprima di quello schermo — "sul palmare la reclame non si vede" — invece di lasciarlo scoprire in sala.</div>
+      <div style="color: #C9B595">Validazione al salvataggio: almeno un blocco acceso; la carta occupa sempre una colonna intera; due blocchi nella stessa colonna solo come alto + basso.</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":2300}}'>
+// --- i formati, a grandezza vera; le miniature si fanno con transform: scale ---
+var FMT = {
+  wide:     { w: 1920, h: 1080, px: 64, py: 44, head: 52, foot: 40, gap: 80, rgap: 40, k: 1 },
+  narrow:   { w: 1024, h: 768,  px: 40, py: 28, head: 40, foot: 32, gap: 40, rgap: 24, k: 0.62 },
+  portrait: { w: 1080, h: 1920, px: 48, py: 56, head: 60, foot: 40, gap: 48, rgap: 40, k: 1 },
+  palmare:  { w: 390,  h: 844,  px: 20, py: 20, head: 34, foot: 26, gap: 14, rgap: 14, k: 0.5 }
+};
+
+var COMPS = [
+  { nome: 'Carta + QR', code: 'default', nota: 'La composizione di partenza: la carta a sinistra perché si legge da sinistra, il QR a destra perché è l’azione.', b: [['carta', 1, 'piena'], ['qr', 2, 'piena']] },
+  { nome: 'QR per primo', code: 'qr 1 · carta 2', nota: 'Per chi vuole spingere il digitale: l’occhio arriva prima al codice.', b: [['qr', 1, 'piena'], ['carta', 2, 'piena']] },
+  { nome: 'QR sopra, reclame sotto', code: 'carta 1 · qr 2 alto · reclame 2 basso', nota: 'Tre blocchi in due colonne. Il QR si rimpicciolisce a mezza altezza, ma resta sopra i 220 px di codice.', b: [['carta', 1, 'piena'], ['qr', 2, 'alto'], ['reclame', 2, 'basso']] },
+  { nome: 'Tutti e tre in fila', code: 'carta 1 · qr 2 · reclame 3', nota: 'Il QR al centro, tra la carta e la promozione. Sul 4:3 la reclame cade, e il pannello lo dice.', b: [['carta', 1, 'piena'], ['qr', 2, 'piena'], ['reclame', 3, 'piena']] },
+  { nome: 'Reclame protagonista', code: 'reclame 1 · qr 2 · carta off', nota: 'Senza carta: la reclame a tutta altezza e il QR accanto. Per chi lo scontrino lo stampa comunque.', b: [['reclame', 1, 'piena'], ['qr', 2, 'piena']] },
+  { nome: 'Colonna sola', code: 'qr 1 alto · reclame 1 basso', nota: 'Tutto al centro, una colonna. Il minimo che si può fare senza che lo schermo sembri vuoto.', b: [['qr', 1, 'alto'], ['reclame', 1, 'basso']] }
+];
+
+var EDIT = [['carta', 1, 'piena'], ['qr', 2, 'alto'], ['reclame', 2, 'basso']];
+
+var REGOLE = [
+  { t: 'Sei posti: tre colonne, due righe', d: 'Un blocco sta in una colonna, in alto, in basso o a tutta altezza. Lo spazio fra le colonne e la loro larghezza li decide il formato, non il titolare.' },
+  { t: 'La carta occupa sempre tutta l’altezza', d: 'Uno scontrino lungo non entra in mezza colonna. Il posto “alto” o “basso” per la carta non esiste nel pannello.' },
+  { t: 'Le colonne vuote spariscono', d: 'Due blocchi nelle colonne 1 e 3 si comportano come se fossero in 1 e 2: la composizione resta centrata, mai un buco nel mezzo.' },
+  { t: 'In verticale le colonne diventano righe', d: 'Colonna 1 in alto, colonna 3 in basso; alto e basso diventano sinistra e destra. Sul palmare tutto in fila, nello stesso ordine.' },
+  { t: 'Quando manca spazio, cade la reclame', d: 'Sul 4:3 tre colonne non ci stanno e sul palmare la reclame non ci sta mai. Poi la carta. Il QR resta sempre.' },
+  { t: 'Il QR non scende sotto i 220 px di codice', d: 'A mezza altezza su 1920×1080 resta a 220 px; a tutta altezza 332. Sul palmare 180, ma lì il telefono è a 30 cm.' }
+];
+
+function sizeOf(tipo, riga, f) {
+  var k = f.k;
+  if (tipo === 'carta') { return { w: Math.round(580 * k) }; }
+  if (tipo === 'qr') { var c = riga === 'piena' ? 440 : 300; return { w: Math.round(c * k), card: Math.round(c * k), title: riga === 'piena' }; }
+  return { w: Math.round(520 * k) };
+}
+
+function frameFor(kind, blocks, maxW) {
+  var f = FMT[kind];
+  var list = blocks.map(function (b) { return { tipo: b[0], col: b[1], riga: b[2] }; });
+  if (kind === 'palmare') { list = list.filter(function (b) { return b.tipo !== 'reclame'; }); }
+  var cols = [];
+  list.forEach(function (b) { if (cols.indexOf(b.col) < 0) { cols.push(b.col); } });
+  cols.sort();
+  if (kind === 'narrow' && cols.length > 2) {
+    list = list.filter(function (b) { return b.tipo !== 'reclame'; });
+    cols = []; list.forEach(function (b) { if (cols.indexOf(b.col) < 0) { cols.push(b.col); } }); cols.sort();
+  }
+  var s = maxW / f.w;
+  var areaH = f.h - f.py * 2 - f.head - f.foot - 2 * 18;
+  var area;
+  if (kind === 'wide' || kind === 'narrow') {
+    area = { flexGrow: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'repeat(' + cols.length + ', auto)', gridTemplateRows: '1fr 1fr', columnGap: f.gap + 'px', rowGap: f.rgap + 'px', justifyContent: 'center' };
+  } else if (kind === 'portrait') {
+    area = { flexGrow: 1, minHeight: 0, display: 'grid', gridTemplateRows: 'repeat(' + cols.length + ', auto)', gridTemplateColumns: 'auto auto', rowGap: f.gap + 'px', columnGap: f.rgap + 'px', alignContent: 'center', justifyContent: 'center' };
+  } else {
+    area = { flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: f.gap + 'px', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
+  }
+  var rank = { alto: 0, piena: 1, basso: 2 };
+  if (kind === 'palmare') { list.sort(function (a, b) { return (a.col - b.col) || (rank[a.riga] - rank[b.riga]); }); }
+
+  var items = list.map(function (b) {
+    var z = sizeOf(b.tipo, b.riga, f);
+    var ci = cols.indexOf(b.col) + 1;
+    var st = { minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: Math.round(22 * f.k) + 'px' };
+    if (kind === 'wide' || kind === 'narrow') {
+      st.gridColumn = String(ci);
+      st.gridRow = b.riga === 'piena' ? '1 / span 2' : (b.riga === 'alto' ? '1' : '2');
+    } else if (kind === 'portrait') {
+      st.gridRow = String(ci);
+      st.gridColumn = b.riga === 'piena' ? '1 / span 2' : (b.riga === 'alto' ? '1' : '2');
+    }
+    var pal = kind === 'palmare';
+    var paperH = pal ? 380 : (kind === 'portrait' ? 860 : Math.round(areaH));
+    var halfH = Math.round((areaH - f.rgap) / 2);
+    var adH = (kind === 'wide' || kind === 'narrow') ? (b.riga === 'piena' ? areaH : halfH) : 520;
+    var qrC = pal ? 240 : z.card;
+    var pad = Math.round((qrC || 0) * 0.12);
+    return {
+      style: st,
+      isCarta: b.tipo === 'carta', isQr: b.tipo === 'qr', isAd: b.tipo === 'reclame',
+      paper: { width: (pal ? 330 : z.w) + 'px', height: paperH + 'px', maxHeight: '100%', boxSizing: 'border-box', borderRadius: '10px', background: '#F8F6F1', color: '#15110C', padding: '30px 32px', display: 'flex', flexDirection: 'column', gap: '13px', overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.45)' },
+      bars: [62, 40, 55, 48, 36, 52].map(function (p) { return { l: { height: '14px', width: p + '%', borderRadius: '3px', background: 'rgba(21,17,12,0.35)' } }; }),
+      qrTitle: { display: (z.title && !pal) ? 'block' : 'none', fontFamily: "'Archivo', sans-serif", fontSize: Math.round(46 * f.k) + 'px', fontWeight: 700, whiteSpace: 'nowrap' },
+      qrCard: { width: qrC + 'px', height: qrC + 'px', boxSizing: 'border-box', borderRadius: Math.round(qrC * 0.055) + 'px', background: '#FFFFFF', padding: pad + 'px', flexShrink: 0 },
+      qrCode: { position: 'relative', width: '100%', height: '100%', background: 'repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 9% 9%' },
+      ad: { width: (pal ? 330 : z.w) + 'px', height: adH + 'px', borderRadius: '20px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column' }
+    };
+  });
+
+  return {
+    wrap: { width: Math.round(f.w * s) + 'px', height: Math.round(f.h * s) + 'px', overflow: 'hidden', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.14)', flexShrink: 0 },
+    frame: { width: f.w + 'px', height: f.h + 'px', transform: 'scale(' + s + ')', transformOrigin: 'top left', boxSizing: 'border-box', padding: f.py + 'px ' + f.px + 'px', display: 'flex', flexDirection: 'column', gap: '18px', background: 'radial-gradient(ellipse 44% 54% at 26% 36%, rgba(201,130,74,0.2) 0%, transparent 60%), linear-gradient(145deg, #16202C 0%, #0B1017 60%, #060A10 100%)', color: '#E6EAF2', fontFamily: "'IBM Plex Sans', sans-serif" },
+    head: { height: f.head + 'px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: Math.round(14 * f.k) + 'px', justifyContent: kind === 'wide' || kind === 'narrow' ? 'flex-start' : 'center' },
+    logo: { width: Math.round(38 * Math.max(f.k, 0.7)) + 'px', height: Math.round(38 * Math.max(f.k, 0.7)) + 'px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.5)' },
+    venue: { fontFamily: "'Archivo', sans-serif", fontSize: Math.round(24 * Math.max(f.k, 0.7)) + 'px', fontWeight: 700, letterSpacing: '0.06em' },
+    area: area,
+    foot: { height: f.foot + 'px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: kind === 'wide' || kind === 'narrow' ? 'flex-end' : 'center', fontSize: Math.round(16 * Math.max(f.k, 0.7)) + 'px', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.6)' },
+    items: items
+  };
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    var colX = { 1: '1', 2: '2', 3: '3' };
+    var CHIP = {
+      carta: { bg: '#F8F6F1', fg: '#15110C', bd: 'rgba(255,255,255,0.3)', t: 'CARTA' },
+      qr: { bg: '#FFFFFF', fg: '#15110C', bd: 'rgba(255,255,255,0.3)', t: 'QR' },
+      reclame: { bg: 'rgba(61,220,151,0.18)', fg: '#3DDC97', bd: 'rgba(61,220,151,0.55)', t: 'RECLAME' }
+    };
+    var occupied = {};
+    EDIT.forEach(function (b) {
+      if (b[2] === 'piena' || b[2] === 'alto') { occupied[b[1] + '-1'] = true; }
+      if (b[2] === 'piena' || b[2] === 'basso') { occupied[b[1] + '-2'] = true; }
+    });
+    var slots = [];
+    [1, 2].forEach(function (r) {
+      [1, 2, 3].forEach(function (c) {
+        var free = !occupied[c + '-' + r];
+        slots.push({
+          label: free ? 'posto libero' : '',
+          box: { borderRadius: '10px', border: '1.5px dashed ' + (free ? 'rgba(111,168,255,0.55)' : 'rgba(255,255,255,0.1)'), background: free ? 'rgba(31,111,235,0.07)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11.5px', color: '#6FA8FF' }
+        });
+      });
+    });
+    var POS = { piena: 'tutta altezza', alto: 'in alto', basso: 'in basso' };
+    var chips = EDIT.map(function (b) {
+      var k = CHIP[b[0]];
+      return {
+        t: k.t, sub: 'colonna ' + b[1] + ' · ' + POS[b[2]],
+        box: { gridColumn: colX[b[1]], gridRow: b[2] === 'piena' ? '1 / span 2' : (b[2] === 'alto' ? '1' : '2'), borderRadius: '10px', background: k.bg, color: k.fg, border: '1.5px solid ' + k.bd, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', boxShadow: '0 8px 20px rgba(0,0,0,0.35)', cursor: 'grab' }
+      };
+    });
+    var toggles = EDIT.map(function (b) {
+      var k = CHIP[b[0]];
+      return {
+        n: ({ carta: 'Copia di cortesia', qr: 'QR per il telefono', reclame: 'Reclame (vetrina del posto Grazie)' })[b[0]],
+        pos: 'colonna ' + b[1] + ' · ' + POS[b[2]],
+        dot: { width: '10px', height: '10px', borderRadius: '3px', flexShrink: 0, background: k.bg, border: '1px solid ' + k.bd },
+        sw: { width: '34px', height: '20px', flexShrink: 0, borderRadius: '999px', background: '#1F6FEB', position: 'relative' },
+        knob: { position: 'absolute', right: '3px', top: '3px', width: '14px', height: '14px', borderRadius: '50%', background: '#fff' }
+      };
+    });
+    var main = frameFor('wide', EDIT, 640);
+    main.label = 'Sala · monitor cassa 1 · 1920×1080';
+    var o1 = frameFor('narrow', EDIT, 200); o1.label = 'Bar · 1024×768 — uguale, più piccolo';
+    var o2 = frameFor('portrait', EDIT, 112); o2.label = 'Totem · verticale — colonne diventano righe';
+    var o3 = frameFor('palmare', EDIT, 92); o3.label = 'Palmare — la reclame non si vede';
+    return {
+      slots: slots, chips: chips, toggles: toggles,
+      editorMain: [main],
+      editorOthers: [o1, o2, o3],
+      regole: REGOLE,
+      comps: COMPS.map(function (c) {
+        var fr = frameFor('wide', c.b, 560);
+        fr.nome = c.nome; fr.code = c.code; fr.nota = c.nota;
+        return fr;
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

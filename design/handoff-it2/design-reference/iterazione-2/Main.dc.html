@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Diagnosi dello stato attuale</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+</style>
+</helmet>
+
+<div style="--c-primary: #1F6FEB; --c-accent: #3DDC97; --c-warn: #F2A33C; --c-bg: #0B1017; --c-surface: #141B26; --c-text: #E6EAF2; --c-muted: #9AA6BA; --font-display: 'Archivo', sans-serif; --font-text: 'IBM Plex Sans', sans-serif; width: 1800px; height: 3400px; box-sizing: border-box; padding: 72px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 56px">
+
+  <!-- INTESTAZIONE -->
+  <div style="display: flex; flex-direction: column; gap: 20px; flex-shrink: 0">
+    <div style="display: flex; align-items: center; gap: 14px">
+      <div style="width: 10px; height: 10px; border-radius: 50%; background: #F2A33C"></div>
+      <div style="font-family: var(--font-display); font-size: 14px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: #9AA6BA">Iterazione 2 · diagnosi</div>
+    </div>
+    <h1 style="margin: 0; font-family: var(--font-display); font-size: 76px; font-weight: 700; line-height: 1.02; letter-spacing: -0.025em; max-width: 24ch">Sei cose che non funzionano, viste nelle schermate vere</h1>
+    <p style="margin: 0; font-size: 20px; line-height: 1.55; color: #9AA6BA; max-width: 92ch">Questa iterazione non riparte da zero: parte dalle 81 schermate dello stato attuale. Il prodotto funziona e gira in cassa — quello che segue non è una stroncatura, è l'elenco dei punti dove l'implementazione fatta da uno sviluppatore mostra i limiti che un passaggio di design risolve. Ogni artboard di questo canvas risolve almeno una di queste sei, e lo dichiara in alto.</p>
+  </div>
+
+  <!-- LE SEI PATOLOGIE -->
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; flex-shrink: 0">
+
+    <!-- 1 -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 22px; padding: 28px; display: flex; flex-direction: column; gap: 18px">
+      <div style="position: relative; height: 210px; border-radius: 14px; overflow: hidden; background: linear-gradient(140deg, #16302A 0%, #0D1A17 100%); flex-shrink: 0">
+        <div style="position: absolute; left: 24px; top: 34px; font-family: var(--font-display); font-size: 34px; font-weight: 700; color: rgba(230,234,242,0.26)">Il dolce del giorno</div>
+        <div style="position: absolute; left: 24px; top: 74px; font-size: 19px; font-weight: 600; color: rgba(230,234,242,0.22)">Tiramisù della casa · 6 €</div>
+        <div style="position: absolute; left: 24px; top: 112px; font-size: 11px; letter-spacing: 0.2em; color: #3DDC97">PROMOZIONE</div>
+        <div style="position: absolute; left: 24px; top: 132px; font-family: var(--font-display); font-size: 32px; font-weight: 700; color: #E6EAF2">Il brunch della domenica</div>
+        <div style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 108px; height: 108px; border-radius: 10px; background: #FFFFFF"></div>
+        <div style="position: absolute; left: 14px; top: 24px; right: 140px; bottom: 56px; border: 2px dashed #F2A33C; border-radius: 8px"></div>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 14px">
+        <div style="font-family: var(--font-display); font-size: 30px; font-weight: 700; color: #F2A33C; line-height: 1">01</div>
+        <div style="font-family: var(--font-display); font-size: 26px; font-weight: 600; line-height: 1.2">Due titoli nello stesso riquadro</div>
+      </div>
+      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">La foto del locale ha già il suo titolo stampato dentro. La promozione ne aggiunge un secondo sopra, e il risultato sono due gerarchie che litigano: nessuna delle due vince e il QR a destra resta orfano.</p>
+      <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; font-size: 16px; line-height: 1.6; color: #3DDC97"><strong style="font-weight: 600">La risposta:</strong> la foto diventa <em>fondo</em>, non contenuto. Un modello di slide dichiara chi porta il titolo — l'immagine o il testo — e il back office lo rende evidente all'anteprima.</div>
+    </div>
+
+    <!-- 2 -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 22px; padding: 28px; display: flex; flex-direction: column; gap: 18px">
+      <div style="position: relative; height: 210px; border-radius: 14px; overflow: hidden; background: #0D131C; flex-shrink: 0; padding: 14px; box-sizing: border-box; display: flex; gap: 12px">
+        <div style="flex-grow: 1; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); display: flex; flex-direction: column; justify-content: flex-end; padding: 10px; gap: 6px; position: relative">
+          <div style="position: absolute; left: 10px; right: 10px; top: 10px; height: 92px; border: 2px dashed #F2A33C; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; letter-spacing: 0.1em; color: #F2A33C">VUOTO</div>
+          <div style="height: 9px; border-radius: 3px; background: rgba(230,234,242,0.5)"></div>
+          <div style="height: 9px; border-radius: 3px; background: rgba(230,234,242,0.5)"></div>
+          <div style="height: 9px; border-radius: 3px; background: rgba(230,234,242,0.5)"></div>
+          <div style="height: 30px; border-radius: 6px; background: rgba(31,111,235,0.4); border: 1px solid rgba(31,111,235,0.6)"></div>
+        </div>
+        <div style="width: 92px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03)"></div>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 14px">
+        <div style="font-family: var(--font-display); font-size: 30px; font-weight: 700; color: #F2A33C; line-height: 1">02</div>
+        <div style="font-family: var(--font-display); font-size: 26px; font-weight: 600; line-height: 1.2">La card del conto vuota per metà</div>
+      </div>
+      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Le righe sono allineate in basso — scelta giusta — ma la card ha altezza fissa, quindi sopra resta un buco. Con sei articoli si nota; nel Grazie e nel conto senza prezzi il buco è metà schermo, ed è la prima cosa che vede il cliente.</p>
+      <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; font-size: 16px; line-height: 1.6; color: #3DDC97"><strong style="font-weight: 600">La risposta:</strong> la card non ha più altezza fissa. Si dimensiona sul contenuto fino al massimo disponibile e si ancora in basso; lo spazio che avanza va alla scena, non al vuoto.</div>
+    </div>
+
+    <!-- 3 -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 22px; padding: 28px; display: flex; flex-direction: column; gap: 18px">
+      <div style="position: relative; height: 210px; border-radius: 14px; overflow: hidden; background: #0D131C; flex-shrink: 0; display: flex; align-items: center; justify-content: center">
+        <div style="position: relative; width: 320px; height: 180px; border-radius: 8px; background: linear-gradient(120deg, #6B3A24 0%, #2A1812 100%); display: flex; align-items: center; justify-content: center">
+          <div style="font-family: var(--font-display); font-size: 40px; font-weight: 700; letter-spacing: 0.02em; color: #F0E3D4">APERITIVO</div>
+          <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 240px; transform: translateX(-50%); border: 2px solid #3DDC97; border-radius: 6px"></div>
+          <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 40px; background: rgba(242,163,60,0.3); border-right: 2px dashed #F2A33C"></div>
+          <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 40px; background: rgba(242,163,60,0.3); border-left: 2px dashed #F2A33C"></div>
+        </div>
+        <div style="position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); font-size: 12px; letter-spacing: 0.1em; color: #3DDC97">4:3 vede solo questo</div>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 14px">
+        <div style="font-family: var(--font-display); font-size: 30px; font-weight: 700; color: #F2A33C; line-height: 1">03</div>
+        <div style="font-family: var(--font-display); font-size: 26px; font-weight: 600; line-height: 1.2">Il ritaglio mangia le scritte</div>
+      </div>
+      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Una foto 16:9 su uno schermo 4:3, verticale o palmare viene centrata e tagliata ai lati. Nelle schermate la A di APERITIVO sparisce e il prezzo diventa “€”. Il locale carica una foto che sul suo monitor sta bene e sul tablet è rotta.</p>
+      <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; font-size: 16px; line-height: 1.6; color: #3DDC97"><strong style="font-weight: 600">La risposta:</strong> una safe zone dichiarata — il quadrato centrale che sopravvive a ogni formato — mostrata al caricamento, più un punto di messa a fuoco che il titolare sposta con un clic.</div>
+    </div>
+
+    <!-- 4 -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 22px; padding: 28px; display: flex; flex-direction: column; gap: 18px">
+      <div style="position: relative; height: 210px; border-radius: 14px; overflow: hidden; background: #0D131C; flex-shrink: 0; display: flex; align-items: center">
+        <div style="position: relative; width: 100%; height: 56px; border-top: 1px solid rgba(255,255,255,0.12); border-bottom: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); display: flex; align-items: center; overflow: hidden">
+          <div style="white-space: nowrap; font-size: 20px; color: #E6EAF2; margin-left: -46px">edì · Aperitivo dalle 18 alle 20 · Serata jazz il venerdì · Chiuso il luned</div>
+        </div>
+        <div style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 52px; height: 56px; border: 2px dashed #F2A33C; border-radius: 4px"></div>
+        <div style="position: absolute; left: 62px; bottom: 34px; font-size: 12px; letter-spacing: 0.08em; color: #F2A33C">tagliato netto, senza sfumatura</div>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 14px">
+        <div style="font-family: var(--font-display); font-size: 30px; font-weight: 700; color: #F2A33C; line-height: 1">04</div>
+        <div style="font-family: var(--font-display); font-size: 26px; font-weight: 600; line-height: 1.2">Il nastro si taglia sul bordo</div>
+      </div>
+      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Il testo scorrevole entra ed esce con un taglio netto sul bordo sinistro, e a schermo si legge una parola mozzata. Succede su tutti e quattro i formati: è il dettaglio che fa sembrare artigianale un prodotto che non lo è.</p>
+      <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; font-size: 16px; line-height: 1.6; color: #3DDC97"><strong style="font-weight: 600">La risposta:</strong> una maschera in dissolvenza di 80 px sui due lati (<code>mask-image</code>, costo zero) e la copia duplicata che parte allineata al bordo, non a metà parola.</div>
+    </div>
+
+    <!-- 5 -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 22px; padding: 28px; display: flex; flex-direction: column; gap: 18px">
+      <div style="position: relative; height: 210px; border-radius: 14px; overflow: hidden; background: #0D131C; flex-shrink: 0; padding: 16px; box-sizing: border-box">
+        <div style="position: absolute; left: 30px; top: 24px; width: 120px; height: 162px; border-radius: 6px; background: #F7F4EE"></div>
+        <div style="position: absolute; left: 230px; top: 56px; width: 92px; height: 92px; border-radius: 6px; background: #FFFFFF"></div>
+        <div style="position: absolute; left: 230px; top: 158px; width: 180px; height: 8px; border-radius: 3px; background: rgba(230,234,242,0.35)"></div>
+        <div style="position: absolute; left: 350px; top: 16px; right: 16px; bottom: 16px; border: 2px dashed #F2A33C; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; letter-spacing: 0.1em; color: #F2A33C; text-align: center">45% DELLO<br>SCHERMO</div>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 14px">
+        <div style="font-family: var(--font-display); font-size: 30px; font-weight: 700; color: #F2A33C; line-height: 1">05</div>
+        <div style="font-family: var(--font-display); font-size: 26px; font-weight: 600; line-height: 1.2">Lo scontrino digitale lascia mezzo schermo</div>
+      </div>
+      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Lo stato è nato per il palmare, dove funziona bene, ed è stato portato sul 16:9 senza riprogettarlo: carta piccola a sinistra, QR al centro, quasi metà schermo nero. E l'invito alla copia di carta è una frase, non un'azione.</p>
+      <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; font-size: 16px; line-height: 1.6; color: #3DDC97"><strong style="font-weight: 600">La risposta:</strong> due impaginazioni diverse, non una scalata. Sul 16:9 la carta diventa grande e centrale, il QR le sta accanto alla stessa altezza, e lo spazio che avanza ospita l'ultima reclame.</div>
+    </div>
+
+    <!-- 6 -->
+    <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 22px; padding: 28px; display: flex; flex-direction: column; gap: 18px">
+      <div style="position: relative; height: 210px; border-radius: 14px; overflow: hidden; background: #0D131C; flex-shrink: 0; display: flex; align-items: center; justify-content: space-around; padding: 0 20px">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px">
+          <div style="width: 118px; height: 68px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center">
+            <div style="width: 34px; height: 34px; background: #FFFFFF; border-radius: 3px"></div>
+          </div>
+          <div style="font-size: 12px; color: #9AA6BA">attesa · 2 m</div>
+          <div style="font-family: var(--font-display); font-size: 22px; font-weight: 700; color: #F2A33C">rende poco</div>
+        </div>
+        <div style="width: 1px; height: 120px; background: rgba(255,255,255,0.12)"></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px">
+          <div style="width: 118px; height: 68px; border-radius: 6px; border: 1px solid rgba(61,220,151,0.5); display: flex; align-items: center; justify-content: center; background: rgba(61,220,151,0.08)">
+            <div style="width: 48px; height: 48px; background: #FFFFFF; border-radius: 3px"></div>
+          </div>
+          <div style="font-size: 12px; color: #9AA6BA">grazie · telefono in mano</div>
+          <div style="font-family: var(--font-display); font-size: 22px; font-weight: 700; color: #3DDC97">rende</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 14px">
+        <div style="font-family: var(--font-display); font-size: 30px; font-weight: 700; color: #F2A33C; line-height: 1">06</div>
+        <div style="font-family: var(--font-display); font-size: 26px; font-weight: 600; line-height: 1.2">Il QR è messo dove non converte</div>
+      </div>
+      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Nell'attesa il cliente è lontano, ha le mani occupate e nessun motivo per tirare fuori il telefono. Nel Grazie ha appena pagato, spesso con il telefono già in mano. In più l'etichetta “PROMOZIONE” sopra “Diventa cliente” è semplicemente la parola sbagliata.</p>
+      <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; font-size: 16px; line-height: 1.6; color: #3DDC97"><strong style="font-weight: 600">La risposta:</strong> il back office non vieta niente ma consiglia: ogni posto ha una stima di resa dichiarata, e l'etichetta sopra il titolo la scegli il locale fra alcune o nessuna.</div>
+    </div>
+  </div>
+
+  <!-- I PRINCIPI -->
+  <div style="display: flex; flex-direction: column; gap: 24px; flex-shrink: 0">
+    <div style="display: flex; align-items: baseline; gap: 20px; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 28px">
+      <div style="font-family: var(--font-display); font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6F7E95">Le regole dell'iterazione 2</div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+      <div style="background: rgba(31,111,235,0.08); border: 1px solid rgba(31,111,235,0.3); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: var(--font-display); font-size: 21px; font-weight: 600">Lo spettacolo è un token, non un refactor</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #B9C6D8">Quattro livelli di attrazione, da Sobrio a TROPPO. Cambiano quanto si muove, quanto invade e quanto dura. Non cambiano mai cosa c'è a schermo, dove sta il totale, né la posizione del footer.</p>
+      </div>
+      <div style="background: rgba(31,111,235,0.08); border: 1px solid rgba(31,111,235,0.3); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: var(--font-display); font-size: 21px; font-weight: 600">Il movimento segue l'importanza</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #B9C6D8">Una riga normale entra con discrezione, uno sconto entra come una notizia, uno storno esce come una correzione. L'animazione smette di essere un effetto e diventa informazione.</p>
+      </div>
+      <div style="background: rgba(31,111,235,0.08); border: 1px solid rgba(31,111,235,0.3); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: var(--font-display); font-size: 21px; font-weight: 600">Ogni effetto ha il suo fallback bello</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #B9C6D8">Niente va a schermo se non esiste la versione Eco che resta elegante da ferma. Su una cassa del 2017 il monitor non deve sembrare rotto: deve sembrare sobrio.</p>
+      </div>
+      <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: var(--font-display); font-size: 21px; font-weight: 600">Il vuoto è una decisione, non un residuo</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Ogni area che può restare vuota ha un secondo inquilino dichiarato: la scena, una reclame, o il respiro. Mai un rettangolo grigio che aspetta.</p>
+      </div>
+      <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: var(--font-display); font-size: 21px; font-weight: 600">Il titolare non può fare brutte figure</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Contrasti, ritagli, lunghezze e combinazioni che non reggono sono bloccati o segnalati al momento della scelta, con l'anteprima vera accanto. Non si scopre in sala.</p>
+      </div>
+      <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: var(--font-display); font-size: 21px; font-weight: 600">Le tre domande restano prima di tutto</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #9AA6BA">Cosa pago, quanto pago, come pago. Qualunque effetto che allunghi di un secondo il tempo per rispondere a una di queste è sbagliato, anche se è bellissimo.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1800,"height":3400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

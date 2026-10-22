@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Safe zone e ritaglio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body { margin: 0; background: #0B1017; }
+a { color: #8FA3C0; }
+a:hover { color: #E6EAF2; }
+</style>
+</helmet>
+
+<div style="width: 1920px; height: 1200px; box-sizing: border-box; padding: 56px; background: #0B1017; color: #E6EAF2; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 30px">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; flex-shrink: 0">
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: #6F7E95">Sistema pubblicitario — risolve 03</div>
+      <h1 style="margin: 0; font-family: 'Archivo', sans-serif; font-size: 48px; font-weight: 700; line-height: 1.05; letter-spacing: -0.025em">La safe zone universale non esiste</h1>
+    </div>
+    <div style="max-width: 58ch; font-size: 17px; line-height: 1.6; color: #9AA6BA">Il numero che decide tutto: una foto 16:9 ritagliata per riempire un palmare conserva <strong style="color: #F2A33C; font-weight: 600">il 26% della sua larghezza</strong>. Una striscia verticale al centro. Non ci sta un titolo orizzontale, non ci sta un prezzo accanto a un piatto, non ci sta quasi niente. Progettare per una safe zone comune significa progettare per una fessura.</div>
+  </div>
+
+  <div style="flex-grow: 1; min-height: 0; display: grid; grid-template-columns: 1000px 1fr; gap: 40px">
+
+    <!-- IL DIAGRAMMA -->
+    <div style="display: flex; flex-direction: column; gap: 16px; min-height: 0">
+      <div style="position: relative; width: 1000px; height: 562px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.14); flex-shrink: 0">
+        <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 50% 60% at 30% 36%, #C97A3E 0%, rgba(201,122,62,0) 62%), linear-gradient(130deg, #4A3526 0%, #1A120D 72%, #0C0806 100%)"></div>
+        <div style="position: absolute; left: 50%; top: 40%; transform: translate(-50%,-50%); text-align: center">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 62px; font-weight: 700; color: #F3E3D2; letter-spacing: 0.02em">APERITIVO</div>
+          <div style="font-size: 22px; color: #E2C9B2; margin-top: 4px">Spritz e taglieri · 5 €</div>
+        </div>
+
+        <!-- riquadro 4:3 -->
+        <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 750px; transform: translateX(-50%); border: 2px solid #6FA8FF"></div>
+        <div style="position: absolute; left: 50%; top: 10px; transform: translateX(-368px); font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #6FA8FF; background: rgba(11,16,23,0.7); padding: 2px 6px; border-radius: 4px">4:3 · 75%</div>
+
+        <!-- riquadro verticale -->
+        <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 316px; transform: translateX(-50%); border: 2px solid #C06CFF"></div>
+        <div style="position: absolute; left: 50%; top: 40px; transform: translateX(-150px); font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #C06CFF; background: rgba(11,16,23,0.7); padding: 2px 6px; border-radius: 4px">verticale · 32%</div>
+
+        <!-- riquadro palmare = safe zone -->
+        <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 260px; transform: translateX(-50%); border: 2px solid #3DDC97; background: rgba(61,220,151,0.1)"></div>
+        <div style="position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #3DDC97; background: rgba(11,16,23,0.8); padding: 3px 8px; border-radius: 4px">safe zone · 26%</div>
+
+        <!-- zone perse -->
+        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 125px; background: repeating-linear-gradient(45deg, rgba(242,163,60,0.22) 0 8px, rgba(242,163,60,0.06) 8px 16px)"></div>
+        <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 125px; background: repeating-linear-gradient(45deg, rgba(242,163,60,0.22) 0 8px, rgba(242,163,60,0.06) 8px 16px)"></div>
+      </div>
+      <div style="display: flex; gap: 22px; align-items: center; font-size: 15px; color: #9AA6BA; flex-wrap: wrap">
+        <div style="display: flex; align-items: center; gap: 8px"><div style="width: 16px; height: 16px; border: 2px solid #6FA8FF"></div>1024×768 e 1280×800 tagliano un quarto</div>
+        <div style="display: flex; align-items: center; gap: 8px"><div style="width: 16px; height: 16px; border: 2px solid #C06CFF"></div>1080×1920 ne tiene un terzo</div>
+        <div style="display: flex; align-items: center; gap: 8px"><div style="width: 16px; height: 16px; border: 2px solid #3DDC97; background: rgba(61,220,151,0.15)"></div>390×844 è il taglio peggiore</div>
+      </div>
+    </div>
+
+    <!-- LE TRE STRATEGIE -->
+    <div style="display: flex; flex-direction: column; gap: 16px; min-height: 0">
+      <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #6F7E95">Tre risposte, in ordine di quanto costano al titolare</div>
+
+      <div style="background: #141B26; border: 1px solid rgba(61,220,151,0.4); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: baseline; gap: 10px">
+          <div style="font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 700; color: #3DDC97; letter-spacing: 0.14em">DEFAULT</div>
+          <div style="font-family: 'Archivo', sans-serif; font-size: 21px; font-weight: 600">Punto di messa a fuoco</div>
+        </div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Al caricamento il titolare clicca il punto importante della foto. I ritagli stretti si costruiscono attorno a quel punto invece che al centro geometrico. Costa un clic e risolve il caso più comune: il piatto che sta a sinistra e il tavolo vuoto a destra.</p>
+      </div>
+
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 21px; font-weight: 600">Fascia invece di taglio, per le foto parlanti</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Se la foto ha le scritte dentro (modello B) e il formato è stretto, il display <strong style="color: #E6EAF2">smette di riempire</strong>: mostra la foto intera con due fasce nei colori del tema sopra e sotto. Una fascia è una scelta; una scritta tagliata a metà è un difetto. Vale solo per B — sul modello C il riempimento resta, perché lì la foto è solo atmosfera.</p>
+      </div>
+
+      <div style="background: #141B26; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-family: 'Archivo', sans-serif; font-size: 21px; font-weight: 600">Due foto per chi ha due famiglie di schermi</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #9AA6BA">Solo se il locale ha davvero sia monitor orizzontali sia totem o palmari, il back office propone — non obbliga — una seconda immagine verticale. Chiederla a tutti sarebbe il modo più sicuro per non far caricare niente a nessuno.</p>
+      </div>
+
+      <div style="background: rgba(31,111,235,0.1); border: 1px solid rgba(31,111,235,0.35); border-radius: 18px; padding: 22px 24px; font-size: 15px; line-height: 1.6; color: #C6DAFB; flex-grow: 1">
+        <strong style="font-weight: 600">E l'anteprima dice la verità.</strong> Nel back office la foto si vede subito nei quattro ritagli, non in uno solo. Oggi il titolare vede la slide 16:9, la approva, e scopre il disastro quando passa davanti al tablet. Quattro miniature accanto al caricamento costano niente e tolgono di mezzo il problema alla radice.
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

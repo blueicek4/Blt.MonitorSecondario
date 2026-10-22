@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Conto in verticale 1080×1920 — tema Notturno</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0A0616; }
+@keyframes fv-pan { from { transform: scale(1.06) translateY(0); } to { transform: scale(1.12) translateY(-22px); } }
+@keyframes fv-row { 0% { opacity: 0; transform: translateY(20px) scale(0.985); } 46% { opacity: 1; transform: translateY(-3px); } 100% { opacity: 1; transform: none; } }
+@keyframes fv-sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+@keyframes fv-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.012); } }
+.fv-pan { animation: fv-pan 20s linear infinite alternate; }
+.fv-pulse { animation: fv-pulse 3.2s ease-in-out infinite; }
+.fv-sweep { animation: fv-sweep 600ms cubic-bezier(0.16,1,0.3,1) 420ms both; }
+@media (prefers-reduced-motion: reduce) { .fv-pan, .fv-pulse, .fv-sweep { animation: none; } }
+</style>
+</helmet>
+
+<div style="width: 1080px; height: 1920px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0616; color: #F0EAFF; font-family: 'Space Grotesk', sans-serif">
+
+  <div class="fv-pan" style="position: absolute; inset: -5%">
+    <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 60% 30% at 30% 18%, #7A2FC2 0%, rgba(122,47,194,0) 62%), radial-gradient(ellipse 50% 26% at 80% 34%, #0E8C78 0%, rgba(14,140,120,0) 60%), linear-gradient(180deg, #1A0E36 0%, #0A0616 60%, #05030C 100%)"></div>
+  </div>
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,6,22,0.3) 0%, rgba(10,6,22,0.55) 38%, rgba(10,6,22,0.82) 62%, rgba(10,6,22,0.9) 100%)"></div>
+
+  <div style="position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 64px 56px 48px; display: flex; flex-direction: column; gap: 30px">
+
+    <div style="height: 60px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between">
+      <div style="display: flex; align-items: center; gap: 16px">
+        <svg width="44" height="44" viewBox="0 0 58 58" role="img" aria-label="Logo del locale (segnaposto)">
+          <circle cx="29" cy="29" r="27.5" fill="none" stroke="rgba(240,234,255,0.45)" stroke-width="1.6"></circle>
+          <path d="M17 38 L29 16 L41 38 Z" fill="none" stroke="#F0EAFF" stroke-width="2.6" stroke-linejoin="round"></path>
+          <line x1="17" y1="38" x2="41" y2="38" stroke="#35F5C8" stroke-width="2.6"></line>
+        </svg>
+        <div style="font-family: 'Syne', sans-serif; font-size: 30px; font-weight: 800; letter-spacing: 0.04em">MIRAGE</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; color: #A99BC8">
+        <div style="font-size: 22px">Banco</div>
+        <div style="width: 9px; height: 9px; border-radius: 50%; background: #35F5C8"></div>
+      </div>
+    </div>
+
+    <!-- la scena: in verticale sta SOPRA il conto, non di fianco. Una foto 16:9 qui riempie la larghezza senza tagli. -->
+    <div style="flex-shrink: 0; border-radius: 20px; overflow: hidden; border: 1px solid rgba(240,234,255,0.15); background: rgba(240,234,255,0.07); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px)">
+      <div style="position: relative; height: 545px; background: linear-gradient(140deg, #4B1C7A 0%, #1C0F3A 55%, #0D3B38 100%)">
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); border: 1px dashed rgba(240,234,255,0.35); border-radius: 12px; padding: 12px 20px; font-size: 16px; letter-spacing: 0.14em; color: rgba(240,234,255,0.75)">FOTO 16:9 · LARGHEZZA PIENA</div>
+      </div>
+      <div style="padding: 30px 34px 34px; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px">
+        <div style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+          <div style="font-size: 18px; letter-spacing: 0.2em; text-transform: uppercase; color: #35F5C8; font-weight: 600">Dalle 22 alle 23</div>
+          <div style="font-family: 'Syne', sans-serif; font-size: 52px; font-weight: 800; line-height: 1.02">Il secondo cocktail<br>a metà prezzo</div>
+        </div>
+        <div style="flex-shrink: 0; font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; border-radius: 999px; padding: 10px 20px; border: 1px solid rgba(192,108,255,0.6); color: #E2C2FF">fino alle 23:00</div>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1; min-height: 0"></div>
+
+    <!-- il conto: a tutta larghezza, ancorato in basso -->
+    <div style="flex-shrink: 0; box-sizing: border-box; border-radius: 20px; padding: 34px 38px; background: rgba(240,234,255,0.07); border: 1px solid rgba(240,234,255,0.15); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between">
+        <div style="font-family: 'Syne', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #A99BC8">Il tuo conto</div>
+        <div style="font-size: 20px; color: #A99BC8; font-variant-numeric: tabular-nums">4 articoli</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column">
+        <sc-for list="{{righe}}" as="r" hint-placeholder-count="5">
+          <div style="{{r.row}}">
+            <sc-if value="{{r.sconto}}" hint-placeholder-val="{{ false }}">
+              <div class="fv-sweep" style="position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(53,245,200,0.22), transparent); pointer-events: none"></div>
+            </sc-if>
+            <div style="{{r.nome}}">{{r.n}}</div>
+            <sc-if value="{{r.hasQ}}" hint-placeholder-val="{{ true }}">
+              <div style="{{r.q}}">{{r.qt}}</div>
+            </sc-if>
+            <sc-if value="{{r.hasP}}" hint-placeholder-val="{{ true }}">
+              <div style="{{r.p}}">{{r.pz}}</div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+
+      <div class="fv-pulse" style="margin-top: 6px; border-radius: 16px; padding: 28px 32px; background: linear-gradient(180deg, rgba(192,108,255,0.3), rgba(53,245,200,0.08)); border: 1px solid rgba(192,108,255,0.6); display: flex; align-items: flex-end; justify-content: space-between; gap: 24px">
+        <div style="display: flex; flex-direction: column; gap: 6px; padding-bottom: 18px">
+          <div style="font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase">Totale</div>
+          <div style="font-size: 18px; color: #A99BC8">IVA inclusa</div>
+        </div>
+        <div style="font-family: 'Syne', sans-serif; font-size: 150px; font-weight: 800; line-height: 0.88; letter-spacing: -0.03em; font-variant-numeric: tabular-nums">€ 31,00</div>
+      </div>
+    </div>
+
+    <div style="height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between">
+      <div style="font-size: 15px; color: #A99BC8">verticale · 0,56 · scena sopra, conto sotto · sconto con sweep 600 ms</div>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div style="font-size: 15px; color: #A99BC8">powered by</div>
+        <svg width="20" height="20" viewBox="0 0 34 34" role="img" aria-label="Marchio Bluetech (segnaposto)">
+          <rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="#1F6FEB" stroke-width="2.6"></rect>
+          <path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="#F0EAFF" stroke-width="3" stroke-linecap="round"></path>
+        </svg>
+        <div style="font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0.16em">BLUETECH</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1080,"height":1920}}'>
+var RIGHE = [
+  { n: 'Negroni', pz: '10,00' },
+  { n: 'Gin tonic Hendrick’s', pz: '12,00' },
+  { n: 'cetriolo, niente lime', nota: true },
+  { n: 'Spritz Select', qt: '×2', pz: '16,00' },
+  { n: 'Happy hour · secondo cocktail', pz: '−7,00', sconto: true }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      righe: RIGHE.map(function (r) {
+        return {
+          n: r.n, qt: r.qt, pz: r.pz, hasQ: !!r.qt, hasP: !!r.pz, sconto: !!r.sconto,
+          row: { position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'baseline', gap: '20px', padding: r.nota ? '10px 0 10px 30px' : '16px 0', borderBottom: '1px solid rgba(240,234,255,0.13)', animation: r.sconto ? 'fv-row 420ms cubic-bezier(0.22,1.2,0.36,1) both' : 'none' },
+          nome: r.nota
+            ? { position: 'relative', flexGrow: 1, fontSize: '24px', fontStyle: 'italic', color: '#A99BC8' }
+            : { position: 'relative', flexGrow: 1, fontSize: '32px', fontWeight: 500, color: r.sconto ? '#35F5C8' : '#F0EAFF' },
+          q: { position: 'relative', fontSize: '24px', color: '#A99BC8', fontVariantNumeric: 'tabular-nums' },
+          p: { position: 'relative', width: '150px', textAlign: 'right', fontSize: '34px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: r.sconto ? '#35F5C8' : '#F0EAFF' }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

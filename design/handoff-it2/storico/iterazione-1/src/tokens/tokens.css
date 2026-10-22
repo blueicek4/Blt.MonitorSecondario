@@ -1,0 +1,225 @@
+/* ===========================================================================
+   Bluetech Display — token non di colore.
+   I colori arrivano da themes.ts come custom properties sul root.
+   Qui stanno: curve, durate, livelli di animazione, scala tipografica per
+   formato. Importare una volta sola, prima di tutto il resto.
+   =========================================================================== */
+
+:root {
+  /* --- curve. Tre, nessuna di più. Vedi MOTION.md ------------------------ */
+  --e-spring: cubic-bezier(0.22, 1.2, 0.36, 1);  /* solo ingresso riga/foto */
+  --e-out:    cubic-bezier(0.16, 1, 0.3, 1);     /* default */
+  --e-move:   cubic-bezier(0.33, 1, 0.68, 1);    /* solo elementi condivisi */
+
+  /* --- durate base (livello full) ---------------------------------------- */
+  --d-row: 420ms;
+  --d-total: 520ms;
+  --d-total-pulse: 260ms;
+  --d-state: 520ms;
+  --d-msg-in: 320ms;
+  --d-msg-out: 240ms;
+  --d-msg-swap: 180ms;
+  --d-slide: 1200ms;
+  --d-celebration: 900ms;
+  --d-photo: 400ms;
+  --d-pill: 400ms;
+
+  /* --- tempi non di animazione ------------------------------------------- */
+  --t-slide-hold: 7000ms;   /* durata di una slide immagine */
+  --t-msg-ttl: 6000ms;      /* permanenza del messaggio dalla cassa */
+  --t-void-hold: 6000ms;    /* permanenza di una riga stornata */
+  --t-stale: 8000ms;        /* silenzio prima della pillola offline */
+  --t-thanks: 8000ms;       /* permanenza dello stato Grazie */
+
+  /* --- geometria del QR --------------------------------------------------- */
+  --qr-quiet-modules: 4;
+  --qr-min-ratio: 0.3333;   /* lato minimo = 1/3 dell'altezza schermo */
+
+  /* --- footer Bluetech: nessun tema può toccarli ------------------------- */
+  --footer-h: 56px;
+  --footer-word: 17px;
+  --footer-mark: 24px;
+}
+
+/* ===========================================================================
+   Livelli di animazione. L'attributo sta sul root: <html data-motion="light">
+   =========================================================================== */
+
+:root[data-motion='light'] {
+  --d-row: 300ms;
+  --d-total: 320ms;
+  --d-state: 320ms;
+  --d-slide: 600ms;
+  --e-spring: var(--e-out);     /* niente sovraelongazione */
+  --d-total-pulse: 0ms;         /* niente battito */
+}
+
+:root[data-motion='eco'] {
+  --d-row: 160ms;
+  --d-total: 140ms;
+  --d-state: 160ms;
+  --d-slide: 200ms;
+  --d-celebration: 300ms;
+  --e-spring: linear;
+  --e-out: linear;
+  --e-move: linear;
+  --d-total-pulse: 0ms;
+}
+
+/* prefers-reduced-motion FORZA eco, qualunque cosa dica il token del locale. */
+@media (prefers-reduced-motion: reduce) {
+  :root, :root[data-motion='full'], :root[data-motion='light'], :root[data-motion='eco'] {
+    --d-row: 160ms;
+    --d-total: 140ms;
+    --d-state: 160ms;
+    --d-slide: 200ms;
+    --d-celebration: 300ms;
+    --e-spring: linear;
+    --e-out: linear;
+    --e-move: linear;
+    --d-total-pulse: 0ms;
+  }
+  /* Niente animazioni infinite: ticker, Ken Burns, mesh, anelli, respiro. */
+  .bt-ticker, .bt-kenburns, .bt-mesh, .bt-halo, .bt-ring, .bt-breathe {
+    animation: none !important;
+  }
+}
+
+/* ===========================================================================
+   Scala tipografica. Tabella discreta per formato, NON vw/vh.
+   L'attributo sta sul root: <html data-format="1024x768">
+   Vedi SPEC §7 per il razionale e per il limite noto del 10".
+   =========================================================================== */
+
+:root[data-format='1920x1080'] {
+  --t-total: 150px;  --t-pay: 150px;  --t-row: 28px;  --t-amount: 32px;
+  --t-qty: 23px;     --t-label: 17px; --t-msg: 104px; --t-note: 24px;
+  --pad-x: 64px;     --pad-y: 56px;   --head-h: 60px; --msg-h: 150px;
+  --amount-col: 150px;
+}
+
+:root[data-format='1366x768'] {
+  --t-total: 120px;  --t-pay: 120px;  --t-row: 23px;  --t-amount: 25px;
+  --t-qty: 18px;     --t-label: 14px; --t-msg: 80px;  --t-note: 20px;
+  --pad-x: 44px;     --pad-y: 36px;   --head-h: 44px; --msg-h: 112px;
+  --amount-col: 110px;
+}
+
+:root[data-format='1280x800'] {
+  --t-total: 124px;  --t-pay: 124px;  --t-row: 24px;  --t-amount: 26px;
+  --t-qty: 19px;     --t-label: 15px; --t-msg: 84px;  --t-note: 21px;
+  --pad-x: 44px;     --pad-y: 36px;   --head-h: 44px; --msg-h: 116px;
+  --amount-col: 112px;
+}
+
+:root[data-format='1024x768'] {
+  --t-total: 104px;  --t-pay: 86px;   --t-row: 23px;  --t-amount: 25px;
+  --t-qty: 19px;     --t-label: 15px; --t-msg: 70px;  --t-note: 20px;
+  --pad-x: 40px;     --pad-y: 34px;   --head-h: 44px; --msg-h: 104px;
+  --amount-col: 110px;
+  --footer-h: 40px;  --footer-word: 15px; --footer-mark: 20px;
+}
+
+:root[data-format='1080x1920'] {
+  --t-total: 150px;  --t-pay: 170px;  --t-row: 32px;  --t-amount: 34px;
+  --t-qty: 24px;     --t-label: 22px; --t-msg: 110px; --t-note: 28px;
+  --pad-x: 48px;     --pad-y: 48px;   --head-h: 64px; --msg-h: 160px;
+  --amount-col: 170px;
+}
+
+/* compactRows: alza la riga sul solo formato narrow, perdendo due righe
+   visibili. Default spento. Vedi SPEC §7. */
+:root[data-format='1024x768'][data-compact-rows='true'] {
+  --t-row: 30px;
+  --t-amount: 32px;
+}
+
+/* ===========================================================================
+   Varianti di layout. Scelte dal RAPPORTO D'ASPETTO, non dalla larghezza:
+   1280x800 e 1280x1024 sono due layout diversi con la stessa larghezza.
+   L'attributo lo scrive il codice: <html data-layout="narrow">
+   =========================================================================== */
+
+:root[data-layout='wide']     { --receipt-w: 1180px; --side-w: 572px; }
+:root[data-layout='wide'][data-qr='beside'] { --receipt-w: 760px; }
+:root[data-layout='narrow']   { --receipt-w: 100%;   --side-w: 0px; }
+:root[data-layout='portrait'] { --receipt-w: 100%;   --side-w: 0px; }
+
+/* ===========================================================================
+   Keyframes. Solo transform e opacity. Mai width, top, box-shadow, filter.
+   =========================================================================== */
+
+@keyframes bt-row-in {
+  0%   { opacity: 0; transform: translateY(18px) scale(0.985); }
+  45%  { opacity: 1; transform: translateY(-3px) scale(1.004); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes bt-msg-in {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes bt-total-pulse {
+  0%, 100% { transform: scale(1); }
+  45%      { transform: scale(1.035); }
+}
+
+@keyframes bt-halo {
+  from { opacity: 0.5; transform: scale(0.94); }
+  to   { opacity: 0;   transform: scale(1.14); }
+}
+
+@keyframes bt-ring {
+  from { opacity: 0.85; transform: scale(0.6); }
+  to   { opacity: 0;    transform: scale(1.9); }
+}
+
+@keyframes bt-rise {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes bt-kenburns {
+  from { transform: scale(1) translate3d(0, 0, 0); }
+  to   { transform: scale(1.08) translate3d(-14px, -10px, 0); }
+}
+
+@keyframes bt-ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }  /* contenuto duplicato: loop senza salti */
+}
+
+@keyframes bt-breathe {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+
+@keyframes bt-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ===========================================================================
+   Base
+   =========================================================================== */
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font-text);
+  /* kiosk: niente selezione, niente callout, niente overscroll */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+  cursor: none;
+}
+
+/* Tutti i numeri sono tabellari: le cifre non ballano quando il totale cambia. */
+.bt-num { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+
+/* Un QR interpolato è un QR che il telefono non legge. */
+.bt-qr-img { image-rendering: pixelated; }
