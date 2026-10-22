@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Bluetech.Display.Agent.Impostazioni.V2;
 
 namespace Bluetech.Display.Agent.Impostazioni;
 
@@ -11,6 +12,8 @@ namespace Bluetech.Display.Agent.Impostazioni;
 public sealed class SettingsStore
 {
     public const string FileName = "impostazioni.json";
+    /// <summary>Il file della versione 2 com'era prima della migrazione alla 3.</summary>
+    public const string V2BackupName = "impostazioni.v2.bak";
     static readonly UTF8Encoding Utf8 = new(false);
 
     readonly object _lock = new();
@@ -74,7 +77,17 @@ public sealed class SettingsStore
 
     AgentSettings Load()
     {
-        var read = ReadWithRetries(FilePath, out var settings, out var problem);
+        var read = ReadWithRetries(FilePath, out var settings, out var problem, out var migration);
+        if (read == ReadResult.Migrated)
+        {
+            // Il file vecchio resta accanto, intero: dalla 3 non si torna indietro da sé, ma il tecnico può.
+            File.Copy(FilePath, Path.Combine(Folder, V2BackupName), overwrite: true);
+            LoadNotes.Add($"{FileName} era della versione 2: portato alla 3, il file di prima è {V2BackupName}");
+            AddMigrationNotes(migration);
+            settings = Repaired(settings);
+            Save(settings, keepBackup: false);
+            return settings;
+        }
         if (read == ReadResult.Ok)
             return Repaired(settings);
 
@@ -82,9 +95,10 @@ public sealed class SettingsStore
         {
             // Senza impostazioni.json ma con la copia: il file è stato tolto (a mano, o da un errore): si riparte dalla
             // copia, non dalle impostazioni iniziali, che perderebbero password, casse e dispositivi.
-            if (ReadWithRetries(FilePath + ".bak", out var backup, out _) == ReadResult.Ok)
+            if (ReadWithRetries(FilePath + ".bak", out var backup, out _, out var backupMigration) is ReadResult.Ok or ReadResult.Migrated)
             {
                 LoadNotes.Add($"{FileName} mancava: ripristinato dalla copia di sicurezza (.bak)");
+                AddMigrationNotes(backupMigration);
                 backup = Repaired(backup);
                 Save(backup);
                 return backup;
@@ -109,9 +123,10 @@ public sealed class SettingsStore
         {
             LoadNotes.Add($"{FileName} non è valido ({problem}) e non riesco a copiarlo: {ex.Message}");
         }
-        if (ReadWithRetries(FilePath + ".bak", out var good, out _) == ReadResult.Ok)
+        if (ReadWithRetries(FilePath + ".bak", out var good, out _, out var goodMigration) is ReadResult.Ok or ReadResult.Migrated)
         {
             LoadNotes.Add("Riparto dalla copia di sicurezza (.bak), cioè dalle impostazioni prima dell'ultima modifica");
+            AddMigrationNotes(goodMigration);
             good = Repaired(good);
             Save(good, keepBackup: false);
             return good;
@@ -132,35 +147,58 @@ public sealed class SettingsStore
         return settings;
     }
 
+    /// <summary>Le note della migrazione dalla 2, se il file letto era della 2.</summary>
+    void AddMigrationNotes(List<string>? notes)
+    {
+        foreach (var note in notes ?? [])
+            LoadNotes.Add($"{FileName}, migrazione: {note}");
+    }
+
     enum ReadResult
     {
         Ok,
+        /// <summary>Letto, ed era della versione 2 (o della prima): ora è della 3, con le note della migrazione.</summary>
+        Migrated,
         Missing,
         Broken,
         Unreadable,
     }
 
     /// <summary>Un file bloccato per un attimo (antivirus, copia di sicurezza) non è un file rotto: si riprova.</summary>
-    static ReadResult ReadWithRetries(string path, out AgentSettings settings, out string? problem)
+    static ReadResult ReadWithRetries(string path, out AgentSettings settings, out string? problem, out List<string>? migration)
     {
         for (var attempt = 1; ; attempt++)
         {
-            var result = TryRead(path, out settings, out problem);
+            var result = TryRead(path, out settings, out problem, out migration);
             if (result != ReadResult.Unreadable || attempt == 10)
                 return result;
             Thread.Sleep(300);
         }
     }
 
-    static ReadResult TryRead(string path, out AgentSettings settings, out string? problem)
+    static ReadResult TryRead(string path, out AgentSettings settings, out string? problem, out List<string>? migration)
     {
         settings = null!;
         problem = null;
+        migration = null;
         try
         {
             if (!File.Exists(path))
                 return ReadResult.Missing;
-            settings = JsonSerializer.Deserialize<AgentSettings>(File.ReadAllText(path, Utf8), AgentSettings.Json)!;
+            var text = File.ReadAllText(path, Utf8);
+            if (VersionOf(text) < AgentSettings.CurrentVersion)
+            {
+                var old = JsonSerializer.Deserialize<SettingsV2>(text, SettingsV2.Json);
+                if (old == null)
+                {
+                    problem = "il file è vuoto";
+                    return ReadResult.Broken;
+                }
+                migration = old.Repair();
+                settings = MigrazioneV2.Migrate(old, migration);
+                return ReadResult.Migrated;
+            }
+            settings = JsonSerializer.Deserialize<AgentSettings>(text, AgentSettings.Json)!;
             if (settings == null)
             {
                 problem = "il file è vuoto";
@@ -178,6 +216,18 @@ public sealed class SettingsStore
             problem = ex.Message;
             return ReadResult.Unreadable;
         }
+    }
+
+    /// <summary>La versione scritta nel file; 2 se non c'è (la 2 e la prima non la scrivevano).</summary>
+    static int VersionOf(string text)
+    {
+        using var doc = JsonDocument.Parse(text, new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
+        if (doc.RootElement.ValueKind != JsonValueKind.Object)
+            throw new JsonException("non è un oggetto JSON");
+        foreach (var property in doc.RootElement.EnumerateObject())
+            if (property.Name.Equals("Versione", StringComparison.OrdinalIgnoreCase) && property.Value.TryGetInt32(out var version))
+                return version;
+        return 2;
     }
 
     /// <param name="keepBackup">Falso quando il file attuale è rotto: la copia buona resta quella che c'è.</param>

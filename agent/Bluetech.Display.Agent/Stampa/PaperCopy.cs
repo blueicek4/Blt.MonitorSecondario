@@ -68,6 +68,29 @@ public static class PaperCopy
         return blocks;
     }
 
+    /// <summary>
+    /// La copia a video, nel blocco "carta" dello scontrino digitale: le stesse righe della copia stampata fino alla data,
+    /// senza il QR piccolo e la dicitura (a video il QR è il blocco accanto). <c>Large</c>: gli indici delle righe a
+    /// doppia altezza (il totale), già impaginate su metà delle colonne.
+    /// </summary>
+    public static (List<string> Lines, List<int> Large) ScreenLines(DigitalReceipt receipt, int columns)
+    {
+        var cols = Math.Clamp(columns, 24, 64);
+        var lines = new List<string>();
+        var large = new List<int>();
+        foreach (var block in Compose(receipt, new PaperCopyOptions { Colonne = cols, Dicitura = "" }))
+        {
+            if (block is not CopyText text)
+                break;   // il QR: da qui in giù la copia è per la carta
+            if (text.Large)
+                large.Add(lines.Count);
+            lines.Add(Place(text.Text, text.Align, text.Large ? cols / 2 : cols).TrimEnd());
+        }
+        while (lines.Count > 0 && lines[^1].Length == 0)
+            lines.RemoveAt(lines.Count - 1);
+        return (lines, large);
+    }
+
     /// <summary>La copia come testo semplice: per la modalità prova e per i test.</summary>
     public static string ToText(IReadOnlyList<CopyBlock> blocks, int columns)
     {

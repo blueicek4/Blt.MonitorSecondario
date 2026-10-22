@@ -6,19 +6,28 @@
 <title>Monitor cliente</title>
 <link rel="icon" href="data:,">
 <style>
-  :root { color-scheme: dark; }
+  :root { color-scheme: dark; --bg: #0B1017; --text: #E6EAF2; --muted: #9AA6BA; --faint: #7B8596; --primary: #1F6FEB; --font-display: 'Archivo', 'Arial Narrow', 'Segoe UI', sans-serif; --font-text: 'IBM Plex Sans', 'Segoe UI', sans-serif; }
+  /*TEMA*/
   * { box-sizing: border-box; }
   html, body { height: 100%; }
-  body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: #0b1017; color: #e6eaf2; font: 18px/1.5 system-ui, "Segoe UI", sans-serif; text-align: center; padding: 24px 16px; }
-  h1 { font-size: 22px; font-weight: 600; margin: 0; }
-  p { color: #9aa6ba; margin: 0; }
-  footer { position: fixed; bottom: 16px; left: 0; right: 0; color: #6f7e95; font-size: 13px; }
+  body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: var(--bg); color: var(--text); font: 18px/1.5 var(--font-text); text-align: center; padding: 24px 16px 72px; -webkit-user-select: none; user-select: none; }
+  h1 { display: flex; align-items: center; gap: 14px; font: 600 clamp(22px, 3.6vw, 32px)/1.2 var(--font-display); margin: 0; }
+  h1 i { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); animation: breathe 2s ease-in-out infinite; }
+  @keyframes breathe { 0%, 100% { opacity: .4 } 50% { opacity: 1 } }
+  @media (prefers-reduced-motion: reduce) { h1 i { animation: none; } }
+  p { color: var(--muted); margin: 0; }
+  footer { position: fixed; bottom: 18px; right: 22px; display: flex; align-items: center; gap: 8px; color: var(--faint); font-size: 12px; }
+  footer svg { width: 16px; height: 16px; }
+  footer b { font: 600 12px var(--font-display); letter-spacing: .16em; color: var(--text); }
+  @media (max-aspect-ratio: 1/1) { footer { left: 0; right: 0; justify-content: center; } }
 </style>
 </head>
 <body>
-<h1>Mi ricollego…</h1>
-<p>Il monitor torna da solo appena la cassa risponde.</p>
-<footer>powered by Bluetech</footer>
+<h1><i></i>Mi ricollego alla cassa</h1>
+<p>Riprovo da solo. Non serve toccare niente.</p>
+<footer aria-label="powered by Bluetech">powered by
+  <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="var(--primary)" stroke-width="2.6"/><path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="var(--text)" stroke-width="3" stroke-linecap="round"/></svg>
+  <b>BLUETECH</b></footer>
 <script>setTimeout(() => location.reload(), 5000);</script>
 </body>
 </html>

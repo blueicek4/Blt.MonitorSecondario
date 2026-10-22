@@ -82,6 +82,30 @@ public static class AgentApp
 
     static IResult Html(string name) => Results.Text(Page(name), "text/html; charset=utf-8");
 
+    /// <summary>
+    /// Le pagine del dispositivo (abbinamento, non abilitato, mi ricollego) sul tema del primo marchio, con il suo nome:
+    /// il monitor conosce già il suo aspetto prima di essere abbinato (SPEC §21). Solo colori, font e nome: niente che
+    /// il cliente non veda già sullo schermo.
+    /// </summary>
+    internal static string DevicePage(string name, AgentSettings settings)
+    {
+        var page = Page(name);
+        if (settings.Marchi.FirstOrDefault() is not { } brand)
+            return page.Replace("{{locale}}", "");
+        var look = brand.Aspetto;
+        var now = TimeOnly.FromDateTime(DateTime.Now);
+        var daytime = AgentSettings.ParseTime(look.GiornoDalle) is { } from && AgentSettings.ParseTime(look.GiornoAlle) is { } to && now >= from && now < to;
+        var palette = Palettes.Resolve(look.Tema, look.Modo, daytime);
+        if (AgentSettings.LocaleColors(brand) is { } colors)
+            palette = ThemeColors.WithLocaleColors(palette, colors);
+        string Font(string? family, string fallback) => family != null && Palettes.Fonts.TryGetValue(family, out var stack) ? stack : fallback;
+        var css = $":root {{ color-scheme: {(palette.Scuro ? "dark" : "light")}; --bg: {palette.Bg}; --surface: {palette.SurfaceSolid}; --line: {palette.Line}; " +
+            $"--text: {palette.Text}; --muted: {palette.Muted}; --faint: {palette.Faint}; --primary: {palette.Primary}; --glow: {palette.Glow}; " +
+            $"--font-display: {Font(look.FontTitoli, palette.FontDisplay)}; --font-text: {Font(look.FontTesto, palette.FontText)}; }}";
+        var venue = brand.Identita.NomeLocale.Trim() is { Length: > 0 } shown ? shown : brand.Nome;
+        return page.Replace("/*TEMA*/", css).Replace("{{locale}}", System.Net.WebUtility.HtmlEncode(venue));
+    }
+
     /// <param name="configure">Per i test: altra configurazione prima di costruire l'applicazione.</param>
     public static WebApplication Build(string[] args, Action<WebApplicationBuilder>? configure = null)
     {
@@ -99,8 +123,8 @@ public static class AgentApp
         var dataFolder = DataFolder(options);
         var logFolder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, options.CartellaLog));
         var store = new SettingsStore(dataFolder);
-        var passwordFile = PasswordFile.Apply(dataFolder, store);   // dall'installazione o dal tecnico, prima di tutto
-        var network = store.Current.Rete;
+        var passwordFiles = PasswordFile.Apply(dataFolder, store);   // dall'installazione o dal tecnico, prima di tutto
+        var network = store.Current.Installazione.Rete;
         if (!network.ApertoInRete && string.IsNullOrEmpty(builder.Configuration["AllowedHosts"]))
             builder.Configuration["AllowedHosts"] = "localhost;127.0.0.1;[::1]";   // niente DNS rebinding sul back office
         builder.Logging.AddProvider(new FileLoggerProvider(logFolder, options.GiorniLog));
@@ -164,10 +188,13 @@ public static class AgentApp
             startup.LogWarning("{Problem}", statsProblem);
         foreach (var note in app.Services.GetRequiredService<MediaLibrary>().Tidy())
             startup.LogWarning("Immagini e video: {Note}", note);
-        if (passwordFile is { Problem: true })
-            startup.LogError("{Note}", passwordFile.Note);
-        else if (passwordFile != null)
-            startup.LogWarning("{Note}", passwordFile.Note);   // un cambio di password si deve vedere tra gli avvisi
+        foreach (var passwordFile in passwordFiles)
+        {
+            if (passwordFile.Problem)
+                startup.LogError("{Note}", passwordFile.Note);
+            else
+                startup.LogWarning("{Note}", passwordFile.Note);   // un cambio di password si deve vedere tra gli avvisi
+        }
         if (httpsProblem != null)
             startup.LogError("{Problem}", httpsProblem);
         foreach (var problem in startupProblems)
@@ -264,11 +291,11 @@ public static class AgentApp
             var preview = context.Request.Query.ContainsKey("anteprima");
             var device = devices.Find(context);
             if (preview && !admin.IsAuthenticated(context))
-                return device != null ? Results.Redirect("/cliente") : Denied();
+                return device != null ? Results.Redirect("/cliente") : Denied(context);
             if (!preview)
             {
                 if (device == null)
-                    return Denied();
+                    return Denied(context);
                 devices.Refresh(context);
                 stats.Seen(device.Id, Remote(context), connected: false);
             }
@@ -345,9 +372,11 @@ public static class AgentApp
             if (type == null || name == "manifest.webmanifest" || name == "sw.js" || Resource("pwa/" + name) is not { } bytes)
                 return Results.NotFound();
             context.Response.Headers.CacheControl = type == "image/png" ? "public, max-age=86400" : "no-cache";
+            if (name == "offline.html")
+                return Results.Text(DevicePage("pwa/offline.html", context.RequestServices.GetRequiredService<SettingsStore>().Current), type);
             return Results.Bytes(bytes, type);
         });
-        app.MapGet("/auth", (HttpContext context, DeviceAccess devices) =>
+        app.MapGet("/auth", (HttpContext context, DeviceAccess devices, SettingsStore settings) =>
         {
             if (devices.Find(context) != null)
             {
@@ -355,7 +384,7 @@ public static class AgentApp
                 return Results.Redirect("/cliente");
             }
             NoCache(context);
-            return Html("auth.html");
+            return Results.Text(DevicePage("auth.html", settings.Current), "text/html; charset=utf-8");
         });
         app.MapPost("/api/abbinamento", (HttpContext context, DeviceAccess devices) =>
         {
@@ -372,6 +401,19 @@ public static class AgentApp
                 return Results.Json(new { stato = devices.Poll(context) });
             devices.Refresh(context);   // la pagina aperta per mesi lo chiede ogni tanto: il cookie non scade
             return Results.Json(new { stato = "autorizzato" });
+        });
+
+        // Modalità demo: dove porta il QR finto dello scontrino digitale. La copia di cortesia com'è, per vedere sul
+        // telefono che il giro funziona; gli ultimi 20 scontrini, poi "scaduto" come farebbe il servizio vero.
+        app.MapGet("/prova/scontrino/{id}", (string id, HttpContext context, AgentEngine engine) =>
+        {
+            NoCache(context);
+            var receipt = engine.DemoReceipt(id);
+            var text = receipt == null
+                ? "Questo scontrino di prova non c'è più: l'Agent tiene solo gli ultimi 20."
+                : Stampa.PaperCopy.ToText(Stampa.PaperCopy.Compose(receipt, new PaperCopyOptions { Dicitura = "" }), 42);
+            var page = Page("prova-scontrino.html").Replace("{{testo}}", System.Net.WebUtility.HtmlEncode(text.TrimEnd()));
+            return Results.Content(page, "text/html; charset=utf-8", statusCode: receipt == null ? 404 : 200);
         });
 
         app.MapGet("/backoffice", (HttpContext context) =>
@@ -460,7 +502,8 @@ public static class AgentApp
             .Replace("/*FONTS*/{}", JsonSerializer.Serialize(Palettes.Fonts));
     });
 
-    static IResult Denied() => Results.Content(Page("negato.html"), "text/html; charset=utf-8", statusCode: StatusCodes.Status403Forbidden);
+    static IResult Denied(HttpContext context) => Results.Content(DevicePage("negato.html", context.RequestServices.GetRequiredService<SettingsStore>().Current),
+        "text/html; charset=utf-8", statusCode: StatusCodes.Status403Forbidden);
 
     static void NoCache(HttpContext context) => context.Response.Headers.CacheControl = "no-cache";
 

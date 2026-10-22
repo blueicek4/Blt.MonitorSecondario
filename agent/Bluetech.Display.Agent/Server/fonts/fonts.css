@@ -2,7 +2,7 @@
    Gli stessi font del display del design (display/src/fonts.css), serviti dall'Agent: il monitor parte identico col
    router staccato. Niente Google Fonts.
 
-   I nomi di famiglia sono quelli usati in tokens/themes.ts. Font variabili
+   I nomi di famiglia sono quelli usati in tokens/themes.ts: quattordici famiglie dall'iterazione 2. Font variabili
    (un file copre tutti i pesi), sottoinsieme latino: comprende € (U+20AC) e il
    meno tipografico (U+2212). Origine e licenze OFL: licenze/ (accanto all'exe: licenze-font).
    =========================================================================== */
@@ -111,4 +111,112 @@
   font-weight: 300 700;
   font-display: swap;
   src: url('/fonts/space-grotesk-latin-wght-normal.woff2') format('woff2');
+}
+
+/* Iterazione 2: sei famiglie in più per i dieci temi (Brace, Onda, Latte, Menta). */
+
+@font-face {
+  font-family: 'Oswald';
+  font-style: normal;
+  font-weight: 200 700;
+  font-display: swap;
+  src: url('/fonts/oswald-latin-wght-normal.woff2') format('woff2');
+}
+
+/* Spectral non esiste in versione variabile: un file per peso. */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/spectral-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/spectral-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/spectral-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/spectral-latin-700-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Spectral';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/spectral-latin-400-italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Karla';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/karla-latin-wght-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Karla';
+  font-style: italic;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/karla-latin-wght-italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/lora-latin-wght-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/lora-latin-wght-italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Work Sans';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/work-sans-latin-wght-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Work Sans';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/work-sans-latin-wght-italic.woff2') format('woff2');
+}
+
+/* Outfit non ha il corsivo: le note in corsivo usano l'obliquo sintetico del browser. */
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/outfit-latin-wght-normal.woff2') format('woff2');
 }

@@ -29,9 +29,12 @@ public sealed class SettingsTests : IDisposable
     {
         var store = new SettingsStore(_folder);
         Assert.True(File.Exists(FilePath));
-        Assert.Null(store.Current.Password);
+        Assert.Empty(store.Current.Installazione.Accessi);
+        Assert.Equal(AgentSettings.CurrentVersion, store.Current.Versione);
+        Assert.Equal("locale", Assert.Single(store.Current.Marchi).Id);
         var cash = Assert.Single(store.Current.Casse);
         Assert.Equal(@"C:\MonitorSecondario\Scontrino.txt", cash.FileCassa);
+        Assert.Equal("locale", cash.Marchio);
         Assert.Contains(store.LoadNotes, n => n.StartsWith("Primo avvio", StringComparison.Ordinal));
 
         var text = File.ReadAllText(FilePath);
@@ -53,7 +56,7 @@ public sealed class SettingsTests : IDisposable
 
         var error = store.Update(s =>
         {
-            s.Casse.Add(new CashPointConfig { Id = "cassa2", Nome = "Cassa bar", FileCassa = LocalFile(_folder, "cassa1") });
+            s.Casse.Add(new CashPointConfig { Id = "cassa2", Nome = "Cassa bar", Marchio = "locale", FileCassa = LocalFile(_folder, "cassa1") });
             return null;
         });
         Assert.Contains("già di un'altra cassa", error);
@@ -62,7 +65,7 @@ public sealed class SettingsTests : IDisposable
 
         Assert.Null(store.Update(s =>
         {
-            s.Casse.Add(new CashPointConfig { Id = "cassa2", Nome = "Cassa bar", FileCassa = LocalFile(_folder, "cassa2") });
+            s.Casse.Add(new CashPointConfig { Id = "cassa2", Nome = "Cassa bar", Marchio = "locale", FileCassa = LocalFile(_folder, "cassa2") });
             return null;
         }));
         Assert.Equal(2, seen!.Casse.Count);
@@ -79,17 +82,17 @@ public sealed class SettingsTests : IDisposable
             s.Casse[0].FileCassa = LocalFile(_folder, "cassa1");
             return null;
         });
-        var device = new DeviceConfig { Id = "dispositivo1", Nome = "Palmare", Token = new string('a', 64), Cassa = "cassa9" };
+        var device = new ScreenSettings { Id = "schermo1", Nome = "Palmare", Token = new string('a', 64), Cassa = "cassa9" };
         Assert.Contains("scegli la cassa", store.Update(s =>
         {
-            s.Dispositivi.Add(device);
+            s.Schermi.Add(device);
             return null;
         }));
         device.Cassa = "cassa1";
         device.Stampante = "stampante9";
         Assert.Contains("stampante scelta non c'è", store.Update(s =>
         {
-            s.Dispositivi.Add(device);
+            s.Schermi.Add(device);
             return null;
         }));
         Assert.Contains("indirizzo della stampante", store.Update(s =>
@@ -113,7 +116,7 @@ public sealed class SettingsTests : IDisposable
         Assert.Contains(store.LoadNotes, n => n.Contains("Banco: l'indirizzo"));   // detto all'avvio e nel back office
         Assert.Null(store.Update(s =>
         {
-            s.Password = AdminAccess.Hash("la-mia-password");   // la password si imposta lo stesso
+            s.Installazione.SetPassword(AccessEntry.Owner, AdminAccess.Hash("la-mia-password"));   // la password si imposta lo stesso
             return null;
         }));
         Assert.Contains("Banco: l'indirizzo", store.Update(s =>
@@ -135,18 +138,18 @@ public sealed class SettingsTests : IDisposable
         store.Update(s =>
         {
             s.Casse[0].FileCassa = LocalFile(_folder, "cassa1");
-            s.ChiusuraVenditaDopoSecondi = 75;
+            s.Marchi[0].Vendita.ChiusuraDopoSecondi = 75;
             return null;
         });
         store.Update(s =>
         {
-            s.ChiusuraVenditaDopoSecondi = 90;
+            s.Marchi[0].Vendita.ChiusuraDopoSecondi = 90;
             return null;
         });
         File.WriteAllText(FilePath, "{ \"Casse\": [ { \"Nome\": \"rotto\" ");   // come dopo una modifica a mano sbagliata
 
         var reloaded = new SettingsStore(_folder);
-        Assert.Equal(75, reloaded.Current.ChiusuraVenditaDopoSecondi);   // la copia di sicurezza: la versione prima dell'ultima
+        Assert.Equal(75, reloaded.Current.Marchi[0].Vendita.ChiusuraDopoSecondi);   // la copia di sicurezza: la versione prima dell'ultima
         Assert.Contains(reloaded.LoadNotes, n => n.Contains("non è valido"));
         Assert.Single(Directory.GetFiles(_folder, SettingsStore.FileName + ".errore-*"));
     }
@@ -158,18 +161,18 @@ public sealed class SettingsTests : IDisposable
         store.Update(s =>
         {
             s.Casse[0].FileCassa = LocalFile(_folder, "cassa1");
-            s.Password = AdminAccess.Hash("la-mia-password");
+            s.Installazione.SetPassword(AccessEntry.Owner, AdminAccess.Hash("la-mia-password"));
             return null;
         });
         store.Update(s =>
         {
-            s.ChiusuraVenditaDopoSecondi = 90;
+            s.Marchi[0].Vendita.ChiusuraDopoSecondi = 90;
             return null;
         });
         File.Delete(FilePath);   // tolto per errore
 
         var reloaded = new SettingsStore(_folder);
-        Assert.NotNull(reloaded.Current.Password);   // non le impostazioni iniziali, senza password
+        Assert.NotNull(reloaded.Current.Installazione.Password(AccessEntry.Owner));   // non le impostazioni iniziali, senza password
         Assert.Contains(reloaded.LoadNotes, n => n.Contains("ripristinato dalla copia"));
         Assert.True(File.Exists(FilePath));
     }
@@ -181,7 +184,7 @@ public sealed class SettingsTests : IDisposable
         store.Update(s =>
         {
             s.Casse[0].FileCassa = LocalFile(_folder, "cassa1");
-            s.ChiusuraVenditaDopoSecondi = 77;
+            s.Marchi[0].Vendita.ChiusuraDopoSecondi = 77;
             return null;
         });
         var locked = new FileStream(FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);   // un antivirus, una copia
@@ -194,7 +197,7 @@ public sealed class SettingsTests : IDisposable
         release.Start();
         var reloaded = new SettingsStore(_folder);
         release.Join();
-        Assert.Equal(77, reloaded.Current.ChiusuraVenditaDopoSecondi);
+        Assert.Equal(77, reloaded.Current.Marchi[0].Vendita.ChiusuraDopoSecondi);
         Assert.Empty(Directory.GetFiles(_folder, SettingsStore.FileName + ".errore-*"));
     }
 
@@ -212,7 +215,7 @@ public sealed class SettingsTests : IDisposable
         var store = new SettingsStore(_folder);
         var cash = Assert.Single(store.Current.Casse);
         Assert.Equal("cassa1", cash.Id);   // l'id mancante si genera
-        var device = Assert.Single(store.Current.Dispositivi);
+        var device = Assert.Single(store.Current.Schermi);   // era un file della versione 2: i dispositivi sono gli schermi
         Assert.Equal("cassa1", device.Cassa);
         Assert.Null(device.Stampante);
         Assert.Null(store.Current.Validate());

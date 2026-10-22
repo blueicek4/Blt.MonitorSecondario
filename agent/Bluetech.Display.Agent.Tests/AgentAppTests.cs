@@ -25,13 +25,11 @@ public sealed class AgentAppTests
         await using var agent = await TestAgent.Start();
         var device = await agent.Pair("Player cassa");
         using var socket = await agent.Connect(device);
-        var layout = await Receive(socket, _ => true);   // prima la disposizione, poi l'aspetto, poi il conto
-        Assert.Equal("layout", (string)layout["t"]!);
-        Assert.Null(layout["force"]);   // automatica: la sceglie lo schermo
-        var look = await Receive(socket, _ => true);
+        var look = await Receive(socket, _ => true);   // prima la configurazione, poi il conto
         Assert.Equal("cfg", (string)look["t"]!);
-        Assert.Equal("bluetech", (string)look["preset"]!);
-        Assert.Equal("auto", (string)look["theme"]!["mode"]!);
+        Assert.Equal("bluetech", (string)look["screen"]!["tema"]!);
+        Assert.Equal("fisso", (string)look["screen"]!["modo"]!);
+        Assert.Null(look["screen"]!["disposizione"]);   // automatica: la sceglie lo schermo
         var sync = await Receive(socket, _ => true);
         Assert.Equal("sync", (string)sync["t"]!);
         Assert.Equal("idle", (string)sync["state"]!["phase"]!);
@@ -53,7 +51,7 @@ public sealed class AgentAppTests
         var page = await stranger.Http.GetAsync("/cliente");
         Assert.Equal(HttpStatusCode.Forbidden, page.StatusCode);
         var text = await page.Content.ReadAsStringAsync();
-        Assert.Contains("Dispositivo non autorizzato", text);
+        Assert.Contains("Questo schermo non è abilitato", text);
         foreach (var hint in new[] { "/auth", "codice", "back office", "backoffice", "abbina" })
             Assert.DoesNotContain(hint, text, StringComparison.OrdinalIgnoreCase);   // nessuna indicazione su come entrare
 
@@ -63,7 +61,7 @@ public sealed class AgentAppTests
         Assert.Contains("Back office", await stranger.Http.GetStringAsync("/backoffice"));
         Assert.Equal("/backoffice", (await stranger.Http.GetAsync("/diagnostica")).Headers.Location!.OriginalString);
         Assert.Equal(HttpStatusCode.Unauthorized, (await stranger.Http.GetAsync("/api/stato")).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await stranger.Http.GetAsync("/api/bo/impostazioni")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await stranger.Http.GetAsync("/api/bo/config")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await stranger.Http.GetAsync("/ws")).StatusCode);
         await Assert.ThrowsAsync<WebSocketException>(() => agent.Connect(stranger));
     }
@@ -100,6 +98,29 @@ public sealed class AgentAppTests
     }
 
     [Fact]
+    public async Task The_device_pages_wear_the_theme_of_the_venue_before_pairing()
+    {
+        await using var agent = await TestAgent.Start(s =>
+        {
+            Brand(s).Aspetto.Tema = "forno";
+            Brand(s).Identita.NomeLocale = "La Vela & C.";
+        });
+        var stranger = agent.NewBrowser();
+        var pairing = await stranger.Http.GetStringAsync("/auth");
+        Assert.Contains("--bg: #F6EEE2", pairing);
+        Assert.Contains("color-scheme: light", pairing);
+        Assert.Contains("La Vela &amp; C.", pairing);
+        Assert.Contains("alla voce <b>Schermi</b>", pairing);
+        Assert.Contains("8 minuti", pairing);
+        var denied = await (await stranger.Http.GetAsync("/cliente")).Content.ReadAsStringAsync();
+        Assert.Contains("--primary: #9C3A1F", denied);
+        Assert.Contains("Chiedi al titolare o all'assistenza Bluetech.", denied);
+        var offline = await stranger.Http.GetStringAsync("/pwa/offline.html");
+        Assert.Contains("Mi ricollego alla cassa", offline);
+        Assert.Contains("--bg: #F6EEE2", offline);
+    }
+
+    [Fact]
     public async Task A_device_is_authorized_with_the_code_typed_in_the_back_office()
     {
         await using var agent = await TestAgent.Start();
@@ -110,12 +131,12 @@ public sealed class AgentAppTests
         Assert.Equal(code, (string)(await Json(await device.Http.PostAsync("/api/abbinamento", null)))["codice"]!);   // ricaricando, lo stesso codice
         Assert.Equal("attesa", (string)(await Json(await device.Http.GetAsync("/api/abbinamento")))["stato"]!);
 
-        var wrong = await agent.Admin.PostAsJsonAsync("/api/bo/dispositivi", new { codice = code == "000000" ? "000001" : "000000", nome = "Palmare", cassa = "cassa1" });
+        var wrong = await agent.Admin.PostAsJsonAsync("/api/bo/schermi", new { codice = code == "000000" ? "000001" : "000000", nome = "Palmare", cassa = "cassa1" });
         Assert.Equal(HttpStatusCode.BadRequest, wrong.StatusCode);
         Assert.Contains("Codice non valido", (string)(await Json(wrong))["errore"]!);
 
         var spaced = code[..3] + " " + code[3..];   // come lo mostra lo schermo
-        var approved = await agent.Admin.PostAsJsonAsync("/api/bo/dispositivi", new { codice = spaced, nome = "Palmare sala", cassa = "cassa1" });
+        var approved = await agent.Admin.PostAsJsonAsync("/api/bo/schermi", new { codice = spaced, nome = "Palmare sala", cassa = "cassa1" });
         Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
 
         // La pagina ricaricata proprio adesso non chiede un codice nuovo: riceve l'autorizzazione.
@@ -134,7 +155,7 @@ public sealed class AgentAppTests
         Assert.Contains("Palmare sala", saved);
 
         // Il codice vale una volta sola.
-        var again = await agent.Admin.PostAsJsonAsync("/api/bo/dispositivi", new { codice = code, nome = "Altro", cassa = "cassa1" });
+        var again = await agent.Admin.PostAsJsonAsync("/api/bo/schermi", new { codice = code, nome = "Altro", cassa = "cassa1" });
         Assert.Equal(HttpStatusCode.BadRequest, again.StatusCode);
     }
 
@@ -158,7 +179,7 @@ public sealed class AgentAppTests
         var status = await agent.Status();
         Assert.Equal(["cassa1", "cassa2"], status["casse"]!.AsArray().Select(c => (string)c!["id"]!).ToArray());
         Assert.All(status["casse"]!.AsArray(), c => Assert.Equal("sale", (string)c!["fase"]!));
-        Assert.Equal(2, status["dispositivi"]!.AsArray().Count(d => (bool)d!["collegato"]!));
+        Assert.Equal(2, status["schermi"]!.AsArray().Count(d => (bool)d!["collegato"]!));
     }
 
     [Fact]
@@ -169,7 +190,7 @@ public sealed class AgentAppTests
         var socket = await agent.Connect(device);
         await Receive(socket, Type("sync"));
 
-        var moved = await agent.Admin.PutAsJsonAsync($"/api/bo/dispositivi/{device.Id}", new { nome = "Tablet", cassa = "cassa2" });
+        var moved = await agent.Admin.PutAsJsonAsync($"/api/bo/schermi/{device.Id}", new { Nome = "Tablet", Cassa = "cassa2" });
         Assert.Equal(HttpStatusCode.OK, moved.StatusCode);
         await Assert.ThrowsAsync<WebSocketException>(() => Receive(socket, _ => false));   // staccato: si ricollega
         socket.Dispose();
@@ -178,7 +199,7 @@ public sealed class AgentAppTests
         await Write(agent.CashFile("cassa2"), Water);
         Assert.Equal("Acqua", (string)(await Receive(socket, Type("sale.line")))["line"]!["desc"]!);
 
-        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.DeleteAsync($"/api/bo/dispositivi/{device.Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.DeleteAsync($"/api/bo/schermi/{device.Id}")).StatusCode);
         await Assert.ThrowsAsync<WebSocketException>(() => Receive(socket, _ => false));
         socket.Dispose();
         await Assert.ThrowsAsync<WebSocketException>(() => agent.Connect(device));
@@ -194,8 +215,8 @@ public sealed class AgentAppTests
         {
             await using var agent = await TestAgent.Start(s =>
             {
-                s.ScontrinoDigitale.MostraScontrino = true;
-                s.ScontrinoDigitale.CopiaCartacea = true;
+                Brand(s).Vendita.ScontrinoDigitale.Attivo = true;
+                Brand(s).Vendita.ScontrinoDigitale.CopiaCarta = true;
                 s.Stampanti.Add(new PrinterConfig { Id = "stampante1", Nome = "Cassa", Indirizzo = $"127.0.0.1:{((IPEndPoint)printer.LocalEndpoint).Port}", TestoRitiro = "Ritira la copia al banco" });
             });
             var counter = await agent.Pair("Palmare con stampante", printer: "stampante1");
@@ -260,14 +281,14 @@ public sealed class AgentAppTests
     [Fact]
     public async Task The_back_office_password_is_set_from_this_pc_then_needed()
     {
-        await using var agent = await TestAgent.Start(s => s.Password = null, login: false);
+        await using var agent = await TestAgent.Start(s => s.Installazione.Accessi.Clear(), login: false);
         var session = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/sessione"))!;
         Assert.False((bool)session["passwordImpostata"]!);
         Assert.True((bool)session["locale"]!);
 
         Assert.Equal(HttpStatusCode.BadRequest, (await agent.Admin.PostAsJsonAsync("/api/bo/password", new { nuova = "corta" })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/password", new { nuova = "la-mia-password" })).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.GetAsync("/api/bo/impostazioni")).StatusCode);   // già dentro
+        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.GetAsync("/api/bo/config")).StatusCode);   // già dentro
         var saved = await File.ReadAllTextAsync(Path.Combine(agent.DataFolder, SettingsStore.FileName));
         Assert.DoesNotContain("la-mia-password", saved);
 
@@ -317,7 +338,7 @@ public sealed class AgentAppTests
         await using var agent = await TestAgent.Start();
         var device = agent.NewBrowser();
         var code = (string)(await Json(await device.Http.PostAsync("/api/abbinamento", null)))["codice"]!;
-        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/dispositivi", new { codice = code, nome = "Palmare", cassa = "cassa1" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/schermi", new { codice = code, nome = "Palmare", cassa = "cassa1" })).StatusCode);
         for (var i = 0; i < 60; i++)   // qualcuno chiede codici a raffica dallo stesso indirizzo
             await agent.NewBrowser().Http.PostAsync("/api/abbinamento", null);
         Assert.Equal("autorizzato", (string)(await Json(await device.Http.GetAsync("/api/abbinamento")))["stato"]!);
@@ -361,7 +382,7 @@ public sealed class AgentAppTests
         try
         {
             var port = ((IPEndPoint)busy.LocalEndpoint).Port;
-            await using var agent = await TestAgent.Start(s => s.Rete.Https = new HttpsSettings { Attivo = true, Porta = port });
+            await using var agent = await TestAgent.Start(s => s.Installazione.Rete.Https = new HttpsSettings { Attivo = true, Porta = port });
             Assert.DoesNotContain(agent.App.Urls, u => u.StartsWith("https:", StringComparison.Ordinal));
             var status = await agent.Status();
             Assert.Contains(status["avvisi"]!.AsArray(), a => ((string)a!).Contains($"porta {port} è occupata"));
@@ -408,7 +429,7 @@ public sealed class AgentAppTests
         var device = await agent.Pair("Schermo bar", id);
         var inUse = await agent.Admin.DeleteAsync($"/api/bo/casse/{id}");
         Assert.Contains("Schermo bar", (string)(await Json(inUse))["errore"]!);
-        await agent.Admin.DeleteAsync($"/api/bo/dispositivi/{device.Id}");
+        await agent.Admin.DeleteAsync($"/api/bo/schermi/{device.Id}");
         Assert.Equal(HttpStatusCode.OK, (await agent.Admin.DeleteAsync($"/api/bo/casse/{id}")).StatusCode);
         Assert.Contains("almeno una cassa", (string)(await Json(await agent.Admin.DeleteAsync("/api/bo/casse/cassa1")))["errore"]!);
 
@@ -513,12 +534,13 @@ public sealed class AgentAppTests
     }
 
     [Fact]
-    public async Task Options_log_and_restart_from_the_back_office()
+    public async Task Installation_log_and_restart_from_the_back_office()
     {
         await using var agent = await TestAgent.Start();
-        var settings = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/impostazioni"))!;
-        Assert.Null(settings["Password"]);
-        Assert.True((bool)settings["PasswordImpostata"]!);
+        var settings = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/config"))!;
+        Assert.DoesNotContain("Hash", settings["Installazione"]!["Accessi"]!.ToJsonString());   // i ruoli sì, gli hash no
+        Assert.Equal("titolare", (string)settings["Installazione"]!["Accessi"]![0]!["Ruolo"]!);
+        Assert.True((bool)settings["installazione"]!);   // senza la password del tecnico il titolare vede tutto
 
         var probe = new TcpListener(IPAddress.Any, 0);
         probe.Start();
@@ -526,18 +548,25 @@ public sealed class AgentAppTests
         probe.Stop();
         var options = new JsonObject
         {
-            ["ChiusuraVenditaDopoSecondi"] = 90,
-            ["ScontrinoDigitale"] = new JsonObject { ["MostraScontrino"] = true, ["CopiaCartacea"] = false, ["SecondiAVideo"] = 30, ["Dicitura"] = "Copia di cortesia" },
             ["Rete"] = new JsonObject { ["Porta"] = freePort, ["ApertoInRete"] = true, ["Https"] = new JsonObject { ["Attivo"] = false, ["Porta"] = 5443, ["Certificato"] = "", ["PasswordCertificato"] = null } },
         };
-        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PutAsync("/api/bo/opzioni", JsonContent.Create(options))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PutAsync("/api/bo/installazione", JsonContent.Create(options))).StatusCode);
+        var sale = new JsonObject
+        {
+            ["Vendita"] = new JsonObject
+            {
+                ["ChiusuraDopoSecondi"] = 90,
+                ["ScontrinoDigitale"] = new JsonObject { ["Attivo"] = true, ["CopiaCarta"] = false, ["Secondi"] = 30, ["Dicitura"] = " Copia di cortesia " },
+            },
+        };
+        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PutAsync("/api/bo/marchi/locale", JsonContent.Create(sale))).StatusCode);
 
         var busy = new TcpListener(IPAddress.Any, 0);   // un altro programma sulla porta scelta
         busy.Start();
         try
         {
             options["Rete"]!["Porta"] = ((IPEndPoint)busy.LocalEndpoint).Port;
-            var refused = await agent.Admin.PutAsync("/api/bo/opzioni", JsonContent.Create(options));
+            var refused = await agent.Admin.PutAsync("/api/bo/installazione", JsonContent.Create(options));
             Assert.Contains("già usata", (string)(await Json(refused))["errore"]!);
         }
         finally
@@ -547,15 +576,18 @@ public sealed class AgentAppTests
         options["Rete"]!["Porta"] = freePort;
         var status = await agent.Status();
         Assert.True((bool)status["riavvioNecessario"]!);   // la porta cambia al riavvio
-        settings = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/impostazioni"))!;
-        Assert.Equal(90, (int)settings["ChiusuraVenditaDopoSecondi"]!);
-        Assert.True((bool)settings["ScontrinoDigitale"]!["MostraScontrino"]!);
+        settings = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/config"))!;
+        var brand = settings["Marchi"]![0]!;
+        Assert.Equal(90, (int)brand["Vendita"]!["ChiusuraDopoSecondi"]!);
+        Assert.True((bool)brand["Vendita"]!["ScontrinoDigitale"]!["Attivo"]!);
+        Assert.Equal("Copia di cortesia", (string)brand["Vendita"]!["ScontrinoDigitale"]!["Dicitura"]!);
+        Assert.Equal(3, brand["Vendita"]!["ScontrinoDigitale"]!["Blocchi"]!.AsArray().Count);   // senza blocchi, quelli di serie
 
         options["Rete"]!["Porta"] = 0;
-        Assert.Equal(HttpStatusCode.BadRequest, (await agent.Admin.PutAsync("/api/bo/opzioni", JsonContent.Create(options))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await agent.Admin.PutAsync("/api/bo/installazione", JsonContent.Create(options))).StatusCode);
 
         var log = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/log"))!;
-        Assert.Contains(log["righe"]!.AsArray(), l => ((string)l!).Contains("Opzioni cambiate dal back office"));
+        Assert.Contains(log["righe"]!.AsArray(), l => ((string)l!).Contains("Installazione cambiata dal back office"));
 
         var stopped = new TaskCompletionSource();
         agent.App.Lifetime.ApplicationStopping.Register(() => stopped.TrySetResult());
@@ -568,7 +600,7 @@ public sealed class AgentAppTests
     [Fact]
     public async Task Https_with_the_certificate_made_by_the_agent()
     {
-        await using var agent = await TestAgent.Start(s => s.Rete.Https = new HttpsSettings { Attivo = true, Porta = 0 });
+        await using var agent = await TestAgent.Start(s => s.Installazione.Rete.Https = new HttpsSettings { Attivo = true, Porta = 0 });
         var https = new Uri(agent.App.Urls.First(u => u.StartsWith("https:", StringComparison.Ordinal)));
         var authorityFile = Path.Combine(agent.DataFolder, "https", Server.HttpsCertificate.AuthorityFile);
         Assert.True(File.Exists(authorityFile));
@@ -627,7 +659,7 @@ public sealed class AgentAppTests
         using (var deviceHttps = new HttpClient(Device(cookies)) { BaseAddress = https })
         {
             var code = (string)(await Json(await deviceHttps.PostAsync("/api/abbinamento", null)))["codice"]!;
-            Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/dispositivi", new { codice = code, nome = "Tablet HTTPS", cassa = "cassa1" })).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/schermi", new { codice = code, nome = "Tablet HTTPS", cassa = "cassa1" })).StatusCode);
             var poll = await deviceHttps.GetAsync("/api/abbinamento");
             Assert.Contains(poll.Headers.GetValues("Set-Cookie"), c => c.StartsWith("bluetech_dispositivo_s=", StringComparison.Ordinal) && c.Contains("secure", StringComparison.OrdinalIgnoreCase));
             Assert.Equal(HttpStatusCode.OK, (await deviceHttps.GetAsync("/cliente")).StatusCode);
@@ -636,7 +668,7 @@ public sealed class AgentAppTests
         {
             Assert.Equal(HttpStatusCode.Forbidden, (await deviceHttp.GetAsync("/cliente")).StatusCode);
             var code = (string)(await Json(await deviceHttp.PostAsync("/api/abbinamento", null)))["codice"]!;
-            Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/dispositivi", new { codice = code, nome = "Tablet HTTP", cassa = "cassa1" })).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/schermi", new { codice = code, nome = "Tablet HTTP", cassa = "cassa1" })).StatusCode);
             Assert.Equal("autorizzato", (string)(await Json(await deviceHttp.GetAsync("/api/abbinamento")))["stato"]!);
             Assert.Equal(HttpStatusCode.OK, (await deviceHttp.GetAsync("/cliente")).StatusCode);
         }
@@ -653,7 +685,7 @@ public sealed class AgentAppTests
     [Fact]
     public async Task A_wrong_certificate_leaves_http_up_and_says_why()
     {
-        await using var agent = await TestAgent.Start(s => s.Rete.Https = new HttpsSettings { Attivo = true, Porta = 0, Certificato = "non-esiste.pfx" });
+        await using var agent = await TestAgent.Start(s => s.Installazione.Rete.Https = new HttpsSettings { Attivo = true, Porta = 0, Certificato = "non-esiste.pfx" });
         Assert.DoesNotContain(agent.App.Urls, u => u.StartsWith("https:", StringComparison.Ordinal));
         var status = await agent.Status();
         Assert.Contains(status["avvisi"]!.AsArray(), a => ((string)a!).Contains("HTTPS non attivo"));
@@ -682,7 +714,7 @@ public sealed class AgentAppTests
         page.Options.Cookies = device.Cookies;
         page.Options.SetRequestHeader("Origin", $"http://{agent.Base.Authority}");
         await page.ConnectAsync(new Uri($"ws://{agent.Base.Authority}/ws"), CancellationToken.None);
-        Assert.Equal("layout", (string)(await Receive(page, _ => true))["t"]!);
+        Assert.Equal("cfg", (string)(await Receive(page, _ => true))["t"]!);
 
         using var post = new HttpRequestMessage(HttpMethod.Post, "/api/abbinamento");
         post.Headers.Add("Origin", "https://evil.example");
@@ -690,32 +722,48 @@ public sealed class AgentAppTests
     }
 
     [Fact]
-    public async Task A_device_gets_the_layout_forced_from_the_back_office_without_reconnecting()
+    public async Task A_screen_gets_its_own_exceptions_from_the_back_office_without_reconnecting()
     {
         await using var agent = await TestAgent.Start();
         var device = await agent.Pair("iPad Pro");
+        var other = await agent.Pair("Monitor sala");
         using var socket = await agent.Connect(device);
-        Assert.Null((await Receive(socket, Type("layout")))["force"]);
+        using var otherSocket = await agent.Connect(other);
+        var first = await Receive(socket, Type("cfg"));
+        Assert.Null(first["screen"]!["disposizione"]);
+        Assert.Equal("vivo", (string)first["screen"]!["attrazione"]!);
         await Receive(socket, Type("sync"));
+        await Receive(otherSocket, Type("sync"));
 
-        var update = await agent.Admin.PutAsJsonAsync("/api/bo/dispositivi/" + device.Id, new { nome = "iPad Pro", cassa = "cassa1", stampante = "", disposizione = "larga" });
+        var update = await agent.Admin.PutAsJsonAsync("/api/bo/schermi/" + device.Id, new
+        {
+            Nome = "iPad Pro", Cassa = "cassa1", Stampante = "",
+            Override = new { Disposizione = "wide", Attrazione = "troppo", ColonneConto = 12, ColonnaAllineamento = "centro" },
+        });
         Assert.Equal(HttpStatusCode.OK, update.StatusCode);
-        Assert.Equal("wide", (string)(await Receive(socket, Type("layout")))["force"]!);   // subito, sullo stesso collegamento
+        var screen = (await Receive(socket, Type("cfg")))["screen"]!;   // subito, sullo stesso collegamento
+        Assert.Equal(("wide", "troppo", 12, "centro"), ((string)screen["disposizione"]!, (string)screen["attrazione"]!, (int)screen["colonneConto"]!, (string)screen["colonnaAllineamento"]!));
         await Write(agent.CashFile(), Coffee);
         Assert.Equal("Caffè", (string)(await Receive(socket, Type("sale.line")))["line"]!["desc"]!);   // lo schermo non è stato staccato
+        Assert.Equal("Caffè", (string)(await Receive(otherSocket, Type("sale.line")))["line"]!["desc"]!);   // l'altro non ha ricevuto le eccezioni
 
-        var refused = await agent.Admin.PutAsJsonAsync("/api/bo/dispositivi/" + device.Id, new { nome = "iPad Pro", cassa = "cassa1", disposizione = "obliqua" });
+        var refused = await agent.Admin.PutAsJsonAsync("/api/bo/schermi/" + device.Id, new { Nome = "iPad Pro", Cassa = "cassa1", Override = new { Disposizione = "obliqua" } });
         Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
         Assert.Contains("la disposizione è automatica, larga, stretta, verticale o palmare", (string)(await Json(refused))["errore"]!);
-
-        // Senza il campo (un back office aperto prima dell'aggiornamento) la disposizione resta quella.
-        await agent.Admin.PutAsJsonAsync("/api/bo/dispositivi/" + device.Id, new { nome = "iPad", cassa = "cassa1" });
-        var settings = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/impostazioni"))!;
-        Assert.Equal("larga", (string)settings["Dispositivi"]![0]!["Disposizione"]!);
+        var settings = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/config"))!;
+        Assert.Equal("wide", (string)settings["Schermi"]![0]!["Override"]!["Disposizione"]!);
+        Assert.Null(settings["Schermi"]![1]!["Override"]);   // senza eccezioni: tutto dal locale
+        Assert.Null(settings["Schermi"]![0]!["Token"]);
 
         using var again = await agent.Connect(device);
-        var first = await Receive(again, _ => true);
-        Assert.Equal(("layout", "wide"), ((string)first["t"]!, (string)first["force"]!));   // al collegamento, per primo
+        var connected = await Receive(again, _ => true);
+        Assert.Equal(("cfg", "wide"), ((string)connected["t"]!, (string)connected["screen"]!["disposizione"]!));   // al collegamento, per primo
+
+        // "Riporta al valore del locale": senza eccezioni lo schermo torna a quelli del marchio.
+        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PutAsJsonAsync("/api/bo/schermi/" + device.Id, new { Nome = "iPad Pro", Cassa = "cassa1", Override = new { } })).StatusCode);
+        var back = (await Receive(again, Type("cfg")))["screen"]!;
+        Assert.Null(back["disposizione"]);
+        Assert.Equal(16, (int)back["colonneConto"]!);
     }
 
     [Fact]
@@ -775,6 +823,84 @@ public sealed class AgentAppTests
         await agent.App.StopAsync();
         Assert.True(watch.Elapsed < TimeSpan.FromSeconds(5), $"arresto in {watch.Elapsed}");
         Assert.Equal(WebSocketCloseStatus.NormalClosure, await closed);
+    }
+
+    [Fact]
+    public async Task The_technician_sees_the_installation_the_owner_does_not()
+    {
+        await using var agent = await TestAgent.Start();
+        // Finché non c'è la password del tecnico il titolare vede tutto: la imposta lui, e da lì l'installazione sparisce.
+        var session = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/sessione"))!;
+        Assert.Equal(("titolare", true, false), ((string)session["ruolo"]!, (bool)session["installazione"]!, (bool)session["tecnicoImpostato"]!));
+        var same = await agent.Admin.PostAsJsonAsync("/api/bo/password", new { ruolo = "tecnico", nuova = Password });
+        Assert.Contains("due password diverse", (string)(await Json(same))["errore"]!);
+        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/password", new { ruolo = "tecnico", nuova = TechnicianPassword })).StatusCode);
+
+        session = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/sessione"))!;
+        Assert.False((bool)session["installazione"]!);
+        var config = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/config"))!;
+        Assert.Null(config["Installazione"]);
+        Assert.Null(config["Casse"]![0]!["FileCassa"]);   // il percorso del file di Passepartout non è del titolare
+        Assert.Equal(HttpStatusCode.Forbidden, (await agent.Admin.PostAsJsonAsync("/api/bo/casse", new { Nome = "Bar", FileCassa = agent.CashFile("cassa2") })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await agent.Admin.GetAsync("/api/bo/log")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await agent.Admin.PutAsJsonAsync("/api/bo/installazione", new { Demo = true })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await agent.Admin.PostAsJsonAsync("/api/bo/password", new { ruolo = "tecnico", nuova = "presa-dal-titolare" })).StatusCode);
+        // Il titolare rinomina la cassa e ne cambia le scritte, ma il file resta quello.
+        var renamed = await agent.Admin.PutAsJsonAsync("/api/bo/casse/cassa1", new { Nome = "Sala", FileCassa = @"C:\altro\Scontrino.txt", Override = new { Scritte = new { Benvenuto = "Benvenuti in sala" } } });
+        Assert.Equal(HttpStatusCode.OK, renamed.StatusCode);
+        var stored = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(agent.DataFolder, SettingsStore.FileName)))!;
+        Assert.Equal(agent.CashFile(), (string)stored["Casse"]![0]!["FileCassa"]!);
+        Assert.Equal("Benvenuti in sala", (string)stored["Casse"]![0]!["Override"]!["Scritte"]!["Benvenuto"]!);
+        Assert.Equal(3, (int)stored["Versione"]!);
+
+        // Il tecnico entra con la sua password e vede l'installazione; reimposta quella del titolare senza conoscerla.
+        var technician = agent.NewBrowser();
+        Assert.Equal(HttpStatusCode.OK, (await technician.Http.PostAsJsonAsync("/api/bo/accesso", new { password = TechnicianPassword })).StatusCode);
+        Assert.Equal("tecnico", (string)JsonNode.Parse(await technician.Http.GetStringAsync("/api/bo/sessione"))!["ruolo"]!);
+        Assert.NotNull(JsonNode.Parse(await technician.Http.GetStringAsync("/api/bo/config"))!["Installazione"]);
+        Assert.Equal(HttpStatusCode.OK, (await technician.Http.PostAsJsonAsync("/api/bo/password", new { ruolo = "titolare", nuova = "nuova-del-titolare" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await agent.Admin.GetAsync("/api/bo/stato")).StatusCode);   // le sessioni del titolare finiscono
+        Assert.Equal(HttpStatusCode.OK, (await technician.Http.GetAsync("/api/bo/stato")).StatusCode);   // quella del tecnico no
+        await agent.Login("nuova-del-titolare");
+    }
+
+    [Fact]
+    public async Task In_demo_mode_a_paid_bill_gets_a_fake_digital_receipt_and_a_test_print()
+    {
+        await using var agent = await TestAgent.Start(s => s.Installazione.Demo = true);   // lo scontrino digitale del marchio è spento
+        var screen = await agent.Pair("Tablet senza stampante");
+        using var socket = await agent.Connect(screen);
+        var config = await Receive(socket, Type("cfg"));
+        Assert.True((bool)config["screen"]!["receipt"]!["attivo"]!);
+        Assert.True((bool)config["screen"]!["receipt"]!["copiaCarta"]!);   // la stampante di prova
+        await Receive(socket, Type("sync"));
+
+        await Write(agent.CashFile(), Samples.Receipt("scontrino-bar-pagato-carta.txt"));
+        await Receive(socket, Type("sale.close"));
+        var digital = await Receive(socket, Type("receipt.digital"));   // dopo qualche secondo, come farebbe la cassa
+        Assert.True((bool)digital["demo"]!);
+        Assert.True((bool)digital["paperCopy"]!);
+        Assert.Equal(120, (long)digital["receipt"]!["total"]!);
+        Assert.StartsWith("data:image/png;base64,", (string)digital["png"]!);
+        var copy = digital["copy"]!;
+        Assert.Equal(42, (int)copy["columns"]!);
+        Assert.Contains(copy["lines"]!.AsArray(), l => ((string)l!).Contains("TOTALE"));
+        var id = (string)digital["id"]!;
+
+        await Send(socket, new JsonObject { ["t"] = "receipt.paper", ["id"] = id });
+        Assert.Equal("printing", (string)(await Receive(socket, Type("receipt.paper.status")))["state"]!);
+        Assert.Equal("requested", (string)(await Receive(socket, Type("receipt.paper.status")))["state"]!);
+        var printed = Assert.Single(Directory.GetFiles(Path.Combine(agent.Root, "log", "copie"), "*.txt"));
+        Assert.Contains("TOTALE", await File.ReadAllTextAsync(printed));
+
+        // Il QR finto porta alla pagina di prova dell'Agent, che chiunque abbia il telefono può aprire.
+        var page = await agent.NewBrowser().Http.GetAsync("/prova/scontrino/" + id);
+        Assert.Equal(HttpStatusCode.OK, page.StatusCode);
+        var html = await page.Content.ReadAsStringAsync();
+        Assert.Contains("Scontrino di prova", html);
+        Assert.Contains("TOTALE", html);
+        Assert.Contains("powered by Bluetech", html);
+        Assert.Equal(HttpStatusCode.NotFound, (await agent.NewBrowser().Http.GetAsync("/prova/scontrino/R99-FFFFFFFF")).StatusCode);
     }
 
     static async Task<string?> Problem(TestAgent agent) => (string?)(await agent.Status())["casse"]![0]!["problema"];

@@ -7,6 +7,7 @@ using Bluetech.Display.Agent.Cassa;
 using Bluetech.Display.Agent.Impostazioni;
 using Bluetech.Display.Agent.Stampa;
 using Bluetech.Display.Agent.Vendita;
+using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.Extensions.Hosting.WindowsServices;
 using Microsoft.Extensions.Options;
 
@@ -22,13 +23,14 @@ public sealed partial class AgentEngine(
     SettingsStore settings,
     DisplayHub hub,
     Statistics stats,
+    IServer server,
     ILogger<AgentEngine> log,
     ILoggerFactory loggers) : BackgroundService
 {
     static readonly TimeSpan HeartbeatEvery = TimeSpan.FromSeconds(3);
     static readonly TimeSpan StartRetry = TimeSpan.FromSeconds(10);
     static readonly TimeSpan SaveStatsEvery = TimeSpan.FromMinutes(1);
-    /// <summary>Ogni quanto si guarda se un set di reclame entra o esce dal suo orario.</summary>
+    /// <summary>Ogni quanto si guarda se una vetrina entra o esce dal suo orario (e se il giorno è diventato sera).</summary>
     static readonly TimeSpan ScheduleEvery = TimeSpan.FromSeconds(30);
     const int RecentLimit = 50;
     const int PrintsLimit = 30;
@@ -49,7 +51,7 @@ public sealed partial class AgentEngine(
         public bool Replay;
         public CancellationTokenSource? Starting;
         public readonly Queue<JsonObject> Recent = new();
-        /// <summary>L'aspetto mandato ai display della cassa (tema, set di reclame): a chi si collega subito, agli altri quando cambia.</summary>
+        /// <summary>La configurazione mandata agli schermi della cassa (marchio, vetrine): a chi si collega subito, agli altri quando cambia.</summary>
         public ConfigMessage? Config;
         public string? ConfigJson;
 
@@ -79,6 +81,9 @@ public sealed partial class AgentEngine(
     CancellationToken _stop;
     string[] _oldMonitors = [];
     readonly Dictionary<string, string?> _qr = [];
+    /// <summary>Modalità demo: gli ultimi scontrini con il QR finto, per la loro pagina di prova.</summary>
+    readonly Dictionary<string, DigitalReceipt> _demoReceipts = [];
+    const int DemoReceiptsLimit = 20;
 
     AgentOptions Options => options.Value;
     string LogFolder => Path.Combine(AppContext.BaseDirectory, Options.CartellaLog);
@@ -88,16 +93,50 @@ public sealed partial class AgentEngine(
     /// il battito e non chiude un conto. Parte dall'ora vera di avvio.
     /// </summary>
     DateTimeOffset Now => _started + Stopwatch.GetElapsedTime(_startedTicks);
-    TimeSpan CloseAfter => TimeSpan.FromSeconds(Math.Max(0, settings.Current.ChiusuraVenditaDopoSecondi));
+    /// <summary>Dopo quanto un conto senza file si chiude: lo decide il marchio della cassa.</summary>
+    static TimeSpan CloseAfter(AgentSettings s, string cashPoint) =>
+        TimeSpan.FromSeconds(Math.Max(0, s.BrandOf(s.CashPoint(cashPoint)).Vendita.ChiusuraDopoSecondi));
     bool Replaying => !string.IsNullOrWhiteSpace(Options.Replay);
     public DateTimeOffset Started => _started;
     public IReadOnlyList<string> OldMonitors => _oldMonitors;
 
-    static DigitalReceiptSettings DigitalSettings(AgentSettings s) => new(
-        s.ScontrinoDigitale.MostraScontrino,
-        s.ScontrinoDigitale.MostraScontrino && s.ScontrinoDigitale.CopiaCartacea,
-        TimeSpan.FromSeconds(Math.Max(5, s.ScontrinoDigitale.SecondiAVideo)),
-        s.ScontrinoDigitale.Dicitura);
+    /// <summary>
+    /// Lo scontrino digitale di una cassa, dal suo marchio. In modalità demo sempre acceso, con il pulsante della copia
+    /// (gli schermi senza stampante stampano su quella di prova) e il QR finto quando la cassa non manda quello vero.
+    /// </summary>
+    DigitalReceiptSettings DigitalSettings(AgentSettings s, string cashPoint)
+    {
+        var receipt = s.BrandOf(s.CashPoint(cashPoint)).Vendita.ScontrinoDigitale;
+        var demo = s.Installazione.Demo;
+        var show = receipt.Attivo || demo;
+        return new DigitalReceiptSettings(
+            show,
+            show && (receipt.CopiaCarta || demo),
+            TimeSpan.FromSeconds(Math.Max(5, receipt.Secondi)),
+            receipt.Dicitura,
+            demo ? DemoQr : null);
+    }
+
+    /// <summary>La stampante di uno schermo; in modalità demo, senza una sua, quella di prova (un file nella cartella dei log).</summary>
+    static PrinterConfig? PrinterOf(AgentSettings s, ScreenSettings? screen) =>
+        s.Printer(screen?.Stampante)
+        ?? (s.Installazione.Demo && screen != null ? new PrinterConfig { Id = "demo", Nome = "stampante di prova (demo)", Collegamento = "prova" } : null);
+
+    /// <summary>Il pagamento di prova di un QR finto: porta alla pagina dello scontrino di prova su questo Agent.</summary>
+    string DemoQr(string id)
+    {
+        var addresses = BackOfficeApi.Addresses(server, settings.Current.Installazione.Rete.ApertoInRete);
+        var origin = addresses.Select(a => (string?)a).FirstOrDefault(a => a!.StartsWith("http:", StringComparison.Ordinal))
+            ?? addresses.Select(a => (string?)a).FirstOrDefault() ?? "http://localhost:5080";
+        return CachedQr($"{origin}/prova/scontrino/{id}") ?? CachedQr("https://example.com/bluetech-display/scontrino-di-prova")!;
+    }
+
+    /// <summary>Uno scontrino della modalità demo ancora in memoria (gli ultimi 20), per la sua pagina di prova.</summary>
+    public DigitalReceipt? DemoReceipt(string id)
+    {
+        lock (_gate)
+            return _demoReceipts.GetValueOrDefault(id);
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stop)
     {
@@ -138,11 +177,11 @@ public sealed partial class AgentEngine(
         {
             while (await timer.WaitForNextTickAsync(stop))
             {
-                var closeAfter = CloseAfter;
+                var current = settings.Current;
                 lock (_gate)
                 {
                     foreach (var point in _points)
-                        Publish(point, point.Tracker.CheckIdle(Now, closeAfter));
+                        Publish(point, point.Tracker.CheckIdle(Now, CloseAfter(current, point.Id)));
                 }
                 var elapsed = Stopwatch.GetElapsedTime(_startedTicks);
                 if (lastBeat == null || elapsed - lastBeat >= HeartbeatEvery)
@@ -157,7 +196,6 @@ public sealed partial class AgentEngine(
                 }
                 if (elapsed - lastSchedule >= ScheduleEvery)
                 {
-                    var current = settings.Current;
                     lock (_gate)
                     {
                         foreach (var point in _points)
@@ -200,13 +238,12 @@ public sealed partial class AgentEngine(
     }
 
     /// <summary>
-    /// Porta le casse alle impostazioni: aggiunge, toglie, cambia file; aggiorna lo scontrino digitale; stacca i display
-    /// dei dispositivi revocati o spostati, che si ricollegano con le impostazioni nuove. Dentro il lucchetto.
+    /// Porta le casse alle impostazioni: aggiunge, toglie, cambia file; aggiorna lo scontrino digitale; stacca gli
+    /// schermi revocati o spostati, che si ricollegano con le impostazioni nuove. Dentro il lucchetto.
     /// </summary>
     List<CashFileSource> Apply(AgentSettings? before, AgentSettings now)
     {
         var retired = new List<CashFileSource>();
-        var digital = DigitalSettings(now);
         foreach (var point in _points.ToList())
         {
             if (now.CashPoint(point.Id) != null)
@@ -221,6 +258,7 @@ public sealed partial class AgentEngine(
         var ordered = new List<CashPoint>();
         foreach (var config in now.Casse)
         {
+            var digital = DigitalSettings(now, config.Id);
             var point = _points.Find(p => p.Id == config.Id);
             if (point == null)
             {
@@ -229,7 +267,7 @@ public sealed partial class AgentEngine(
                     Name = config.Nome,
                     Replay = Replaying && before == null && ordered.Count == 0,
                 };
-                Start(point, config.FileCassa);
+                Start(point, config.FileCassa, now);
                 if (before != null)
                     log.LogInformation("{Name} aggiunta: {File}", config.Nome, config.FileCassa);
             }
@@ -240,7 +278,7 @@ public sealed partial class AgentEngine(
                 Publish(point, point.Tracker.CloseNow());   // la vendita del file di prima non continua nel nuovo
                 point.Tracker = new SaleTracker(digital);
                 point.LastEncoding = null;
-                Start(point, config.FileCassa);
+                Start(point, config.FileCassa, now);
                 log.LogInformation("{Name}: ora il file è {File}", config.Nome, config.FileCassa);
             }
             point.Name = config.Nome;
@@ -254,23 +292,32 @@ public sealed partial class AgentEngine(
 
         if (before != null)
         {
-            foreach (var old in before.Dispositivi)
+            foreach (var old in before.Schermi)
             {
-                var current = now.Device(old.Id);
-                if (current == null || current.Cassa != old.Cassa || current.Stampante != old.Stampante || current.Token != old.Token)
+                var current = now.Screen(old.Id);
+                if (current == null || current.Cassa != old.Cassa || current.Token != old.Token)
                 {
                     hub.Disconnect(c => c.DeviceId == old.Id);
+                    continue;
                 }
-                else if (current.Disposizione != old.Disposizione)
+                // Le eccezioni dello schermo e la stampante cambiano senza staccarlo: riceve il cfg nuovo e si ridispone.
+                var canPrint = PrinterOf(now, current) != null;
+                foreach (var client in hub.Clients.Where(c => c.DeviceId == old.Id))
                 {
-                    // La disposizione cambia senza staccare lo schermo: si ridispone e basta.
-                    foreach (var client in hub.Clients.Where(c => c.DeviceId == old.Id))
-                        hub.Send(client, LayoutMessage.For(current.Disposizione));
+                    if (client.CanPrint == canPrint && SameOverride(client.Override, current.Override))
+                        continue;
+                    client.CanPrint = canPrint;
+                    client.Override = current.Override;
+                    if (_points.Find(p => p.Id == client.CashPoint)?.Config is { } config)
+                        hub.Send(client, config);
                 }
             }
         }
         return retired;
     }
+
+    static bool SameOverride(ScreenOverride? a, ScreenOverride? b) =>
+        System.Text.Json.JsonSerializer.Serialize(a, AgentSettings.Json) == System.Text.Json.JsonSerializer.Serialize(b, AgentSettings.Json);
 
     static void Close(List<CashFileSource> sources)
     {
@@ -278,8 +325,9 @@ public sealed partial class AgentEngine(
             source.Dispose();
     }
 
-    void Start(CashPoint point, string file)
+    void Start(CashPoint point, string file, AgentSettings now)
     {
+        var closeAfter = CloseAfter(now, point.Id);
         point.File = file;
         point.Problem = null;
         if (point.Replay)
@@ -291,7 +339,7 @@ public sealed partial class AgentEngine(
         {
             try
             {
-                await StartSource(point, generation, file, starting.Token);
+                await StartSource(point, generation, file, closeAfter, starting.Token);
             }
             catch (OperationCanceledException)
             {
@@ -307,14 +355,14 @@ public sealed partial class AgentEngine(
     /// Comincia a sorvegliare il file di una cassa. Se non si può (cartella su un disco di rete che il servizio non vede,
     /// permessi), l'Agent resta acceso, lo dice nel back office e riprova ogni 10 s.
     /// </summary>
-    async Task StartSource(CashPoint point, int generation, string file, CancellationToken stop)
+    async Task StartSource(CashPoint point, int generation, string file, TimeSpan closeAfter, CancellationToken stop)
     {
         for (var attempt = 1; !stop.IsCancellationRequested; attempt++)
         {
             CashFileSource? source = null;
             try
             {
-                source = new CashFileSource(file, CloseAfter, loggers.CreateLogger<CashFileSource>(), bytes => OnFile(point, generation, bytes));
+                source = new CashFileSource(file, closeAfter, loggers.CreateLogger<CashFileSource>(), bytes => OnFile(point, generation, bytes));
                 source.Start();
                 bool current;
                 lock (_gate)
@@ -383,7 +431,7 @@ public sealed partial class AgentEngine(
     }
 
     /// <summary>
-    /// Stampa la copia dello scontrino digitale <paramref name="id"/> sulla stampante del dispositivo che l'ha chiesta:
+    /// Stampa la copia dello scontrino digitale <paramref name="id"/> sulla stampante dello schermo che l'ha chiesta:
     /// una sola volta per scontrino (dopo un errore si può riprovare), entro il tempo della stampante, e dice a tutti i
     /// display della cassa com'è andata.
     /// </summary>
@@ -397,7 +445,7 @@ public sealed partial class AgentEngine(
         lock (_gate)
         {
             var now = settings.Current;
-            var configured = now.Printer(now.Device(client.DeviceId)?.Stampante);
+            var configured = PrinterOf(now, now.Screen(client.DeviceId));
             var found = _points.Find(p => p.Id == client.CashPoint);
             if (found?.Tracker.Receipt is not { } current || current.Id != id || !current.PaperCopy)
             {
@@ -417,7 +465,7 @@ public sealed partial class AgentEngine(
             point = found;
             receipt = current;
             printerConfig = configured;
-            printOptions = configured.ToOptions(now.ScontrinoDigitale.Dicitura);
+            printOptions = configured.ToOptions(now.BrandOf(now.CashPoint(found.Id)).Vendita.ScontrinoDigitale.Dicitura);
             printer = CopyPrinters.Create(printOptions, LogFolder);
             point.Tracker.SetPaper(id, PaperState.Printing);
             Publish(point, [new PaperStatus(id, "printing")]);
@@ -465,28 +513,28 @@ public sealed partial class AgentEngine(
     }
 
     /// <summary>
-    /// Un display si collega: stato completo della sua cassa subito, poi i messaggi. <paramref name="deviceId"/> è il
-    /// dispositivo autorizzato, oppure null con <paramref name="previewCashPoint"/> per l'anteprima dal back office.
-    /// Null se il dispositivo o la cassa non ci sono (più).
+    /// Uno schermo si collega: la sua configurazione e lo stato completo della sua cassa subito, poi i messaggi.
+    /// <paramref name="deviceId"/> è lo schermo autorizzato, oppure null con <paramref name="previewCashPoint"/> per
+    /// l'anteprima dal back office. Null se lo schermo o la cassa non ci sono (più).
     /// </summary>
     public DisplayClient? Connect(WebSocket socket, string remote, string? deviceId, string? previewCashPoint)
     {
         lock (_gate)
         {
-            // Le impostazioni si leggono qui dentro: un dispositivo spostato adesso viene staccato subito dopo da Apply.
+            // Le impostazioni si leggono qui dentro: uno schermo spostato adesso viene staccato subito dopo da Apply.
             var now = settings.Current;
             string cashPoint;
             string name;
             var canPrint = false;
-            string? layout = null;
+            ScreenOverride? screenOverride = null;
             if (deviceId != null)
             {
-                if (now.Device(deviceId) is not { } device)
+                if (now.Screen(deviceId) is not { } screen)
                     return null;
-                cashPoint = device.Cassa;
-                name = device.Nome;
-                canPrint = now.Printer(device.Stampante) != null;
-                layout = device.Disposizione;
+                cashPoint = screen.Cassa;
+                name = screen.Nome;
+                canPrint = PrinterOf(now, screen) != null;
+                screenOverride = screen.Override;
             }
             else
             {
@@ -495,19 +543,17 @@ public sealed partial class AgentEngine(
             }
             if (_points.Find(p => p.Id == cashPoint) is not { } point)
                 return null;
-            var client = hub.Add(socket, remote, cashPoint, deviceId, name, canPrint);
-            if (deviceId != null)
-                hub.Send(client, LayoutMessage.For(layout));   // per primo: lo schermo si dispone prima di disegnare
+            var client = hub.Add(socket, remote, cashPoint, deviceId, name, canPrint, screenOverride);
             if (point.Config != null)
-                hub.Send(client, point.Config);   // prima l'aspetto, poi il conto: lo schermo non cambia faccia dopo
+                hub.Send(client, point.Config);   // per prima la configurazione: lo schermo si dispone e prende il tema prima di disegnare
             hub.Send(client, new Sync(point.Tracker.Snapshot()));
             return client;
         }
     }
 
     /// <summary>
-    /// Ricompone l'aspetto della cassa (impostazioni cambiate, o un set che entra o esce dal suo orario) e lo
-    /// manda ai suoi display solo se è cambiato. Dentro il lucchetto.
+    /// Ricompone la configurazione della cassa (impostazioni cambiate, o una vetrina che entra o esce dal suo orario) e
+    /// la manda ai suoi schermi solo se è cambiata. Dentro il lucchetto.
     /// </summary>
     void RefreshConfig(CashPoint point, AgentSettings now)
     {
@@ -515,11 +561,11 @@ public sealed partial class AgentEngine(
         var clock = DateTime.Now;   // lo stesso istante per il messaggio e per il log
         try
         {
-            body = DisplayConfig.Build(now, point.Id, clock, CachedQr);
+            body = ScreenConfig.Build(now, point.Id, clock, CachedQr);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            log.LogError(ex, "{Name}: aspetto non composto, i display tengono quello di prima", point.Name);
+            log.LogError(ex, "{Name}: configurazione non composta, gli schermi tengono quella di prima", point.Name);
             return;
         }
         var json = body.ToJsonString();
@@ -531,10 +577,10 @@ public sealed partial class AgentEngine(
         if (!first)
         {
             hub.Broadcast(point.Id, [point.Config]);
-            var onAir = DisplayConfig.OnAir(now, point.Id, clock);
-            string Set(string place) => onAir[place]?.Nome ?? "niente";
-            log.LogInformation("{Name}: aspetto aggiornato sui display (attesa: {Idle}, accanto al conto: {Sale}, Grazie: {Thanks})",
-                point.Name, Set("attesa"), Set("conto"), Set("grazie"));
+            var brand = now.BrandOf(now.CashPoint(point.Id));
+            string OnAir(string place) => Showcases.Choose(brand, point.Id, place, clock).Winner?.Nome ?? "niente";
+            log.LogInformation("{Name}: configurazione aggiornata sugli schermi (attesa: {Idle}, accanto al conto: {Sale}, Grazie: {Thanks})",
+                point.Name, OnAir("attesa"), OnAir("conto"), OnAir("grazie"));
         }
     }
 
@@ -547,7 +593,7 @@ public sealed partial class AgentEngine(
                 return png;
             try
             {
-                png = DisplayConfig.QrPng(url);
+                png = ScreenConfig.QrPng(url);
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
@@ -568,6 +614,12 @@ public sealed partial class AgentEngine(
         stats.Count(point.Id, messages);
         foreach (var message in messages)
         {
+            if (message is ReceiptDigital { Receipt.Demo: true } demo)
+            {
+                _demoReceipts[demo.Receipt.Id] = demo.Receipt;
+                if (_demoReceipts.Count > DemoReceiptsLimit)
+                    _demoReceipts.Remove(_demoReceipts.Values.MinBy(r => r.ShownAt)!.Id);
+            }
             var json = message.ToJson();
             if (json["png"] is not null)
                 json["png"] = "(immagine)";   // il QR nel log e nel back office non serve
@@ -606,6 +658,7 @@ public sealed partial class AgentEngine(
                     ["totale"] = point.Tracker.Total,
                     ["righe"] = point.Tracker.Lines.Count,
                     ["display"] = clients.Count(c => c.CashPoint == point.Id),
+                    ["marchio"] = settings.Current.BrandOf(settings.Current.CashPoint(point.Id)).Id,
                     ["scontrinoDigitale"] = point.Tracker.Receipt is { } shown
                         ? new JsonObject { ["id"] = shown.Id, ["conConto"] = shown.Bill != null, ["copia"] = shown.Paper.ToString().ToLowerInvariant() }
                         : null,
@@ -623,7 +676,7 @@ public sealed partial class AgentEngine(
                 ["collegati"] = new JsonArray(clients.Select(c => (JsonNode)new JsonObject
                 {
                     ["nome"] = c.Name,
-                    ["dispositivo"] = c.DeviceId,
+                    ["schermo"] = c.DeviceId,
                     ["cassa"] = c.CashPoint,
                     ["indirizzo"] = c.Remote,
                 }).ToArray()),
@@ -632,7 +685,7 @@ public sealed partial class AgentEngine(
         }
     }
 
-    /// <summary>Gli id dei dispositivi con almeno un display collegato adesso.</summary>
+    /// <summary>Gli id degli schermi collegati adesso.</summary>
     public HashSet<string> ConnectedDevices() => hub.Clients.Where(c => c.DeviceId != null).Select(c => c.DeviceId!).ToHashSet();
 
     async Task RunReplay(string folder, CancellationToken stop)

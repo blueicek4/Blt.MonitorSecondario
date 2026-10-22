@@ -5,15 +5,15 @@ using Bluetech.Display.Agent.Impostazioni;
 namespace Bluetech.Display.Agent.Accesso;
 
 /// <summary>
-/// I display autorizzati. Un dispositivo nuovo apre /auth e mostra un codice; chi è nel back office lo scrive, sceglie
-/// nome, cassa e stampante, e il dispositivo riceve il suo token in un cookie. Nelle impostazioni resta solo l'hash
-/// del token: chi legge il file non può fingersi un dispositivo.
+/// Gli schermi autorizzati. Uno schermo nuovo apre /auth e mostra un codice di sei cifre (scade in 8 minuti e si
+/// rigenera da solo, SPEC §21); chi è nel back office lo scrive, sceglie nome, cassa e stampante, e lo schermo riceve il
+/// suo token in un cookie. Nelle impostazioni resta solo l'hash del token: chi legge il file non può fingersi uno schermo.
 /// </summary>
 public sealed class DeviceAccess(SettingsStore settings)
 {
     public const string Cookie = "bluetech_dispositivo";
     public const string PairingCookie = "bluetech_abbinamento";
-    public static readonly TimeSpan PairingLife = TimeSpan.FromMinutes(10);
+    public static readonly TimeSpan PairingLife = TimeSpan.FromMinutes(8);
 
     /// <summary>Chrome, Edge e WebView2 non tengono un cookie oltre 400 giorni: si rinnova a ogni visita.</summary>
     static readonly TimeSpan CookieLife = TimeSpan.FromDays(400);
@@ -42,12 +42,12 @@ public sealed class DeviceAccess(SettingsStore settings)
     /// Il dispositivo di questa richiesta, dal cookie; null se non è autorizzato. Su HTTPS il cookie ha un altro nome
     /// (vedi <see cref="AdminAccess.CookieName"/>): vale quello dei due che è ancora autorizzato.
     /// </summary>
-    public DeviceConfig? Find(HttpContext context)
+    public ScreenSettings? Find(HttpContext context)
     {
         foreach (var token in AdminAccess.CookieValues(context, Cookie))
         {
             var hash = Encoding.ASCII.GetBytes(AdminAccess.Sha256(token));
-            var device = settings.Current.Dispositivi.Find(d => d.Token is { Length: 64 } stored
+            var device = settings.Current.Schermi.Find(d => d.Token is { Length: 64 } stored
                 && CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(stored), hash));
             if (device != null)
                 return device;
@@ -61,7 +61,7 @@ public sealed class DeviceAccess(SettingsStore settings)
         foreach (var token in AdminAccess.CookieValues(context, Cookie))
         {
             var hash = AdminAccess.Sha256(token);
-            if (settings.Current.Dispositivi.Exists(d => d.Token == hash))
+            if (settings.Current.Schermi.Exists(d => d.Token == hash))
             {
                 SetDeviceCookie(context, token);
                 return;
@@ -155,7 +155,7 @@ public sealed class DeviceAccess(SettingsStore settings)
     /// <summary>
     /// Dal back office: il codice letto sul dispositivo diventa un dispositivo autorizzato. Restituisce l'errore o null.
     /// </summary>
-    public string? Approve(string? code, string? name, string? cashPoint, string? printer, out DeviceConfig? device)
+    public string? Approve(string? code, string? name, string? cashPoint, string? printer, out ScreenSettings? device)
     {
         device = null;
         var digits = new string((code ?? "").Where(char.IsAsciiDigit).ToArray());
@@ -164,21 +164,21 @@ public sealed class DeviceAccess(SettingsStore settings)
         {
             var pending = _pending.Find(p => p.Code == digits && p.Token == null && !p.Expired(now));
             if (pending == null)
-                return "Codice non valido o scaduto: controlla quello sul dispositivo (dura 10 minuti).";
+                return "Codice non valido o scaduto: controlla quello sullo schermo (dura 8 minuti, poi ne compare uno nuovo).";
             var token = AdminAccess.NewToken();
-            DeviceConfig? created = null;
+            ScreenSettings? created = null;
             var error = settings.Update(s =>
             {
-                created = new DeviceConfig
+                created = new ScreenSettings
                 {
-                    Id = AgentSettings.NextId("dispositivo", s.Dispositivi.Select(d => d.Id)),
+                    Id = AgentSettings.NextId("schermo", s.Schermi.Select(d => d.Id)),
                     Nome = (name ?? "").Trim(),
                     Token = AdminAccess.Sha256(token),
                     Cassa = cashPoint ?? "",
                     Stampante = string.IsNullOrEmpty(printer) ? null : printer,
                     AutorizzatoIl = DateTimeOffset.Now,
                 };
-                s.Dispositivi.Add(created);
+                s.Schermi.Add(created);
                 return null;
             });
             if (error != null)

@@ -4,6 +4,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
+using Bluetech.Display.Agent.Aspetto;
+using Bluetech.Display.Agent.Impostazioni;
 using Bluetech.Display.Agent.Vendita;
 
 namespace Bluetech.Display.Agent.Server;
@@ -22,7 +24,7 @@ public sealed class DisplayHub(ILogger<DisplayHub> log)
     public long MessagesSent => Interlocked.Read(ref _sent);
     public IReadOnlyCollection<DisplayClient> Clients => _clients.Values.ToArray();
 
-    public DisplayClient Add(WebSocket socket, string remote, string cashPoint, string? deviceId, string name, bool canPrint)
+    public DisplayClient Add(WebSocket socket, string remote, string cashPoint, string? deviceId, string name, bool canPrint, ScreenOverride? screenOverride = null)
     {
         var client = new DisplayClient(Interlocked.Increment(ref _nextId), socket, remote)
         {
@@ -30,13 +32,14 @@ public sealed class DisplayHub(ILogger<DisplayHub> log)
             DeviceId = deviceId,
             Name = name,
             CanPrint = canPrint,
+            Override = screenOverride,
         };
         _clients[client.Id] = client;
         log.LogInformation("Display {Name} collegato da {Remote} ({CashPoint}, {Count} in tutto)", name, remote, cashPoint, _clients.Count);
         return client;
     }
 
-    public void Send(DisplayClient client, CashIn message) => Enqueue(client, ForClient(message.ToJson(), client.CanPrint).ToJsonString());
+    public void Send(DisplayClient client, CashIn message) => Enqueue(client, ForClient(message.ToJson(), client).ToJsonString());
 
     /// <summary>I messaggi di una cassa, ai soli display di quella cassa.</summary>
     public void Broadcast(string cashPoint, IReadOnlyList<CashIn> messages)
@@ -50,9 +53,12 @@ public sealed class DisplayHub(ILogger<DisplayHub> log)
             {
                 if (client.CashPoint != cashPoint)
                     continue;
-                Enqueue(client, client.CanPrint
-                    ? withButton ??= ForClient(json, true).ToJsonString()
-                    : withoutButton ??= ForClient(json, false).ToJsonString());
+                if (message is ConfigMessage)
+                    Enqueue(client, ForClient(json, client).ToJsonString());   // ogni schermo ha le sue eccezioni
+                else
+                    Enqueue(client, client.CanPrint
+                        ? withButton ??= ForClient(json, client).ToJsonString()
+                        : withoutButton ??= ForClient(json, client).ToJsonString());
             }
         }
     }
@@ -83,12 +89,14 @@ public sealed class DisplayHub(ILogger<DisplayHub> log)
     }
 
     /// <summary>
-    /// Il pulsante della copia cartacea c'è solo sui dispositivi con una stampante: per gli altri <c>paperCopy</c> è
-    /// falso, nello scontrino digitale e nello stato completo.
+    /// Il cfg con le eccezioni di questo schermo. Il pulsante della copia cartacea c'è solo sugli schermi con una
+    /// stampante: per gli altri <c>paperCopy</c> è falso, nello scontrino digitale e nello stato completo.
     /// </summary>
-    static JsonObject ForClient(JsonObject json, bool canPrint)
+    static JsonObject ForClient(JsonObject json, DisplayClient client)
     {
-        if (canPrint)
+        if (json["t"]?.GetValue<string>() == "cfg")
+            return ScreenConfig.ForScreen(json, client.Override, client.CanPrint);
+        if (client.CanPrint)
             return json;
         if (json["t"]?.GetValue<string>() == "receipt.digital" && json["paperCopy"] is not null)
         {
@@ -236,11 +244,13 @@ public sealed class DisplayClient(long id, WebSocket socket, string remote)
     public string Remote { get; } = remote;
     /// <summary>La cassa che il display mostra.</summary>
     public required string CashPoint { get; init; }
-    /// <summary>Il dispositivo autorizzato; null per l'anteprima dal back office.</summary>
+    /// <summary>Lo schermo autorizzato; null per l'anteprima dal back office.</summary>
     public string? DeviceId { get; init; }
     public required string Name { get; init; }
-    /// <summary>Il dispositivo ha una stampante per la copia cartacea.</summary>
-    public bool CanPrint { get; init; }
+    /// <summary>Lo schermo ha una stampante per la copia cartacea (in modalità demo, anche quella di prova).</summary>
+    public bool CanPrint { get; set; }
+    /// <summary>Le eccezioni dello schermo (disposizione, animazioni, attrazione, larghezza del conto).</summary>
+    public ScreenOverride? Override { get; set; }
     const int QueueLimit = 1000;
 
     public Channel<string> Queue { get; } = Channel.CreateBounded<string>(new BoundedChannelOptions(QueueLimit)

@@ -34,7 +34,7 @@ public sealed class PasswordTests : IDisposable
         var store = new SettingsStore(_folder);
         store.Update(s =>
         {
-            s.Password = AdminAccess.Hash(password);
+            s.Installazione.SetPassword(AccessEntry.Owner, AdminAccess.Hash(password));
             return null;
         });
         return store;
@@ -63,21 +63,50 @@ public sealed class PasswordTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/accesso", new { password = "la-password-del-tecnico" })).StatusCode);
         Assert.DoesNotContain("la-password-del-tecnico", await File.ReadAllTextAsync(Path.Combine(root, "dati", SettingsStore.FileName)));   // solo l'hash
         var log = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/log"))!;
-        Assert.Contains(log["righe"]!.AsArray(), l => ((string)l!).Contains("AVV") && ((string)l!).Contains("impostata con nuova-password.txt"));
+        Assert.Contains(log["righe"]!.AsArray(), l => ((string)l!).Contains("AVV") && ((string)l!).Contains("Password del titolare impostata con nuova-password.txt"));
+    }
+
+    [Fact]
+    public async Task The_technician_password_comes_from_its_own_file()
+    {
+        var root = Path.Combine(_folder, "agent");
+        Directory.CreateDirectory(Path.Combine(root, "dati"));
+        var file = Path.Combine(root, "dati", PasswordFile.TechnicianFileName);
+        await File.WriteAllTextAsync(file, TechnicianPassword);
+
+        await using var agent = await Start(root: root, login: false);
+        Assert.False(File.Exists(file));
+        await agent.Login(TechnicianPassword);
+        var session = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/sessione"))!;
+        Assert.Equal("tecnico", (string)session["ruolo"]!);
+        Assert.True((bool)session["installazione"]!);
+        var titolare = agent.NewBrowser();
+        Assert.Equal(HttpStatusCode.OK, (await titolare.Http.PostAsJsonAsync("/api/bo/accesso", new { password = Password })).StatusCode);
+        Assert.False((bool)JsonNode.Parse(await titolare.Http.GetStringAsync("/api/bo/sessione"))!["installazione"]!);
+
+        var output = new StringWriter();
+        var messages = new StringWriter();
+        Assert.Equal(0, PasswordFile.GenerateCommand(_folder, output, messages, AccessEntry.Technician));
+        Assert.True(File.Exists(Path.Combine(_folder, PasswordFile.TechnicianFileName)));
+        Assert.Contains("non darla al cliente", messages.ToString());
     }
 
     [Fact]
     public void A_password_that_does_not_do_is_refused_but_never_left_on_the_disk()
     {
         var store = StoreWith("vecchia-password");
-        Assert.Null(PasswordFile.Apply(_folder, store));   // senza file non succede niente
+        Assert.Empty(PasswordFile.Apply(_folder, store));   // senza file non succede niente
 
         File.WriteAllText(FilePath, "12345");
-        var outcome = PasswordFile.Apply(_folder, store)!;
+        var outcome = Assert.Single(PasswordFile.Apply(_folder, store));
         Assert.True(outcome.Problem);
         Assert.Contains("almeno 6 caratteri", outcome.Note);
         Assert.False(File.Exists(FilePath));   // la password in chiaro non resta sul disco, anche se sbagliata
-        Assert.True(AdminAccess.Verify(store.Current.Password!, "vecchia-password"));
+        Assert.True(AdminAccess.Verify(store.Current.Installazione.Password(AccessEntry.Owner)!, "vecchia-password"));
+
+        File.WriteAllText(Path.Combine(_folder, PasswordFile.TechnicianFileName), "vecchia-password");
+        Assert.Contains("uguale a quella dell'altro ruolo", Assert.Single(PasswordFile.Apply(_folder, store)).Note);
+        Assert.Null(store.Current.Installazione.Password(AccessEntry.Technician));
     }
 
     [Fact]
@@ -94,8 +123,8 @@ public sealed class PasswordTests : IDisposable
         Assert.DoesNotContain(password, messages.ToString());   // sull'uscita solo lei, per l'installazione
 
         var store = new SettingsStore(_folder);
-        Assert.False(PasswordFile.Apply(_folder, store)!.Problem);
-        Assert.True(AdminAccess.Verify(store.Current.Password!, password));
+        Assert.False(Assert.Single(PasswordFile.Apply(_folder, store)).Problem);
+        Assert.True(AdminAccess.Verify(store.Current.Installazione.Password(AccessEntry.Owner)!, password));
         Assert.Equal(100, Enumerable.Range(0, 100).Select(_ => PasswordFile.Generate()).Distinct().Count());
         Assert.Equal(Path.GetFullPath(_folder), AgentApp.DataFolder(["--dati", _folder]));   // la stessa cartella dell'Agent
     }
@@ -113,7 +142,7 @@ public sealed class PasswordTests : IDisposable
 
         store.Update(s =>
         {
-            s.BackOfficeDallaRete = true;
+            s.Installazione.BackOfficeDallaRete = true;
             return null;
         });
         var remote = From("192.168.1.20");
@@ -123,16 +152,16 @@ public sealed class PasswordTests : IDisposable
 
         store.Update(s =>
         {
-            s.BackOfficeDallaRete = false;
+            s.Installazione.BackOfficeDallaRete = false;
             return null;
         });
         Assert.False(admin.IsAuthenticated(From("192.168.1.20", AdminAccess.Cookie + "=" + token)));   // la sessione dalla rete finisce subito
 
         // Non è un'impostazione di rete: vale subito, senza riavvio.
-        var runtime = new Server.AgentRuntime { DataFolder = _folder, LogFolder = _folder, DisplayFolder = _folder, StartupNetwork = store.Current.Rete };
+        var runtime = new Server.AgentRuntime { DataFolder = _folder, LogFolder = _folder, DisplayFolder = _folder, StartupNetwork = store.Current.Installazione.Rete };
         store.Update(s =>
         {
-            s.BackOfficeDallaRete = true;
+            s.Installazione.BackOfficeDallaRete = true;
             return null;
         });
         Assert.False(runtime.RestartNeeded(store.Current));
@@ -144,22 +173,11 @@ public sealed class PasswordTests : IDisposable
         await using var agent = await Start();
         var session = await Json(await agent.Admin.GetAsync("/api/bo/sessione"));
         Assert.True((bool)session["raggiungibile"]!);
-        var settings = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/impostazioni"))!;
-        Assert.False((bool)settings["BackOfficeDallaRete"]!);
+        var settings = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/config"))!;
+        Assert.False((bool)settings["Installazione"]!["BackOfficeDallaRete"]!);
 
-        var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
-        probe.Start();
-        var port = ((IPEndPoint)probe.LocalEndpoint).Port;
-        probe.Stop();
-        var options = new JsonObject
-        {
-            ["BackOfficeDallaRete"] = true,
-            ["ChiusuraVenditaDopoSecondi"] = 60,
-            ["ScontrinoDigitale"] = settings["ScontrinoDigitale"]!.DeepClone(),
-            ["Rete"] = new JsonObject { ["Porta"] = port, ["ApertoInRete"] = false, ["Https"] = new JsonObject { ["Attivo"] = false, ["Porta"] = 5443, ["Certificato"] = "", ["PasswordCertificato"] = null } },
-        };
-        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PutAsJsonAsync("/api/bo/opzioni", options)).StatusCode);
-        Assert.True((bool)JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/impostazioni"))!["BackOfficeDallaRete"]!);
+        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PutAsJsonAsync("/api/bo/installazione", new JsonObject { ["BackOfficeDallaRete"] = true })).StatusCode);
+        Assert.True((bool)JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/config"))!["Installazione"]!["BackOfficeDallaRete"]!);
         var log = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/log"))!;
         Assert.Contains(log["righe"]!.AsArray(), l => ((string)l!).Contains("Back office aperto anche alla rete"));
     }

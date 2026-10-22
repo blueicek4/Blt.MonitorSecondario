@@ -6,40 +6,53 @@
 <meta name="robots" content="noindex">
 <title>Abbinamento</title>
 <link rel="icon" href="data:,">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <style>
-  :root { color-scheme: dark; --bg: #0b1017; --card: #141b26; --line: rgba(255,255,255,.09); --text: #e6eaf2; --muted: #9aa6ba; --faint: #6f7e95; --ok: #3ddc97; --warn: #f5b84a; }
+  :root { color-scheme: dark; --bg: #0B1017; --surface: #141B26; --line: rgba(255,255,255,.1); --text: #E6EAF2; --muted: #9AA6BA; --faint: #7B8596; --primary: #1F6FEB; --glow: #1F6FEB; --font-display: 'Archivo', 'Arial Narrow', sans-serif; --font-text: 'IBM Plex Sans', 'Segoe UI', sans-serif; }
+  /*TEMA*/
   * { box-sizing: border-box; }
   html, body { height: 100%; }
-  body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); color: var(--text); font: 18px/1.5 system-ui, "Segoe UI", sans-serif; text-align: center; padding: 24px 16px 64px; -webkit-user-select: none; user-select: none; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: clamp(24px, 5vw, 48px) clamp(20px, 6vw, 64px); max-width: 640px; width: 100%; }
-  h1 { font-size: clamp(20px, 3.2vw, 28px); font-weight: 600; margin: 0 0 8px; }
-  .label { color: var(--muted); margin: 0; }
-  #code { font: 700 clamp(56px, 14vw, 120px)/1.1 ui-monospace, Consolas, "Segoe UI", monospace; letter-spacing: .08em; margin: 18px 0 14px; font-variant-numeric: tabular-nums; }
-  #code.wait { color: var(--faint); }
-  .how { color: var(--muted); margin: 0 auto 18px; max-width: 30em; }
+  body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); color: var(--text); font: 18px/1.5 var(--font-text); text-align: center; padding: 24px 16px 72px; -webkit-user-select: none; user-select: none; overflow: hidden; }
+  /* Una luce del primario dietro il codice: la stessa scena del monitor, ferma. */
+  body::before { content: ""; position: fixed; inset: -20% -10% auto; height: 80%; background: radial-gradient(closest-side, color-mix(in srgb, var(--glow) 32%, transparent), transparent); opacity: .7; pointer-events: none; }
+  main { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0; max-width: 760px; width: 100%; }
+  .brand { display: flex; align-items: center; gap: 12px; font: 600 clamp(20px, 3vw, 26px)/1 var(--font-display); letter-spacing: .06em; text-transform: uppercase; min-height: 1em; }
+  .brand svg { width: 30px; height: 30px; color: var(--text); flex: none; }
+  .label { color: var(--muted); font-size: 14px; letter-spacing: .22em; text-transform: uppercase; margin: 22px 0 14px; }
+  #code { display: flex; gap: clamp(8px, 1.6vw, 14px); justify-content: center; }
+  #code span { display: grid; place-items: center; width: clamp(46px, 11vw, 92px); height: clamp(58px, 13vw, 112px); border-radius: 12px;
+               background: color-mix(in srgb, var(--surface) 88%, transparent); border: 1px solid var(--line);
+               font: 700 clamp(34px, 8vw, 72px)/1 var(--font-display); font-variant-numeric: tabular-nums; }
+  #code.wait span { color: var(--faint); }
+  .how { color: var(--muted); margin: 22px auto 0; max-width: 28em; }
   .how b { color: var(--text); font-weight: 600; }
-  #status { font-weight: 600; min-height: 1.5em; margin: 0; }
-  #status.ok { color: var(--ok); }
-  #status.err { color: var(--warn); }
-  #expires { color: var(--faint); font-size: 14px; margin: 6px 0 0; min-height: 1.5em; }
-  footer { position: fixed; bottom: 16px; left: 0; right: 0; color: var(--faint); font-size: 13px; }
+  #status { min-height: 1.5em; margin: 10px 0 0; color: var(--faint); font-size: 15px; }
+  #status.ok { color: var(--text); font-weight: 600; }
+  footer { position: fixed; bottom: 18px; right: 22px; display: flex; align-items: center; gap: 8px; color: var(--faint); font-size: 12px; }
+  footer svg { width: 16px; height: 16px; }
+  footer b { font: 600 12px var(--font-display); letter-spacing: .16em; color: var(--text); }
+  @media (max-aspect-ratio: 1/1) { footer { left: 0; right: 0; justify-content: center; } }
+  @media (prefers-reduced-motion: no-preference) { #code span { transition: opacity .3s; } #code.wait span { opacity: .55; } }
 </style>
 </head>
 <body>
-<main class="card">
-  <h1>Abbinamento di questo schermo</h1>
+<main>
+  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="10.2"/><path d="M12 6.8 17 15.6H7Z"/></svg><span>{{locale}}</span></div>
   <p class="label">Codice di abbinamento</p>
-  <div id="code" class="wait" aria-live="polite">······</div>
-  <p class="how">Nel <b>back office</b> dell'Agent apri <b>Dispositivi</b>, scrivi questo codice e scegli la cassa da mostrare.</p>
-  <p id="status">In attesa dell'autorizzazione…</p>
-  <p id="expires"></p>
+  <div id="code" class="wait" aria-live="polite"><span>·</span><span>·</span><span>·</span><span>·</span><span>·</span><span>·</span></div>
+  <p class="how">Scrivilo nel <b>back office</b>, alla voce <b>Schermi</b>. Scade fra <b id="minutes">8 minuti</b>, poi se ne genera un altro.</p>
+  <p id="status" role="status"></p>
 </main>
-<footer>powered by Bluetech</footer>
+<footer aria-label="powered by Bluetech">powered by
+  <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="var(--primary)" stroke-width="2.6"/><path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="var(--text)" stroke-width="3" stroke-linecap="round"/></svg>
+  <b>BLUETECH</b></footer>
 <script>
 "use strict";
+// Il codice è grande perché il tecnico lo legge dall'altra parte del banco; alla scadenza se ne genera un altro da sé,
+// senza che nessuno debba ricaricare la pagina (SPEC §21).
 const codeBox = document.getElementById("code");
 const statusBox = document.getElementById("status");
-const expiresBox = document.getElementById("expires");
+const minutesBox = document.getElementById("minutes");
 let expiresAt = 0;
 let pollTimer = 0;
 
@@ -48,9 +61,14 @@ function show(text, kind) {
   statusBox.className = kind || "";
 }
 
+function digits(code) {
+  [...codeBox.children].forEach((box, i) => { box.textContent = code ? code[i] : "·"; });
+  codeBox.className = code ? "" : "wait";
+}
+
 function done() {
   clearTimeout(pollTimer);
-  show("Autorizzato: apro lo schermo del cliente…", "ok");
+  show("Abbinato: apro lo schermo…", "ok");
   setTimeout(() => location.replace("/cliente"), 600);
 }
 
@@ -60,14 +78,13 @@ async function start() {
     const response = await fetch("/api/abbinamento", { method: "POST", cache: "no-store" });
     const answer = await response.json();
     if (answer.stato === "autorizzato") return done();
-    codeBox.textContent = answer.codice.slice(0, 3) + " " + answer.codice.slice(3);
-    codeBox.className = "";
+    digits(answer.codice);
     expiresAt = Date.now() + answer.scadeTraSecondi * 1000;
-    show("In attesa dell'autorizzazione…");
+    show("");
     pollTimer = setTimeout(poll, 2000);
   } catch {
-    codeBox.className = "wait";
-    show("L'Agent non risponde: riprovo…", "err");
+    digits("");
+    show("Mi ricollego all'Agent…");
     pollTimer = setTimeout(start, 5000);
   }
 }
@@ -78,9 +95,9 @@ async function poll() {
     const answer = await response.json();
     if (answer.stato === "autorizzato") return done();
     if (answer.stato !== "attesa") return start();   // scaduto: un codice nuovo
-    show("In attesa dell'autorizzazione…");
+    show("");
   } catch {
-    show("L'Agent non risponde: riprovo…", "err");
+    show("Mi ricollego all'Agent…");
   }
   pollTimer = setTimeout(poll, 2000);
 }
@@ -88,7 +105,8 @@ async function poll() {
 setInterval(() => {
   if (!expiresAt) return;
   const left = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
-  expiresBox.textContent = left > 0 ? "Il codice vale ancora " + Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0") : "";
+  const minutes = Math.ceil(left / 60);
+  minutesBox.textContent = left > 60 ? minutes + " minuti" : left > 0 ? left + " secondi" : "un attimo";
   if (left === 0) { expiresAt = 0; start(); }
 }, 1000);
 

@@ -35,6 +35,7 @@
     <EmbeddedResource Include="Server\auth.html" LogicalName="auth.html" />
     <EmbeddedResource Include="Server\backoffice.html" LogicalName="backoffice.html" />
     <EmbeddedResource Include="Server\negato.html" LogicalName="negato.html" />
+    <EmbeddedResource Include="Server\prova-scontrino.html" LogicalName="prova-scontrino.html" />
     <EmbeddedResource Include="Server\cliente.html" LogicalName="cliente.html" />
     <!-- Palette, contrasto e variabili CSS del tema, per /cliente e per il back office: /aspetto/tema.js. -->
     <Content Remove="Server\tema.js" />

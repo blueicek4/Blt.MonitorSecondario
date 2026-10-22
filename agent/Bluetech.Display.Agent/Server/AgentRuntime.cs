@@ -26,5 +26,5 @@ public sealed class AgentRuntime
 
     /// <summary>Porta, apertura in rete o HTTPS cambiati dal back office: valgono dal prossimo avvio.</summary>
     public bool RestartNeeded(AgentSettings now) =>
-        JsonSerializer.Serialize(now.Rete, AgentSettings.Json) != JsonSerializer.Serialize(StartupNetwork, AgentSettings.Json);
+        JsonSerializer.Serialize(now.Installazione.Rete, AgentSettings.Json) != JsonSerializer.Serialize(StartupNetwork, AgentSettings.Json);
 }
