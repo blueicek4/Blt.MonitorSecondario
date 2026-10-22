@@ -865,6 +865,47 @@ public sealed class AgentAppTests
     }
 
     [Fact]
+    public async Task The_owner_renames_a_screen_but_its_cash_point_and_printer_are_the_technicians()
+    {
+        await using var agent = await TestAgent.Start(s =>
+        {
+            TestAgent.AddCash(s, "cassa2", "Bar");
+            s.Stampanti.Add(new PrinterConfig { Id = "stampante1", Nome = "Banco", Collegamento = "prova", Indirizzo = "banco" });
+        });
+        Assert.Equal(HttpStatusCode.OK, (await agent.Admin.PostAsJsonAsync("/api/bo/password", new { ruolo = "tecnico", nuova = TechnicianPassword })).StatusCode);
+        var screen = await agent.Pair("Sala", printer: "stampante1");   // abbinato dal titolare: la stampante non la sceglie lui
+        var changed = await agent.Admin.PutAsJsonAsync("/api/bo/schermi/" + screen.Id, new { Nome = "Sala grande", Cassa = "cassa2", Stampante = "stampante1" });
+        Assert.Equal(HttpStatusCode.OK, changed.StatusCode);
+        var stored = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/config"))!["Schermi"]![0]!;
+        Assert.Equal(("Sala grande", "cassa1", null), ((string)stored["Nome"]!, (string)stored["Cassa"]!, (string?)stored["Stampante"]));
+
+        var technician = agent.NewBrowser();
+        Assert.Equal(HttpStatusCode.OK, (await technician.Http.PostAsJsonAsync("/api/bo/accesso", new { password = TechnicianPassword })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await technician.Http.PutAsJsonAsync("/api/bo/schermi/" + screen.Id, new { Nome = "Sala grande", Cassa = "cassa2", Stampante = "stampante1" })).StatusCode);
+        stored = JsonNode.Parse(await technician.Http.GetStringAsync("/api/bo/config"))!["Schermi"]![0]!;
+        Assert.Equal(("cassa2", "stampante1"), ((string)stored["Cassa"]!, (string?)stored["Stampante"]));
+    }
+
+    [Fact]
+    public async Task The_back_office_shows_the_week_on_air_for_a_cash_point_and_a_place()
+    {
+        await using var agent = await TestAgent.Start(s =>
+        {
+            var c = TestAgent.Brand(s).Contenuti;
+            c.Promozioni.Add(new PromoConfig { Id = "promo1", Nome = "Aperitivo", Titolo = "Spritz a 5 euro" });
+            c.Regole.Add(new RuleConfig { Id = "regola1", Nome = "Venerdì sera", Giorni = [5], Dalle = "18:00", Alle = "20:00" });
+            c.Vetrine.Add(new ShowcaseConfig { Id = "vetrina1", Nome = "Aperitivo", Posti = ["attesa"], Regola = "regola1", Elementi = [new() { Id = "promo1" }] });
+        });
+        var week = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/settimana?posto=attesa"))!;
+        Assert.Equal(("cassa1", "attesa", 7), ((string)week["cassa"]!, (string)week["posto"]!, week["giorni"]!.AsArray().Count));
+        Assert.Equal(DayOfWeek.Monday, DateOnly.Parse((string)week["lunedi"]!).DayOfWeek);
+        var friday = week["giorni"]![4]!.AsArray();
+        Assert.Equal("vetrina1", (string?)friday.Single(s => s!["vetrina"] != null)!["vetrina"]);
+        Assert.Equal((720, 840), ((int)friday[1]!["da"]!, (int)friday[1]!["a"]!));
+        Assert.All(week["giorni"]!.AsArray().Where((_, i) => i != 4), day => Assert.Null(day!.AsArray().Single()!["vetrina"]));
+    }
+
+    [Fact]
     public async Task In_demo_mode_a_paid_bill_gets_a_fake_digital_receipt_and_a_test_print()
     {
         await using var agent = await TestAgent.Start(s => s.Installazione.Demo = true);   // lo scontrino digitale del marchio è spento

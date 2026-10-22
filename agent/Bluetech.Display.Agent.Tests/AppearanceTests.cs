@@ -357,6 +357,28 @@ public sealed class AppearanceTests
     }
 
     [Fact]
+    public void The_week_on_air_is_the_same_choice_the_screens_make()
+    {
+        var (brand, _) = Showcased();
+        var monday = new DateOnly(2026, 10, 19);
+        var week = Showcases.Week(brand, "cassa1", "attesa", monday);
+        Assert.Equal(7, week.Count);
+        // I minuti partono dalle 06:00: l'aperitivo 18-20 è 720-840, il resto della giornata è di Sempre.
+        Assert.All(week, day => Assert.Equal(new Showcases.Span[] { new(0, 720, "vetrina3"), new(720, 840, "vetrina1"), new(840, 1440, "vetrina3") }, day));
+
+        // Una serata che passa la mezzanotte appartiene al giorno in cui comincia: il venerdì fino all'01:00, il sabato no.
+        var rule = brand.Contenuti.Regole[0];
+        rule.Giorni = [5];
+        rule.Dalle = "21:00";
+        rule.Alle = "01:00";
+        week = Showcases.Week(brand, "cassa1", "attesa", monday);
+        Assert.Equal(new Showcases.Span[] { new(0, 900, "vetrina3"), new(900, 1140, "vetrina1"), new(1140, 1440, "vetrina3") }, week[4]);
+        Assert.Equal(new Showcases.Span[] { new(0, 1440, "vetrina3") }, week[5]);
+        Assert.Equal(new Showcases.Span[] { new(0, 1440, "vetrina5") }, Showcases.Week(brand, "cassa2", "grazie", monday)[0]);   // la vetrina del bar
+        Assert.Equal(new Showcases.Span[] { new(0, 1440, null) }, Showcases.Week(brand, "cassa1", "grazie", monday)[0]);   // per la sala, niente
+    }
+
+    [Fact]
     public void A_rule_follows_its_cash_points_days_hours_and_dates()
     {
         var friday = new RuleConfig { Giorni = [5], Dalle = "22:00", Alle = "02:00", Casse = ["cassa2"] };

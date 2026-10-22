@@ -98,6 +98,30 @@ public static class BrandApi
             });
         });
 
+        // La settimana in onda di una cassa in un posto: per il calendario delle vetrine.
+        bo.MapGet("/settimana", (string? marchio, string? cassa, string? posto, SettingsStore settings) =>
+        {
+            var current = settings.Current;
+            var brand = current.Brand(marchio) ?? current.Marchi[0];
+            var cash = current.CashPoint(cassa) is { } chosen && current.BrandOf(chosen).Id == brand.Id
+                ? chosen.Id
+                : current.Casse.Find(c => c.Marchio == brand.Id)?.Id ?? "";
+            var place = posto != null && ShowcaseConfig.Places.Contains(posto) ? posto : ShowcaseConfig.Places[0];
+            var clock = DateTime.Now;
+            var today = DateOnly.FromDateTime(clock.AddHours(-6));   // prima delle 06:00 è ancora la sera prima
+            var monday = today.AddDays(1 - Showcases.Weekday(today));
+            return Json(new JsonObject
+            {
+                ["cassa"] = cash,
+                ["posto"] = place,
+                ["lunedi"] = monday.ToString("yyyy-MM-dd"),
+                ["oggi"] = today.DayNumber - monday.DayNumber,
+                ["adesso"] = (int)(clock - today.ToDateTime(new TimeOnly(6, 0))).TotalMinutes,
+                ["giorni"] = new JsonArray(Showcases.Week(brand, cash, place, monday).Select(day => (JsonNode)new JsonArray(day.Select(span =>
+                    (JsonNode)new JsonObject { ["da"] = span.Da, ["a"] = span.A, ["vetrina"] = span.Vetrina }).ToArray())).ToArray()),
+            });
+        });
+
         bo.MapPost("/media", async (HttpContext context, MediaLibrary media, AdminAccess admin) =>
         {
             if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit)
@@ -168,10 +192,12 @@ public static class BrandApi
             }));
         });
 
-        bo.MapPost("/schermi", async (HttpContext context, DeviceAccess devices, SettingsStore settings, ILogger<DeviceAccess> log) =>
+        // Abbinare uno schermo vuol dire anche dirgli quale cassa mostra; la stampante della copia la sceglie il tecnico.
+        bo.MapPost("/schermi", async (HttpContext context, DeviceAccess devices, SettingsStore settings, AdminAccess admin, ILogger<DeviceAccess> log) =>
         {
             var body = await Body(context);
-            var error = devices.Approve(Text(body, "codice"), Text(body, "nome"), Text(body, "cassa"), Text(body, "stampante"), out var screen);
+            var printer = admin.IsTechnician(context) ? Text(body, "stampante") : null;
+            var error = devices.Approve(Text(body, "codice"), Text(body, "nome"), Text(body, "cassa"), printer, out var screen);
             if (error != null)
                 return Error(error);
             var now = settings.Current;
@@ -179,17 +205,22 @@ public static class BrandApi
                 screen!.Nome, now.CashPoint(screen.Cassa)?.Nome ?? screen.Cassa, now.Printer(screen.Stampante)?.Nome ?? "nessuna stampante");
             return Ok(new JsonObject { ["id"] = screen.Id });
         });
-        bo.MapPut("/schermi/{id}", async (string id, HttpContext context, SettingsStore settings) =>
+        // Il titolare cambia il nome e le eccezioni dello schermo; la cassa e la stampante le assegna il tecnico.
+        bo.MapPut("/schermi/{id}", async (string id, HttpContext context, SettingsStore settings, AdminAccess admin) =>
         {
             if (await Read<ScreenSettings>(context) is not { } changed)
                 return Error("Dati non validi.");
+            var technician = admin.IsTechnician(context);
             return Result(settings.Update(s =>
             {
                 if (s.Screen(id) is not { } screen)
                     return "Lo schermo non c'è più.";
                 screen.Nome = Clean(changed.Nome);
-                screen.Cassa = Clean(changed.Cassa);
-                screen.Stampante = Optional(changed.Stampante);
+                if (technician)
+                {
+                    screen.Cassa = Clean(changed.Cassa);
+                    screen.Stampante = Optional(changed.Stampante);
+                }
                 var o = changed.Override;
                 screen.Override = o == null ? null : new ScreenOverride
                 {

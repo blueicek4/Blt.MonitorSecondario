@@ -282,6 +282,35 @@ public static class Showcases
         return null;
     }
 
+    /// <summary>Un tratto della settimana in onda: dal minuto Da al minuto A, contati dalle 06:00 del giorno; null = niente.</summary>
+    public sealed record Span(int Da, int A, string? Vetrina);
+
+    /// <summary>
+    /// La settimana in onda di una cassa in un posto (il calendario del back office, SPEC §18): da lunedì a domenica,
+    /// ogni giorno dalle 06:00 alle 06:00 del giorno dopo (la notte appartiene al giorno in cui comincia), a passi di un
+    /// quarto d'ora, chi vince. È <see cref="Choose"/> stessa, così il calendario non può dire una cosa e lo schermo un'altra.
+    /// </summary>
+    public static List<List<Span>> Week(BrandConfig brand, string cashPoint, string place, DateOnly monday)
+    {
+        const int step = 15;
+        var week = new List<List<Span>>();
+        for (var d = 0; d < 7; d++)
+        {
+            var spans = new List<Span>();
+            var start = monday.AddDays(d).ToDateTime(new TimeOnly(6, 0));
+            for (var m = 0; m < 24 * 60; m += step)
+            {
+                var id = Choose(brand, cashPoint, place, start.AddMinutes(m)).Winner?.Id;
+                if (spans.Count > 0 && spans[^1].Vetrina == id)
+                    spans[^1] = spans[^1] with { A = m + step };
+                else
+                    spans.Add(new Span(m, m + step, id));
+            }
+            week.Add(spans);
+        }
+        return week;
+    }
+
     /// <summary>"venerdì alle 18:00", "domani alle 18:00", "oggi alle 18:00", "il 12/11 alle 18:00".</summary>
     public static string When(DateTime at, DateTime now)
     {
