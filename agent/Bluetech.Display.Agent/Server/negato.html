@@ -4,19 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Non autorizzato</title>
+<title>Schermo non abilitato</title>
 <link rel="icon" href="data:,">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <style>
-  :root { color-scheme: dark; }
+  :root { color-scheme: dark; --bg: #0B1017; --surface: #141B26; --line: rgba(255,255,255,.1); --text: #E6EAF2; --muted: #9AA6BA; --faint: #7B8596; --primary: #1F6FEB; --glow: #1F6FEB; --font-display: 'Archivo', 'Arial Narrow', sans-serif; --font-text: 'IBM Plex Sans', 'Segoe UI', sans-serif; }
+  /*TEMA*/
   * { box-sizing: border-box; }
   html, body { height: 100%; }
-  body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: #0b1017; color: #e6eaf2; font: 18px/1.5 system-ui, "Segoe UI", sans-serif; text-align: center; padding: 24px 16px; }
-  h1 { font-size: 24px; font-weight: 600; margin: 0; }
-  footer { position: fixed; bottom: 16px; left: 0; right: 0; color: #6f7e95; font-size: 13px; }
+  body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: var(--bg); color: var(--text); font: 18px/1.5 var(--font-text); text-align: center; padding: 24px 16px 72px; -webkit-user-select: none; user-select: none; }
+  svg.lock { width: 34px; height: 34px; color: var(--muted); }
+  h1 { font: 600 clamp(24px, 4vw, 34px)/1.2 var(--font-display); margin: 0; }
+  p { color: var(--muted); margin: 0; }
+  footer { position: fixed; bottom: 18px; right: 22px; display: flex; align-items: center; gap: 8px; color: var(--faint); font-size: 12px; }
+  footer svg { width: 16px; height: 16px; }
+  footer b { font: 600 12px var(--font-display, sans-serif); letter-spacing: .16em; color: var(--text); }
+  @media (max-aspect-ratio: 1/1) { footer { left: 0; right: 0; justify-content: center; } }
 </style>
 </head>
 <body>
-<h1>Dispositivo non autorizzato</h1>
-<footer>powered by Bluetech</footer>
+<svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>
+<h1>Questo schermo non è abilitato</h1>
+<p>Chiedi al titolare o all'assistenza Bluetech.</p>
+<footer aria-label="powered by Bluetech">powered by
+  <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="9" fill="none" stroke="var(--primary)" stroke-width="2.6"/><path d="M11 24V10h6.5a4 4 0 0 1 0 8H11m0 0h7.5a4 4 0 0 1 0 6H11" fill="none" stroke="var(--text)" stroke-width="3" stroke-linecap="round"/></svg>
+  <b>BLUETECH</b></footer>
 </body>
 </html>

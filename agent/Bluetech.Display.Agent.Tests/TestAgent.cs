@@ -19,6 +19,7 @@ namespace Bluetech.Display.Agent.Tests;
 sealed class TestAgent : IAsyncDisposable
 {
     public const string Password = "segreta-di-prova";
+    public const string TechnicianPassword = "tecnico-di-prova";
 
     readonly CookieContainer _adminCookies = new();
     readonly bool _ownsRoot;
@@ -37,19 +38,29 @@ sealed class TestAgent : IAsyncDisposable
 
     public string CashFile(string id = "cassa1") => Path.Combine(Root, id, "Scontrino.txt");
 
-    /// <summary>Le impostazioni di partenza: la password del back office, una cassa, la porta libera.</summary>
+    /// <summary>
+    /// Le impostazioni di partenza: la password del titolare (senza quella del tecnico vede anche l'installazione), un
+    /// marchio, una cassa, la porta libera.
+    /// </summary>
     public static AgentSettings Settings(string root) => new()
     {
-        Password = AdminAccess.Hash(Password),
-        Rete = { Porta = 0 },
-        Casse = [new CashPointConfig { Id = "cassa1", Nome = "Cassa 1", FileCassa = Path.Combine(root, "cassa1", "Scontrino.txt") }],
+        Installazione =
+        {
+            Accessi = [new AccessEntry { Ruolo = AccessEntry.Owner, Password = AdminAccess.Hash(Password) }],
+            Rete = { Porta = 0 },
+        },
+        Marchi = [new BrandConfig { Id = "locale", Nome = "Il locale" }],
+        Casse = [new CashPointConfig { Id = "cassa1", Nome = "Cassa 1", Marchio = "locale", FileCassa = Path.Combine(root, "cassa1", "Scontrino.txt") }],
     };
 
+    /// <summary>Il marchio delle prove (il primo).</summary>
+    public static BrandConfig Brand(AgentSettings settings) => settings.Marchi[0];
+
     /// <summary>Un'altra cassa, con il file nella sua cartella accanto a quella della prima.</summary>
-    public static void AddCash(AgentSettings settings, string id, string name)
+    public static void AddCash(AgentSettings settings, string id, string name, string brand = "locale")
     {
         var root = Path.GetDirectoryName(Path.GetDirectoryName(settings.Casse[0].FileCassa))!;
-        settings.Casse.Add(new CashPointConfig { Id = id, Nome = name, FileCassa = Path.Combine(root, id, "Scontrino.txt") });
+        settings.Casse.Add(new CashPointConfig { Id = id, Nome = name, Marchio = brand, FileCassa = Path.Combine(root, id, "Scontrino.txt") });
     }
 
     public static async Task<TestAgent> Start(Action<AgentSettings>? configure = null, string? root = null, Dictionary<string, string?>? options = null, bool writeSettings = true, bool login = true)
@@ -84,18 +95,18 @@ sealed class TestAgent : IAsyncDisposable
         Admin = new HttpClient(new HttpClientHandler { CookieContainer = _adminCookies, AllowAutoRedirect = false }) { BaseAddress = Base };
     }
 
-    public async Task Login()
+    public async Task Login(string password = Password)
     {
-        var response = await Admin.PostAsJsonAsync("/api/bo/accesso", new { password = Password });
+        var response = await Admin.PostAsJsonAsync("/api/bo/accesso", new { password });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    /// <summary>Un dispositivo nuovo: apre /auth, il back office scrive il suo codice, il dispositivo riceve il cookie.</summary>
+    /// <summary>Uno schermo nuovo: apre /auth, il back office scrive il suo codice, lo schermo riceve il cookie.</summary>
     public async Task<Device> Pair(string name, string cashPoint = "cassa1", string? printer = null)
     {
         var device = NewBrowser();
         var start = await Json(await device.Http.PostAsync("/api/abbinamento", null));
-        var approved = await Admin.PostAsJsonAsync("/api/bo/dispositivi", new { codice = (string)start["codice"]!, nome = name, cassa = cashPoint, stampante = printer });
+        var approved = await Admin.PostAsJsonAsync("/api/bo/schermi", new { codice = (string)start["codice"]!, nome = name, cassa = cashPoint, stampante = printer });
         var answer = await Json(approved);
         Assert.True(approved.IsSuccessStatusCode, answer.ToJsonString());
         Assert.Equal("autorizzato", (string)(await Json(await device.Http.GetAsync("/api/abbinamento")))["stato"]!);

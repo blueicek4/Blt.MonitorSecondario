@@ -1,7 +1,7 @@
 // Il service worker del monitor cliente. Non tiene in cache i conti (arrivano dal WebSocket): quando l'Agent non
 // risponde (riavvio, Wi-Fi caduto) mostra una pagina di attesa che riprova da sola, al posto dell'errore del browser.
 "use strict";
-const CACHE = "bluetech-monitor-1";
+const CACHE = "bluetech-monitor-2";   // la pagina "Mi ricollego" sul tema del locale
 const OFFLINE = "/pwa/offline.html";
 
 self.addEventListener("install", (event) => {

@@ -5,9 +5,10 @@ using Bluetech.Display.Agent.Server;
 namespace Bluetech.Display.Agent.Aspetto;
 
 /// <summary>
-/// Le foto e i video caricati dal back office (le gallerie, il logo, lo sfondo), in dati\media. Il nome del file è
-/// l'impronta del contenuto: lo stesso file caricato due volte è uno solo, e un display lo tiene in cache per sempre
-/// perché a un nome corrisponde sempre lo stesso contenuto. Nelle impostazioni c'è l'elenco, con il nome originale.
+/// Le foto e i video caricati dal back office (le gallerie, i loghi, lo sfondo, i loghi dei kit), in dati\media. Il nome
+/// del file è l'impronta del contenuto: lo stesso file caricato due volte è uno solo, anche in due marchi, e un display lo
+/// tiene in cache per sempre perché a un nome corrisponde sempre lo stesso contenuto. Nelle impostazioni ci sono gli
+/// elenchi, uno per marchio e uno per i kit, con il nome originale.
 /// </summary>
 public sealed class MediaLibrary(SettingsStore settings, AgentRuntime runtime, ILogger<MediaLibrary> log)
 {
@@ -42,12 +43,27 @@ public sealed class MediaLibrary(SettingsStore settings, AgentRuntime runtime, I
         return null;
     }
 
+    /// <summary>Le foto e i video di un marchio, o quelli dei kit (<see cref="Kit"/>): la lista dove finisce un caricamento.</summary>
+    public const string Kit = "kit";
+
+    static List<MediaItem>? ListOf(AgentSettings s, string target) =>
+        target == Kit ? s.Installazione.Media : s.Brand(target)?.Contenuti.Media;
+
+    /// <summary>Tutti i file caricati, da tutti i marchi e dai kit (lo stesso file può stare in più elenchi).</summary>
+    public static IEnumerable<MediaItem> All(AgentSettings s) =>
+        s.Installazione.Media.Concat(s.Marchi.SelectMany(b => b.Contenuti.Media));
+
     /// <summary>
-    /// Salva un file caricato: lo legge una volta sola (impronta e controlli mentre arriva), lo aggiunge all'elenco delle
-    /// impostazioni e lo restituisce, o restituisce l'errore.
+    /// Salva un file caricato nell'elenco <paramref name="target"/> (un marchio o i kit): lo legge una volta sola
+    /// (impronta e controlli mentre arriva), lo aggiunge all'elenco e lo restituisce, o restituisce l'errore. Con
+    /// <paramref name="posterOf"/> è il primo fotogramma di quel video (sfocato con <paramref name="blurred"/>), fatto dal
+    /// back office al caricamento: il display non sfoca mai a runtime.
     /// </summary>
-    public async Task<(MediaItem? Item, string? Error)> SaveAsync(Stream body, string? name, CancellationToken cancel)
+    public async Task<(MediaItem? Item, string? Error)> SaveAsync(Stream body, string? name, string target, CancellationToken cancel,
+        string? posterOf = null, bool blurred = false)
     {
+        if (ListOf(settings.Current, target) == null)
+            return (null, "Il marchio non c'è più.");
         Directory.CreateDirectory(Folder);
         var temp = Path.Combine(Folder, $".caricamento-{Guid.NewGuid():N}.tmp");
         try
@@ -85,11 +101,14 @@ public sealed class MediaLibrary(SettingsStore settings, AgentRuntime runtime, I
             kind ??= Detect(head.AsSpan(0, headLength));
             if (kind == null)
                 return (null, NotMedia);
+            if (target == Kit && kind.IsVideo)
+                return (null, "I loghi dei kit sono immagini (PNG con lo sfondo trasparente).");
+            if (posterOf != null && kind.IsVideo)
+                return (null, "Il fotogramma di un video è un'immagine.");
 
             var id = Convert.ToHexStringLower(sha.GetHashAndReset())[..20] + kind.Extension;
-            if (settings.Current.Media(id) is { } existing && File.Exists(Path.Combine(Folder, id)))
-                return (existing, null);   // lo stesso file, già caricato
-            if (settings.Current.Aspetto.Media.Sum(m => m.Byte) + total > MaxTotalBytes)
+            var known = All(settings.Current).Any(m => m.Id == id) && File.Exists(Path.Combine(Folder, id));
+            if (!known && All(settings.Current).DistinctBy(m => m.Id).Sum(m => m.Byte) + total > MaxTotalBytes)
                 return (null, $"Immagini e video insieme arrivano al massimo a {MaxTotalBytes / 1024 / 1024 / 1024} GB: togli quelli che non usi più.");
             var path = Path.Combine(Folder, id);
             try
@@ -108,17 +127,34 @@ public sealed class MediaLibrary(SettingsStore settings, AgentRuntime runtime, I
                 Tipo = kind.Type,
                 Byte = total,
                 CaricatoIl = DateTimeOffset.Now,
+                Derivato = posterOf != null,
             };
             var error = settings.Update(s =>
             {
-                if (s.Media(id) == null)
-                    s.Aspetto.Media.Add(item);
+                var list = ListOf(s, target);
+                if (list == null)
+                    return "Il marchio non c'è più.";
+                var existing = list.Find(m => m.Id == id);
+                if (existing == null)
+                    list.Add(existing = item);
+                else if (posterOf == null)
+                    existing.Derivato = false;   // caricato di nuovo come foto: ora si vede anche nella galleria
+                if (posterOf != null)
+                {
+                    if (list.Find(m => m.Id == posterOf) is not { IsVideo: true } video)
+                        return "Il video non c'è più.";
+                    if (blurred)
+                        video.PosterSfocato = id;
+                    else
+                        video.Poster = id;
+                }
                 return null;
             });
             if (error != null)
                 return (null, error);
-            log.LogInformation("Caricato {Name} ({Type}, {Bytes} byte) come {Id}", item.Nome, item.Tipo, item.Byte, id);
-            return (settings.Current.Media(id), null);
+            log.LogInformation("Caricato {Name} ({Type}, {Bytes} byte) come {Id} in {Target}{Poster}", item.Nome, item.Tipo, item.Byte, id, target,
+                posterOf == null ? "" : $", fotogramma {(blurred ? "sfocato " : "")}di {posterOf}");
+            return (ListOf(settings.Current, target)?.Find(m => m.Id == id), null);
         }
         finally
         {
@@ -145,41 +181,69 @@ public sealed class MediaLibrary(SettingsStore settings, AgentRuntime runtime, I
     /// <summary>Il percorso del file, solo se è uno di quelli caricati.</summary>
     public string? PathOf(string id)
     {
-        if (!AgentSettings.MediaIdPattern().IsMatch(id) || settings.Current.Media(id) == null)
+        if (!AgentSettings.MediaIdPattern().IsMatch(id) || !All(settings.Current).Any(m => m.Id == id))
             return null;
         var path = Path.Combine(Folder, id);
         return File.Exists(path) ? path : null;
     }
 
-    /// <summary>Dove è usato un file: i loghi, lo sfondo, le promozioni, i set.</summary>
-    public static List<string> UsedBy(AgentSettings s, string id)
+    /// <summary>Dove è usato un file in un marchio: il logo, lo sfondo, le promozioni, le vetrine, i video di cui è il fotogramma.</summary>
+    public static List<string> UsedBy(BrandConfig brand, string id)
     {
-        var used = AppearanceSettings.Logos.Where(l => l.Get(s.Aspetto) == id).Select(l => l.Name).ToList();
-        if (s.Aspetto.FondoMedia == id)
-            used.Add("lo sfondo");
-        used.AddRange(s.Aspetto.Promozioni.Where(p => p.Immagine == id).Select(p => $"la promozione {p.Nome}"));
-        used.AddRange(s.Aspetto.Set.Where(x => x.Elementi.Any(e => e.Id == id)).Select(x => $"il set {x.Nome}"));
+        var used = AgentSettings.IdentityImages.Where(l => l.Get(brand) == id).Select(l => l.Name).ToList();
+        used.AddRange(brand.Contenuti.Promozioni.Where(p => p.Immagine == id).Select(p => $"la promozione {p.Nome}"));
+        used.AddRange(brand.Contenuti.Vetrine.Where(x => x.Elementi.Any(e => e.Id == id)).Select(x => $"la vetrina {x.Nome}"));
+        used.AddRange(brand.Contenuti.Media.Where(m => m.Poster == id || m.PosterSfocato == id).Select(m => $"il video {m.Nome}"));
         return used;
     }
 
-    /// <summary>Toglie un file che non serve più; se è ancora usato, dice dove.</summary>
-    public string? Delete(string id)
+    /// <summary>
+    /// Toglie un file da un elenco (un marchio o i kit), con i fotogrammi del video se nessuno li usa; se è ancora usato,
+    /// dice dove. Il file sul disco se ne va quando non lo ha più nessun elenco.
+    /// </summary>
+    public string? Delete(string id, string target)
     {
+        var gone = new List<string>();
         var error = settings.Update(s =>
         {
-            var used = UsedBy(s, id);
-            if (used.Count > 0)
-                return $"Il file serve ancora: lo usa {string.Join(", ", used)}. Toglilo da lì e poi eliminalo.";
-            return s.Aspetto.Media.RemoveAll(m => m.Id == id) == 0 ? "Il file non c'è." : null;
+            var list = ListOf(s, target);
+            if (list?.Find(m => m.Id == id) is not { } item)
+                return "Il file non c'è.";
+            if (target == Kit)
+            {
+                var used = KitLogos.All.Where(l => l.Get(s.Installazione.Loghi) == id).Select(l => l.Name).ToList();
+                if (used.Count > 0)
+                    return $"Il file serve ancora: è {string.Join(", ", used)}. Toglilo da lì e poi eliminalo.";
+                list.Remove(item);
+                gone.Add(id);
+                return null;
+            }
+            var brand = s.Brand(target)!;
+            var users = UsedBy(brand, id).Where(u => !u.StartsWith("il video ", StringComparison.Ordinal) || item.Derivato).ToList();
+            if (users.Count > 0)
+                return $"Il file serve ancora: lo usa {string.Join(", ", users)}. Toglilo da lì e poi eliminalo.";
+            list.Remove(item);
+            gone.Add(id);
+            foreach (var derived in new[] { item.Poster, item.PosterSfocato }.OfType<string>())
+            {
+                if (list.Find(m => m.Id == derived) is { Derivato: true } frame && UsedBy(brand, derived).Count == 0)
+                {
+                    list.Remove(frame);
+                    gone.Add(derived);
+                }
+            }
+            return null;
         });
         if (error != null)
             return error;
-        TryDelete(Path.Combine(Folder, id));
+        var still = All(settings.Current).Select(m => m.Id).ToHashSet();
+        foreach (var file in gone.Where(g => !still.Contains(g)))
+            TryDelete(Path.Combine(Folder, file));
         return null;
     }
 
     /// <summary>
-    /// All'avvio: dall'elenco i file che sul disco non ci sono più (tolti a mano), dal disco quelli che l'elenco non ha
+    /// All'avvio: dagli elenchi i file che sul disco non ci sono più (tolti a mano), dal disco quelli che nessun elenco ha
     /// (un caricamento interrotto, un file eliminato mentre era aperto). Restituisce cosa ha fatto, per il log.
     /// </summary>
     public List<string> Tidy()
@@ -187,42 +251,37 @@ public sealed class MediaLibrary(SettingsStore settings, AgentRuntime runtime, I
         var notes = new List<string>();
         if (!Directory.Exists(Folder))
             return notes;
-        var missing = settings.Current.Aspetto.Media.Where(m => !File.Exists(Path.Combine(Folder, m.Id))).Select(m => m.Id).ToHashSet();
+        var missing = All(settings.Current).Where(m => !File.Exists(Path.Combine(Folder, m.Id))).Select(m => m.Id).ToHashSet();
         if (missing.Count > 0)
         {
             var error = settings.Update(s =>
             {
-                foreach (var id in missing)
+                foreach (var item in All(s).Where(m => missing.Contains(m.Id)).DistinctBy(m => m.Id))
+                    notes.Add($"{item.Nome}: il file non c'è più in {Folder}");
+                s.Installazione.Media.RemoveAll(m => missing.Contains(m.Id));
+                foreach (var brand in s.Marchi)
                 {
-                    var item = s.Media(id);
-                    notes.Add($"{item?.Nome ?? id}: il file non c'è più in {Folder}");
-                    foreach (var logo in AppearanceSettings.Logos.Where(l => l.Get(s.Aspetto) == id))
-                        logo.Set(s.Aspetto, null);
-                    if (s.Aspetto.FondoMedia == id)
-                    {
-                        s.Aspetto.FondoMedia = null;
-                        s.Aspetto.Fondo = "luci";
-                    }
-                    foreach (var set in s.Aspetto.Set)
-                        set.Elementi.RemoveAll(e => e.Id == id);
-                    foreach (var promo in s.Aspetto.Promozioni.Where(p => p.Immagine == id).ToList())
+                    brand.Contenuti.Media.RemoveAll(m => missing.Contains(m.Id));
+                    foreach (var promo in brand.Contenuti.Promozioni.Where(p => p.Immagine != null && missing.Contains(p.Immagine)).ToList())
                     {
                         promo.Immagine = null;
+                        if (promo.Modello is "B" or "C")
+                            promo.Modello = PromoConfig.Suggested(promo.HasQr, null);
                         if (promo.HasContent)
                             continue;
-                        s.Aspetto.Promozioni.Remove(promo);
-                        foreach (var set in s.Aspetto.Set)
-                            set.Elementi.RemoveAll(e => e.Id == promo.Id);
+                        brand.Contenuti.Promozioni.Remove(promo);
+                        foreach (var showcase in brand.Contenuti.Vetrine)
+                            showcase.Elementi.RemoveAll(e => e.Id == promo.Id);
                         notes.Add($"la promozione {promo.Nome} è tolta: senza il suo file non resta niente da mostrare");
                     }
-                    s.Aspetto.Media.RemoveAll(m => m.Id == id);
                 }
+                notes.AddRange(s.Repair());   // loghi, sfondo, fotogrammi, vetrine: quello che puntava ai file spariti
                 return null;
             });
             if (error != null)
-                notes.Add($"Non riesco a togliere i file mancanti dall'elenco: {error}");
+                notes.Add($"Non riesco a togliere i file mancanti dagli elenchi: {error}");
         }
-        var known = settings.Current.Aspetto.Media.Select(m => m.Id).ToHashSet();
+        var known = All(settings.Current).Select(m => m.Id).ToHashSet();
         foreach (var file in Directory.EnumerateFiles(Folder))
         {
             var name = Path.GetFileName(file);

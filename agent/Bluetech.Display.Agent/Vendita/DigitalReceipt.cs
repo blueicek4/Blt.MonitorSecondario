@@ -8,7 +8,11 @@ namespace Bluetech.Display.Agent.Vendita;
 /// <param name="PaperCopy">Il pulsante della copia cartacea (c'è una stampante configurata).</param>
 /// <param name="OnScreen">Quanto resta a video, se non parte prima un'altra vendita.</param>
 /// <param name="Notice">La dicitura della copia, per mostrarla anche a video sotto il QR piccolo.</param>
-public sealed record DigitalReceiptSettings(bool Show, bool PaperCopy, TimeSpan OnScreen, string? Notice = null)
+/// <param name="DemoQr">
+/// Modalità demo: dato l'id dello scontrino, il PNG di un QR finto. Dopo un conto pagato, se la cassa non manda il QR
+/// dello scontrino digitale, il tracker ne fa uno con questo e mostra lo scontrino digitale come se fosse arrivato.
+/// </param>
+public sealed record DigitalReceiptSettings(bool Show, bool PaperCopy, TimeSpan OnScreen, string? Notice = null, Func<string, string>? DemoQr = null)
 {
     public static readonly DigitalReceiptSettings Off = new(false, false, TimeSpan.Zero);
 }
@@ -41,6 +45,11 @@ public sealed class DigitalReceipt
     public bool PaperCopy { get; init; }
     public string? Notice { get; init; }
     public PaperState Paper { get; set; }
+    /// <summary>Lo scontrino della modalità demo: il QR è finto e porta alla pagina di prova dell'Agent.</summary>
+    public bool Demo { get; init; }
+
+    /// <summary>Caratteri per riga della copia a video: quella di una stampante da 80 mm.</summary>
+    public const int ScreenColumns = 42;
 
     public JsonObject ToJson()
     {
@@ -64,6 +73,16 @@ public sealed class DigitalReceipt
             json["notice"] = Notice;
         if (Bill != null)
             json["receipt"] = BillJson(Bill);
+        if (Demo)
+            json["demo"] = true;
+        // La copia di cortesia già impaginata (ReceiptPaper del design): il blocco "carta" la mostra com'è, in monospazio.
+        var (lines, large) = Stampa.PaperCopy.ScreenLines(this, ScreenColumns);
+        json["copy"] = new JsonObject
+        {
+            ["lines"] = new JsonArray(lines.Select(l => (JsonNode)JsonValue.Create(l)!).ToArray()),
+            ["columns"] = ScreenColumns,
+            ["large"] = new JsonArray(large.Select(i => (JsonNode)JsonValue.Create(i)!).ToArray()),
+        };
         return json;
     }
 

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it" data-format="1920x1080" data-layout="wide" data-motion="light" data-footer="dark" data-screen="idle">
+<html lang="it" data-format="1920x1080" data-layout="wide" data-motion="light" data-attr="vivo" data-footer="light" data-scrim="dark" data-screen="idle" data-phase="idle" data-qr="beside">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -8,446 +8,610 @@
 <link rel="stylesheet" href="/fonts/fonts.css">
 <script src="/aspetto/tema.js"></script>
 <style>
-/* Lo schermo del cliente dell'Agent, con l'aspetto del back office (messaggio cfg) e le misure del design
-   (design/handoff/SPEC.md, display/src/tokens/tokens.css). Quando c'è il display del design (M5) /cliente serve quello. */
+/* Lo schermo del cliente dell'Agent, iterazione 2 del design (design/handoff-it2: SPEC.md, MOTION.md, tokens.css): la
+   configurazione arriva già piatta per questo schermo (cfg.screen) e le vetrine già scelte per posto (cfg.showcase).
+   Si animano solo transform e opacity; i tempi vengono dai token e dal livello di movimento effettivo (data-motion). */
+[hidden] { display: none !important; }
 :root {
   --e-spring: cubic-bezier(0.22, 1.2, 0.36, 1); --e-out: cubic-bezier(0.16, 1, 0.3, 1); --e-move: cubic-bezier(0.33, 1, 0.68, 1);
-  --d-row: 420ms; --d-total-pulse: 260ms; --d-state: 520ms; --d-msg: 320ms; --d-slide: 1200ms; --d-celebration: 900ms;
+  --d-row: 420ms; --d-total: 520ms; --d-total-pulse: 260ms; --d-state: 520ms; --d-msg-in: 320ms; --d-msg-swap: 180ms;
+  --d-slide: 1200ms; --d-push: 520ms; --d-celebration: 900ms; --d-col: 420ms; --d-odo: 520ms;
+  --d-qty-delay: 80ms; --d-qty-bump: 340ms; --d-note-in: 300ms; --o-note: 0.75; --d-sweep: 600ms; --d-strike: 320ms;
+  --d-void-fade: 240ms; --d-price-stagger: 40ms; --d-total-after: 300ms;
+  --t-col-rotate: 12000ms; --t-slide-hold: 7000ms;
   --footer-h: 56px; --footer-word: 17px; --footer-mark: 24px;
-  --c-bg: #0B1017; --c-surface: rgba(255,255,255,0.055); --c-surface-solid: #141B26; --c-line: rgba(255,255,255,0.09);
-  --c-text: #E6EAF2; --c-muted: #9AA6BA; --c-faint: #6F7E95; --c-primary: #1F6FEB; --c-on-primary: #FFFFFF;
+  --cols-conto: 16; --cols-pagamento: 10; --col-gutter: 40px;
+  --grow-conto: var(--cols-conto); --grow-side: calc(24 - var(--cols-conto)); --side-align: flex-end;
+  --scrim-top: 0.46; --scrim-bottom: 0.72; --scrim-idle-mid: 0.20; --card-blur: 22px;
+  --k-row: 1; --k-amount: 1; --k-total: 1;
+  /* Il tema arriva da tema.js; questi sono i valori di Bluetech, finché non c'è il cfg. */
+  --c-bg: #0B1017; --c-surface: rgba(255,255,255,0.06); --c-surface-solid: #141B26; --c-line: rgba(255,255,255,0.1);
+  --c-text: #E6EAF2; --c-muted: #9AA6BA; --c-faint: #7B8596; --c-primary: #1F6FEB; --c-on-primary: #FFFFFF;
   --c-accent: #3DDC97; --c-secondary: #8FA3C0; --font-display: 'Archivo', 'Arial Narrow', sans-serif;
-  --font-text: 'IBM Plex Sans', 'Segoe UI', sans-serif; --radius: 24px; --glass-blur: 14px;
-  --total-fill: rgba(31,111,235,0.12); --total-border: rgba(31,111,235,0.42); --total-text: #E6EAF2;
-  --glow: rgba(31,111,235,0.30); --glow-2: rgba(61,220,151,0.14); --c-bg-rgb: 11,16,23; --c-text-rgb: 230,234,242;
-  --c-primary-rgb: 31,111,235; --c-accent-rgb: 61,220,151;
-  --k-row: 1; --k-amount: 1; --k-total: 1; --d-odo: 520ms;
+  --font-text: 'IBM Plex Sans', 'Segoe UI', sans-serif; --radius: 10px; --glass-alpha: 0.048; --glass-blur: 11px;
+  --total-fill: linear-gradient(180deg, rgba(31,111,235,0.24), rgba(31,111,235,0.06)); --total-border: rgba(31,111,235,0.5);
+  --total-text: #E6EAF2; --glow: #1F6FEB; --glow-2: #3DDC97; --scrim-rgb: 8, 12, 18;
+  --c-text-rgb: 230,234,242; --c-primary-rgb: 31,111,235; --c-accent-rgb: 61,220,151;
 }
-:root[data-motion='light'] { --d-row: 300ms; --d-state: 320ms; --d-slide: 600ms; --e-spring: var(--e-out); --d-total-pulse: 0ms; --d-odo: 320ms; }
-:root[data-motion='eco'] { --d-row: 160ms; --d-state: 160ms; --d-slide: 200ms; --d-celebration: 300ms; --e-spring: linear; --e-out: linear; --e-move: linear; --d-total-pulse: 0ms; --d-odo: 0ms; }
+:root[data-scrim='light'] { --scrim-top: 0.72; --scrim-bottom: 0.90; }
+:root[data-motion='light'] {
+  --d-row: 300ms; --d-total: 320ms; --d-state: 320ms; --d-slide: 600ms; --d-push: 400ms; --e-spring: var(--e-out); --d-total-pulse: 0ms; --d-odo: 320ms;
+  --d-qty-delay: 0ms; --d-note-in: 220ms; --d-sweep: 400ms; --d-strike: 220ms; --d-col: 320ms;
+}
+:root[data-motion='eco'] {
+  --d-row: 160ms; --d-total: 140ms; --d-state: 160ms; --d-slide: 200ms; --d-push: 200ms; --d-celebration: 300ms; --d-col: 160ms;
+  --e-spring: linear; --e-out: linear; --e-move: linear; --d-total-pulse: 0ms; --d-odo: 0ms;
+  --d-qty-delay: 0ms; --d-qty-bump: 0ms; --d-note-in: 140ms; --d-sweep: 0ms; --d-strike: 0ms; --d-void-fade: 0ms; --d-price-stagger: 0ms;
+}
+/* L'attrazione porta solo i tempi di rotazione e gli effetti esclusivi di TROPPO (tokens.css, [IT2]). */
+:root[data-attr='spettacolo'] { --t-col-rotate: 8000ms; }
+:root[data-attr='troppo'] { --t-col-rotate: 5000ms; --t-slide-hold: 5000ms; }
+:root[data-attr='troppo'][data-motion='full'] { --d-row: 480ms; }
 @media (prefers-reduced-motion: reduce) {
-  :root, :root[data-motion] { --d-row: 160ms; --d-state: 160ms; --d-slide: 200ms; --d-celebration: 300ms; --e-spring: linear; --e-out: linear; --d-total-pulse: 0ms; --d-odo: 0ms; }
-  .ticker .track, .kenburns, .mesh, .ring, .halo, #offline i { animation: none !important; }
+  .ticker .track, .kb, #bg .mesh, .ring, .halo, #offline i, .breathe { animation: none !important; }
 }
 
-/* La tabella tipografica del design per formato (SPEC §7), più il palmare. Valori a 1:1 sul formato: lo schermo vero
-   ingrandisce o riduce tutto insieme (#stage). */
+/* La tabella tipografica per formato (SPEC §7, tokens.css), con le misure dei componenti delle tavole. Valori 1:1 sul
+   formato: lo schermo vero ingrandisce o riduce tutto insieme (#stage). */
 :root[data-format='1920x1080'] {
   --t-total: 150px; --t-pay: 150px; --t-row: 28px; --t-amount: 32px; --t-qty: 23px; --t-label: 17px; --t-msg: 104px; --t-note: 24px;
-  --pad-x: 64px; --pad-y: 56px; --head-h: 60px; --msg-h: 150px; --amount-col: 150px; --gap: 40px;
-  --receipt-w: 1180px; --receipt-narrow: 760px; --t-thanks: 124px; --t-promo: 42px; --t-promo-text: 20px;
-  --t-venue: 36px; --t-tagline: 17px; --t-ticker: 28px; --logo-h: 72px; --t-welcome: 60px;
-  --qr-beside: 488px; --qr-full: 404px; --qr-thanks: 252px; --t-hint: 30px;
+  --pad-x: 64px; --pad-y: 56px; --head-h: 60px; --msg-h: 150px; --amount-col: 150px; --col-gutter: 40px;
+  --t-thanks: 124px; --t-promo: 40px; --t-promo-text: 21px; --t-venue: 26px; --t-tagline: 14px; --t-ticker: 30px; --logo-h: 44px;
+  --t-welcome: 60px; --t-hint: 40px; --t-slide: 84px; --t-slide-text: 30px; --slide-pad: 64px;
+  --qr-beside: 488px; --qr-full: 404px; --qr-slide: 272px; --qr-thanks: 252px; --qr-col: 220px; --qr-receipt: 332px; --qr-receipt-half: 220px;
+  --receipt-paper-w: 580px; --receipt-qr-w: 440px; --receipt-gap: 110px; --t-paper: 19px;
 }
 :root[data-format='1366x768'] {
   --t-total: 120px; --t-pay: 120px; --t-row: 23px; --t-amount: 25px; --t-qty: 18px; --t-label: 14px; --t-msg: 80px; --t-note: 20px;
-  --pad-x: 44px; --pad-y: 36px; --head-h: 44px; --msg-h: 112px; --amount-col: 110px; --gap: 28px;
-  --receipt-w: 820px; --receipt-narrow: 540px; --t-thanks: 86px; --t-promo: 30px; --t-promo-text: 16px;
-  --t-venue: 26px; --t-tagline: 13px; --t-ticker: 21px; --logo-h: 52px; --t-welcome: 44px;
-  --qr-beside: 336px; --qr-full: 300px; --qr-thanks: 180px; --t-hint: 22px;
+  --pad-x: 44px; --pad-y: 36px; --head-h: 44px; --msg-h: 112px; --amount-col: 110px; --col-gutter: 28px;
+  --t-thanks: 88px; --t-promo: 29px; --t-promo-text: 16px; --t-venue: 20px; --t-tagline: 11px; --t-ticker: 22px; --logo-h: 34px;
+  --t-welcome: 44px; --t-hint: 29px; --t-slide: 60px; --t-slide-text: 22px; --slide-pad: 44px;
+  --qr-beside: 360px; --qr-full: 300px; --qr-slide: 196px; --qr-thanks: 180px; --qr-col: 156px; --qr-receipt: 256px; --qr-receipt-half: 170px;
+  --receipt-paper-w: 460px; --receipt-qr-w: 340px; --receipt-gap: 72px; --t-paper: 15px;
 }
 :root[data-format='1280x800'] {
   --t-total: 124px; --t-pay: 124px; --t-row: 24px; --t-amount: 26px; --t-qty: 19px; --t-label: 15px; --t-msg: 84px; --t-note: 21px;
-  --pad-x: 44px; --pad-y: 36px; --head-h: 44px; --msg-h: 116px; --amount-col: 112px; --gap: 28px;
-  --receipt-w: 760px; --receipt-narrow: 500px; --t-thanks: 82px; --t-promo: 28px; --t-promo-text: 15px;
-  --t-venue: 25px; --t-tagline: 13px; --t-ticker: 20px; --logo-h: 50px; --t-welcome: 42px;
-  --qr-beside: 340px; --qr-full: 310px; --qr-thanks: 180px; --t-hint: 22px;
+  --pad-x: 44px; --pad-y: 36px; --head-h: 44px; --msg-h: 116px; --amount-col: 112px; --col-gutter: 28px;
+  --t-thanks: 90px; --t-promo: 30px; --t-promo-text: 16px; --t-venue: 21px; --t-tagline: 11px; --t-ticker: 23px; --logo-h: 35px;
+  --t-welcome: 45px; --t-hint: 30px; --t-slide: 62px; --t-slide-text: 23px; --slide-pad: 44px;
+  --qr-beside: 360px; --qr-full: 310px; --qr-slide: 204px; --qr-thanks: 186px; --qr-col: 156px; --qr-receipt: 256px; --qr-receipt-half: 170px;
+  --receipt-paper-w: 460px; --receipt-qr-w: 340px; --receipt-gap: 72px; --t-paper: 15px;
 }
 :root[data-format='1024x768'] {
   --t-total: 104px; --t-pay: 86px; --t-row: 23px; --t-amount: 25px; --t-qty: 19px; --t-label: 15px; --t-msg: 70px; --t-note: 20px;
-  --pad-x: 40px; --pad-y: 34px; --head-h: 44px; --msg-h: 104px; --amount-col: 110px; --gap: 24px;
-  --receipt-w: 100%; --receipt-narrow: 470px; --t-thanks: 68px; --t-promo: 28px; --t-promo-text: 15px;
-  --t-venue: 24px; --t-tagline: 12px; --t-ticker: 19px; --logo-h: 48px; --t-welcome: 42px;
-  --qr-beside: 300px; --qr-full: 300px; --qr-thanks: 196px; --t-hint: 21px;
+  --pad-x: 40px; --pad-y: 34px; --head-h: 44px; --msg-h: 104px; --amount-col: 110px; --col-gutter: 20px;
   --footer-h: 40px; --footer-word: 15px; --footer-mark: 20px;
+  --t-thanks: 68px; --t-promo: 25px; --t-promo-text: 15px; --t-venue: 20px; --t-tagline: 11px; --t-ticker: 20px; --logo-h: 34px;
+  --t-welcome: 42px; --t-hint: 26px; --t-slide: 52px; --t-slide-text: 20px; --slide-pad: 40px;
+  --qr-beside: 288px; --qr-full: 300px; --qr-slide: 190px; --qr-thanks: 180px; --qr-col: 0px; --qr-receipt: 220px; --qr-receipt-half: 150px;
+  --receipt-paper-w: 420px; --receipt-qr-w: 300px; --receipt-gap: 48px; --t-paper: 14px;
 }
 :root[data-format='1024x768'][data-compact-rows='true'] { --t-row: 30px; --t-amount: 32px; }
 :root[data-format='1080x1920'] {
   --t-total: 150px; --t-pay: 170px; --t-row: 32px; --t-amount: 34px; --t-qty: 24px; --t-label: 22px; --t-msg: 110px; --t-note: 28px;
-  --pad-x: 48px; --pad-y: 48px; --head-h: 64px; --msg-h: 160px; --amount-col: 170px; --gap: 32px;
-  --receipt-w: 100%; --receipt-narrow: 100%; --t-thanks: 104px; --t-promo: 44px; --t-promo-text: 24px;
-  --t-venue: 36px; --t-tagline: 18px; --t-ticker: 30px; --logo-h: 84px; --t-welcome: 64px;
-  --qr-beside: 660px; --qr-full: 660px; --qr-thanks: 300px; --t-hint: 34px;
+  --pad-x: 48px; --pad-y: 48px; --head-h: 64px; --msg-h: 160px; --amount-col: 170px; --col-gutter: 32px;
+  --t-thanks: 112px; --t-promo: 46px; --t-promo-text: 26px; --t-venue: 30px; --t-tagline: 15px; --t-ticker: 30px; --logo-h: 50px;
+  --t-welcome: 66px; --t-hint: 42px; --t-slide: 80px; --t-slide-text: 32px; --slide-pad: 48px;
+  --qr-beside: 660px; --qr-full: 660px; --qr-slide: 340px; --qr-thanks: 320px; --qr-col: 0px; --qr-receipt: 440px; --qr-receipt-half: 300px;
+  --receipt-paper-w: 760px; --receipt-qr-w: 560px; --receipt-gap: 48px; --t-paper: 22px;
 }
-:root[data-format='palmare'] {
-  --t-total: 58px; --t-pay: 62px; --t-row: 18px; --t-amount: 19px; --t-qty: 14px; --t-label: 12px; --t-msg: 38px; --t-note: 15px;
-  --pad-x: 18px; --pad-y: 18px; --head-h: 36px; --msg-h: 64px; --amount-col: 78px; --gap: 14px;
-  --receipt-w: 100%; --receipt-narrow: 100%; --t-thanks: 40px; --t-promo: 20px; --t-promo-text: 14px;
-  --t-venue: 20px; --t-tagline: 11px; --t-ticker: 16px; --logo-h: 44px; --t-welcome: 30px;
-  --qr-beside: 300px; --qr-full: 300px; --qr-thanks: 220px; --t-hint: 17px;
-  --footer-h: 32px; --footer-word: 12px; --footer-mark: 16px;
+:root[data-format='390x844'] {
+  --t-total: 96px; --t-pay: 72px; --t-row: 18px; --t-amount: 20px; --t-qty: 14px; --t-label: 13px; --t-msg: 34px; --t-note: 14px;
+  --pad-x: 20px; --pad-y: 20px; --head-h: 40px; --msg-h: 64px; --amount-col: 64px; --col-gutter: 12px;
+  --footer-h: 30px; --footer-word: 11px; --footer-mark: 13px;
+  --t-thanks: 46px; --t-promo: 20px; --t-promo-text: 14px; --t-venue: 18px; --t-tagline: 10px; --t-ticker: 16px; --logo-h: 30px;
+  --t-welcome: 30px; --t-hint: 22px; --t-slide: 34px; --t-slide-text: 16px; --slide-pad: 20px;
+  --qr-beside: 300px; --qr-full: 300px; --qr-slide: 180px; --qr-thanks: 200px; --qr-col: 0px; --qr-receipt: 200px; --qr-receipt-half: 200px;
+  --receipt-paper-w: 350px; --receipt-qr-w: 246px; --receipt-gap: 14px; --t-paper: 13px;
 }
+/* Pagamento con il QR accanto (SPEC §2.4): lo scontrino a colonneContoPagamento, la tipografia ridotta, il totale 92 px. */
+:root[data-phase='payment'][data-qr='beside'] { --grow-conto: var(--cols-pagamento); --grow-side: calc(24 - var(--cols-pagamento)); --k-row: 0.79; --k-amount: 0.75; --k-total: 0.61; }
 
 @keyframes bt-row-in { 0% { opacity: 0; transform: translateY(18px) scale(0.985); } 45% { opacity: 1; transform: translateY(-3px) scale(1.004); } 100% { opacity: 1; transform: none; } }
+@keyframes bt-row-in-troppo { 0% { opacity: 0; transform: translateY(22px) scale(0.98); } 35% { opacity: 1; transform: translateY(-5px) scale(1.008); } 60% { transform: translateY(2px); } 80% { transform: translateY(-1px); } 100% { opacity: 1; transform: none; } }
+@keyframes bt-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bt-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes bt-note-in { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+@keyframes bt-qty-in { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: none; } }
+@keyframes bt-qty-bump { 0% { transform: scale(1); } 40% { transform: scale(1.28); } 70% { transform: scale(0.94); } 100% { transform: scale(1); } }
+@keyframes bt-sweep { from { transform: translateX(-100%); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+@keyframes bt-strike { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes bt-flash { 0% { opacity: 0; } 30% { opacity: 0.55; } 100% { opacity: 0; } }
+@keyframes bt-price-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
 @keyframes bt-total-pulse { 0%, 100% { transform: scale(1); } 45% { transform: scale(1.035); } }
+@keyframes bt-total-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.012); } }
 @keyframes bt-msg-in { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: none; } }
 @keyframes bt-halo { from { opacity: 0.5; transform: scale(0.94); } to { opacity: 0; transform: scale(1.14); } }
 @keyframes bt-ring { from { opacity: 0.85; transform: scale(0.6); } to { opacity: 0; transform: scale(1.9); } }
 @keyframes bt-rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
-@keyframes bt-kenburns { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.08) translate3d(-14px, -10px, 0); } }
+@keyframes bt-pop { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
+@keyframes bt-kb-a { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.08) translate3d(-14px, -10px, 0); } }
+@keyframes bt-kb-b { from { transform: scale(1.08) translate3d(-14px, 0, 0); } to { transform: scale(1) translate3d(10px, -8px, 0); } }
 @keyframes bt-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @keyframes bt-breathe { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 @keyframes bt-mesh { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(40px, -30px, 0) scale(1.1); } }
-@keyframes bt-fade-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes bt-pop { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
+@keyframes bt-push-in { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes bt-push-out { from { transform: none; } to { transform: translateX(-100%); } }
+@keyframes bt-col-in { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@keyframes bt-col-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-28px); } }
+@keyframes bt-letter { from { opacity: 0; transform: translateY(0.4em); } to { opacity: 1; transform: none; } }
+@keyframes bt-glow-flash { 0%, 100% { opacity: 0; } 40% { opacity: 0.35; } }
 
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--c-bg); color: var(--c-text); font-family: var(--font-text);
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; }
 html.nocursor, html.nocursor * { cursor: none !important; }
 #stage { position: absolute; left: 0; top: 0; overflow: hidden; transform-origin: 0 0; }
 .num { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
-.screen { position: absolute; inset: 0; box-sizing: border-box; opacity: 0; visibility: hidden;
-  transition: opacity var(--d-state) var(--e-out), visibility 0s linear var(--d-state); }
-.screen.on { opacity: 1; visibility: visible; transition: opacity var(--d-state) var(--e-out), visibility 0s; }
 .label { font-family: var(--font-display); font-size: var(--t-label); font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--c-muted); }
+.screen { position: absolute; inset: 0; box-sizing: border-box; opacity: 0; visibility: hidden; transition: opacity var(--d-state) var(--e-out), visibility 0s linear var(--d-state); }
+.screen.on { opacity: 1; visibility: visible; transition: opacity var(--d-state) var(--e-out), visibility 0s; }
 
-/* Il fondo: tinta, sfumato, luci (mesh), immagine o video del locale. */
+/* Il fondo a cinque strati (SPEC §15): il media con il sovra-ritaglio, lo scrim fisso calcolato sul fotogramma bianco; la
+   sfocatura sta sulla card, il vetro sopra lo scrim, il contenuto non sa niente del fondo. */
 #bg { position: absolute; inset: 0; overflow: hidden; background: var(--c-bg); }
-#bg .mesh { position: absolute; inset: -10%; background: radial-gradient(ellipse 50% 45% at 18% 22%, var(--glow) 0%, transparent 62%),
-  radial-gradient(ellipse 45% 40% at 86% 78%, var(--glow-2) 0%, transparent 60%); animation: bt-mesh 24s ease-in-out infinite alternate; }
-:root[data-motion='eco'] #bg .mesh { animation: none; }
-#bg .gradient { position: absolute; inset: 0; background: linear-gradient(165deg, var(--c-surface-solid) 0%, var(--c-bg) 62%); }
-#bg img, #bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-#bg .veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(var(--c-bg-rgb), 0.55) 0%, rgba(var(--c-bg-rgb), 0.82) 100%); }
+#bg .layer { position: absolute; inset: -4%; }
+#bg img, #bg video { width: 100%; height: 100%; object-fit: cover; display: block; }
+#bg .mesh { background: radial-gradient(ellipse 50% 45% at 18% 22%, color-mix(in srgb, var(--glow) 32%, transparent) 0%, transparent 62%),
+  radial-gradient(ellipse 45% 40% at 86% 78%, color-mix(in srgb, var(--glow-2) 18%, transparent) 0%, transparent 60%),
+  radial-gradient(ellipse 40% 36% at 60% 30%, color-mix(in srgb, var(--glow) 14%, transparent) 0%, transparent 60%); }
+:root[data-motion='full'] #bg .mesh { animation: bt-mesh 24s ease-in-out infinite alternate; }
+:root[data-attr='troppo'][data-motion='full'] #bg .mesh { animation-duration: 9s; }
+:root.offline #bg .mesh, :root.offline #bg video { animation-play-state: paused; }
+#bg .gradient { background: linear-gradient(165deg, var(--c-surface-solid) 0%, var(--c-bg) 62%); }
+#bg .scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(var(--scrim-rgb), var(--scrim-top)) 0%, rgba(var(--scrim-rgb), var(--scrim-bottom)) 100%);
+  transition: opacity var(--d-state) var(--e-out); }
+#bg .scrim.idle { background: linear-gradient(180deg, rgba(var(--scrim-rgb), var(--scrim-top)) 0%, rgba(var(--scrim-rgb), var(--scrim-idle-mid)) 50%, rgba(var(--scrim-rgb), var(--scrim-bottom)) 100%); }
+:root[data-screen='idle'] #bg .scrim:not(.idle), :root:not([data-screen='idle']) #bg .scrim.idle { opacity: 0; }
 
-/* Attesa: le slide del locale a tutto schermo, il logo, il testo scorrevole. Senza slide il benvenuto. */
-#idle .slides { position: absolute; inset: 0; overflow: hidden; background: #050709; display: none; }
-#idle.has-slides .slides { display: block; }
-#idle .slide { position: absolute; inset: 0; opacity: 0; transition: opacity var(--d-slide) var(--e-out); }
-#idle .slide.on { opacity: 1; }
-/* La scheda riempie la slide: con l'altezza automatica una foto restava una striscia 16:9 in alto (4:3, verticale). */
-#idle .slide > .ad { position: absolute; inset: 0; }
-#idle .slide img, #idle .slide video { display: block; width: 100%; height: 100%; object-fit: cover; }
-:root[data-motion='full'] #idle .slide.on img { animation: bt-kenburns 9s linear both; }
-#idle .scrim { position: absolute; inset: 0; display: none;
-  background: linear-gradient(180deg, rgba(5,7,9,0.72) 0%, rgba(5,7,9,0) 26%, rgba(5,7,9,0) 58%, rgba(5,7,9,0.88) 100%); }
-#idle.has-slides .scrim { display: block; transition: opacity var(--d-slide) var(--e-out); }
-#idle.promo-on .scrim { opacity: 0; }   /* la promozione ha la sua velatura: sopra il QR ne servirebbe una in meno */
-.venue { display: flex; align-items: center; gap: calc(var(--t-venue) * 0.55); min-width: 0; }
-.venue img { display: block; height: var(--logo-h); max-width: calc(var(--logo-h) * 4); object-fit: contain; }
-.venue .words { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.venue .name { font-family: var(--font-display); font-size: var(--t-venue); font-weight: 700; letter-spacing: 0.04em; line-height: 1.05; }
-.venue .tagline { font-size: var(--t-tagline); letter-spacing: 0.22em; text-transform: uppercase; opacity: 0.72; }
-#idle .venue { position: absolute; left: var(--pad-x); top: var(--pad-y); right: 40%; display: none; color: #F4F6FA; }
-#idle.has-slides .venue { display: flex; }
-:root[data-layout='portrait'] #idle .venue { left: var(--pad-x); right: var(--pad-x); justify-content: center; text-align: center; }
-#idle .dots { position: absolute; right: var(--pad-x); top: calc(var(--pad-y) + 10px); display: none; gap: 10px; }
-#idle.has-slides .dots { display: flex; }
-:root[data-layout='portrait'] #idle .dots { top: auto; bottom: calc(var(--pad-y) + var(--footer-h) + 24px); right: 50%; transform: translateX(50%); }
-#idle .dots i { width: 20px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.3); transition: width 400ms var(--e-out), background 400ms; }
-#idle .dots i.on { width: 44px; background: #E6EAF2; }
-#welcome { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: calc(var(--t-welcome) * 0.45); text-align: center; padding: 0 var(--pad-x) calc(var(--footer-h) + var(--pad-y)); box-sizing: border-box; }
-#idle.has-slides #welcome { display: none; }
-#welcome img { display: block; max-height: calc(var(--logo-h) * 2.4); max-width: 60%; object-fit: contain; }
-#welcome .name { font-family: var(--font-display); font-size: calc(var(--t-welcome) * 1.25); font-weight: 700; letter-spacing: 0.02em; line-height: 1; }
-#welcome .tagline { font-size: calc(var(--t-tagline) * 1.2); letter-spacing: 0.24em; text-transform: uppercase; color: var(--c-muted); }
-#welcome .text { font-family: var(--font-display); font-size: var(--t-welcome); font-weight: 600; color: var(--c-text); margin-top: calc(var(--t-welcome) * 0.3); }
-#welcome .rule { width: 72px; height: 3px; border-radius: 2px; background: var(--c-primary); }
-.ticker { position: absolute; left: 0; right: 0; bottom: calc(var(--pad-y) + var(--footer-h) + 24px); overflow: hidden;
-  padding: calc(var(--t-ticker) * 0.64) 0; border-top: 1px solid var(--c-line); border-bottom: 1px solid var(--c-line); background: rgba(var(--c-text-rgb), 0.035); }
-#idle.has-slides .ticker { color: #E6EAF2; border-color: rgba(255,255,255,0.1); background: rgba(5,7,9,0.32); }
-:root[data-layout='portrait'] .ticker { bottom: calc(var(--pad-y) + var(--footer-h) + 56px); }
-.ticker .track { display: flex; gap: 80px; width: max-content; white-space: nowrap; padding-left: var(--pad-x); font-size: var(--t-ticker);
-  font-weight: 500; animation: bt-ticker var(--ticker-s, 24s) linear infinite; }
+/* La testata: il locale a sinistra, la cassa e il collegamento a destra. Nell'attesa c'è quella grande, con il sottotitolo. */
+#head { position: absolute; left: var(--pad-x); right: var(--pad-x); top: var(--pad-y); height: var(--head-h); display: flex; align-items: center;
+  justify-content: space-between; gap: 24px; z-index: 4; transition: opacity var(--d-state) var(--e-out); }
+:root[data-screen='idle'] #head { opacity: 0; }
+.venue { display: flex; align-items: center; gap: calc(var(--t-venue) * 0.6); min-width: 0; }
+.venue img { display: block; height: var(--logo-h); max-width: calc(var(--logo-h) * 4.5); object-fit: contain; }
+.venue .glyph { flex: none; width: var(--logo-h); height: var(--logo-h); border-radius: 50%; border: 1.5px solid rgba(var(--c-text-rgb), 0.45); display: grid; place-items: center; box-sizing: border-box; }
+.venue .glyph svg { width: 46%; height: 46%; }
+.venue .words { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.venue .name { font-family: var(--font-display); font-size: var(--t-venue); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.05;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.venue .tagline { font-size: var(--t-tagline); letter-spacing: 0.24em; text-transform: uppercase; opacity: 0.72; white-space: nowrap; }
+.venue .name .letter { display: inline-block; animation: bt-letter 420ms var(--e-out) both; }
+#head .where { display: flex; align-items: center; gap: 12px; color: var(--c-muted); font-size: calc(var(--t-label) * 1.15); white-space: nowrap; }
+#head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c-accent); }
+:root.offline #head .dot { background: var(--c-faint); }
+:root[data-layout='palmare'] #head .where .cash { display: none; }
 
-/* Conto: la card dello scontrino e la colonna laterale (promozione, QR del pagamento, Grazie). */
-#bill { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.7); padding: var(--pad-y) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); }
-#bill .head { height: var(--head-h); flex-shrink: 0; display: flex; align-items: center; }
-#bill .head .venue { gap: 16px; }
-#bill .head .venue img { height: calc(var(--head-h) * 0.72); }
-#bill .head .venue .name { font-size: calc(var(--head-h) * 0.43); letter-spacing: 0.06em; }
-#bill .head .venue .tagline { display: none; }
-#msg { flex-shrink: 0; display: none; align-items: center; justify-content: center; gap: 0.4em; height: var(--msg-h); padding: 0 var(--pad-x);
-  border-radius: var(--radius); background: var(--c-primary); color: var(--c-on-primary); font-family: var(--font-display); font-weight: 700;
-  font-size: calc(var(--t-msg) * 0.62); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; animation: bt-msg-in var(--d-msg) var(--e-out) both; }
-#msg.on { display: flex; }
-#msg .label { color: inherit; opacity: 0.8; font-size: calc(var(--t-msg) * 0.24); margin-right: 0.8em; }
-#msg .value { font-size: var(--t-msg); line-height: 1; }
-#bill .body { flex: 1; min-height: 0; display: flex; gap: var(--gap); }
-:root[data-layout='portrait'] #bill .body { flex-direction: column-reverse; }
-.card { border-radius: var(--radius); background: var(--c-surface); border: 1px solid var(--c-line); box-sizing: border-box; }
-:root.blur .card { -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); }
-:root[data-mode='giorno'] .card { box-shadow: 0 2px 24px rgba(var(--c-text-rgb), 0.06); }
-.receipt { width: var(--receipt-w); flex-shrink: 0; display: flex; flex-direction: column; gap: 18px; min-height: 0; padding: calc(var(--pad-x) * 0.62); }
-:root[data-layout='portrait'] .receipt { flex: 1; width: auto; }
-:root[data-side='qr'] .receipt, :root[data-side='thanks'] .receipt { width: var(--receipt-narrow); --k-row: 0.79; --k-amount: 0.75; --k-total: 0.61; }
-:root[data-layout='narrow'][data-side='none'] .receipt { width: 100%; }
+/* La card: vetro sul tema scuro, ombra su quello chiaro; la sfocatura solo con il movimento pieno (MOTION, "I tre livelli"). */
+.card { position: relative; border-radius: calc(var(--radius) * 1.6); background: var(--c-surface); border: 1px solid var(--c-line); box-sizing: border-box; }
+:root.blur .card { -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur)); }
+:root.pretint .card { background: color-mix(in srgb, var(--c-surface-solid) 88%, transparent); }
+:root[data-scrim='light'] .card { box-shadow: 0 2px 24px rgba(var(--c-text-rgb), 0.06); }
+
+/* Il conto (SPEC §2.2, §17): la card a colonneConto su 24, alta quanto il contenuto e ancorata in basso; la colonna
+   accanto prende il resto, allineata come vuole il locale. flex-grow, non grid (tokens.css). */
+#bill { display: flex; flex-direction: column; gap: calc(var(--col-gutter) * 0.6);
+  padding: calc(var(--pad-y) + var(--head-h) + var(--col-gutter)) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); }
+.msg { flex-shrink: 0; display: none; align-items: center; justify-content: center; gap: 0.4em; height: var(--msg-h); padding: 0 var(--pad-x);
+  border-radius: calc(var(--radius) * 1.6); background: var(--c-primary); color: var(--c-on-primary); font-family: var(--font-display); font-weight: 700;
+  font-size: calc(var(--t-msg) * 0.62); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; animation: bt-msg-in var(--d-msg-in) var(--e-out) both; box-sizing: border-box; }
+.msg.on { display: flex; }
+.msg .text { display: flex; align-items: baseline; gap: 0.5em; animation: bt-fade-in var(--d-msg-swap) linear both; }
+.msg .label { color: inherit; opacity: 0.8; font-size: calc(var(--t-msg) * 0.24); }
+.msg .value { font-size: var(--t-msg); line-height: 1; }
+#bill .body { flex: 1; min-height: 0; display: flex; gap: var(--col-gutter); align-items: flex-end; }
+.receipt { flex: var(--grow-conto) 1 0; min-width: 0; max-height: 100%; display: flex; flex-direction: column; gap: calc(var(--t-row) * 0.5);
+  padding: calc(var(--pad-x) * 0.56); transition: flex-grow 0s; }
+:root[data-layout='narrow'] .receipt, :root[data-layout='palmare'] .receipt { padding: calc(var(--pad-x) * 0.5); }
 .receipt .top { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-shrink: 0; }
-.receipt .count { font-size: calc(var(--t-label) * 1.12); color: var(--c-muted); }
-.receipt .more { font-size: calc(var(--t-qty) * 0.8); color: var(--c-faint); flex-shrink: 0; display: none; }
+.receipt .count { font-size: calc(var(--t-label) * 1.12); color: var(--c-muted); white-space: nowrap; }
+.receipt .more { font-size: calc(var(--t-qty) * 0.85); color: var(--c-faint); flex-shrink: 0; display: none; padding-bottom: 4px; border-bottom: 1px solid var(--c-line); }
 .receipt .more.on { display: block; }
-.lines { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
-.lines.cut { -webkit-mask-image: linear-gradient(transparent 0, #000 70px); mask-image: linear-gradient(transparent 0, #000 70px); }
-.row { display: flex; align-items: baseline; gap: 20px; padding: calc(var(--t-row) * var(--k-row) * 0.46) 0; border-bottom: 1px solid var(--c-line); flex-shrink: 0; }
-.row .desc { flex: 1; min-width: 0; font-size: calc(var(--t-row) * var(--k-row)); font-weight: 500; overflow-wrap: anywhere; }
-.row .qty { font-size: calc(var(--t-qty) * var(--k-row)); color: var(--c-muted); }
-.row .amount { width: calc(var(--amount-col) * var(--k-amount)); flex-shrink: 0; text-align: right; font-size: calc(var(--t-amount) * var(--k-amount)); font-weight: 600; }
-/* "Prezzi solo sul conto": durante la battuta le descrizioni, senza importi e senza totale. */
-:root.noprices .row .amount, :root.noprices .total { display: none; }
+.lines { position: relative; flex: 0 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+/* Lo spazio sopra le righe: le tiene in basso, vicino al totale, e quando non ci stanno sparisce, così l'eccedenza si misura. */
+.lines::before { content: ""; flex: 1 1 auto; }
+.lines.cut { -webkit-mask-image: linear-gradient(transparent 0, #000 56px); mask-image: linear-gradient(transparent 0, #000 56px); }
+
+/* Le righe: sei varianti, sette ingressi (SPEC §3, MOTION "Sette righe"). */
+.row { position: relative; display: flex; align-items: baseline; gap: 20px; padding: calc(var(--t-row) * var(--k-row) * 0.42) 0; border-bottom: 1px solid var(--c-line);
+  flex-shrink: 0; overflow: hidden; }
+.row .desc { flex: 1; min-width: 0; font-size: calc(var(--t-row) * var(--k-row)); font-weight: 500; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.row .qty { display: inline-block; font-size: calc(var(--t-qty) * var(--k-row)); color: var(--c-muted); flex-shrink: 0; }
+.row .amount { width: calc(var(--amount-col) * var(--k-amount)); flex-shrink: 0; text-align: right; font-size: calc(var(--t-amount) * var(--k-amount)); font-weight: 600; white-space: nowrap; }
+:root.noprices .row .amount { display: none; }
 .row.discount, .row.surcharge { color: var(--c-accent); }
-.row.void { color: var(--c-faint); }
-.row.void .desc, .row.void .amount { text-decoration: line-through; text-decoration-thickness: 2px; }
-.row .pill { border: 1px solid currentColor; border-radius: 999px; padding: 3px 12px; font-size: calc(var(--t-qty) * 0.6); letter-spacing: 0.14em; }
-.row.note { padding-left: 28px; }
+.row.discount .qty, .row.surcharge .qty { color: inherit; }
+.row.note { padding-left: 28px; opacity: var(--o-note); }
 .row.note .desc { font-size: calc(var(--t-note) * var(--k-row)); font-style: italic; font-weight: 400; color: var(--c-muted); }
-.row.enter { animation: bt-row-in var(--d-row) var(--e-spring) both; }
-.total { flex-shrink: 0; border-radius: calc(var(--radius) * 0.75); padding: calc(var(--t-total) * var(--k-total) * 0.17) calc(var(--t-total) * var(--k-total) * 0.21);
-  background: var(--total-fill); border: 1px solid var(--total-border); color: var(--total-text);
-  display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
-:root[data-layout='narrow'] .total, :root[data-format='palmare'] .total { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-on-primary); }
-.total .label { color: inherit; opacity: 0.78; padding-bottom: calc(var(--t-total) * var(--k-total) * 0.1); font-size: calc(var(--t-label) * 1.12); }
-.total .value { font-family: var(--font-display); font-size: calc(var(--t-total) * var(--k-total)); font-weight: 700; line-height: 1; letter-spacing: -0.035em; white-space: nowrap; }
+.row .strike { position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: currentColor; transform-origin: left center; transform: scaleX(0); }
+.row.voided { color: var(--c-faint); }
+.row.voided .strike { transform: none; }
+.row.voided.striking .strike { animation: bt-strike var(--d-strike) var(--e-out) both; }
+.row .pill { flex-shrink: 0; border: 1px solid currentColor; border-radius: 999px; padding: 2px 10px; font-size: calc(var(--t-qty) * 0.62); letter-spacing: 0.14em; align-self: center; }
+.row.leaving { animation: bt-fade-out var(--d-void-fade) var(--e-out) both; }
+.row .sweep { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent, rgba(var(--c-accent-rgb), 0.22), transparent);
+  transform: translateX(-100%); opacity: 0; }
+.row.in-item, .row.in-discount, .row.in-surcharge { animation: bt-row-in var(--d-row) var(--e-spring) both; }
+:root[data-attr='troppo'][data-motion='full'] .row.in-item, :root[data-attr='troppo'][data-motion='full'] .row.in-discount,
+:root[data-attr='troppo'][data-motion='full'] .row.in-surcharge { animation-name: bt-row-in-troppo; }
+:root[data-motion='eco'] .row.in-item, :root[data-motion='eco'] .row.in-discount, :root[data-motion='eco'] .row.in-surcharge { animation-name: bt-fade-in; }
+.row.in-item .qty { animation: bt-qty-in 200ms var(--e-out) var(--d-qty-delay) both; }
+.row.in-note { animation: bt-note-in var(--d-note-in) var(--e-out) both; }
+:root[data-motion='eco'] .row.in-note { animation-name: bt-fade-in; }
+.row.in-discount .sweep { animation: bt-sweep var(--d-sweep) linear var(--d-row) both; }
+:root[data-motion='eco'] .row .sweep { display: none; }
+:root[data-attr='troppo'][data-motion='full'] .row.in-discount .sweep { background: rgba(var(--c-accent-rgb), 0.4); transform: none; animation: bt-flash 700ms var(--e-out) var(--d-row) both; }
+.row.bump .qty { animation: bt-qty-bump var(--d-qty-bump) var(--e-out) both; color: var(--c-accent); }
+:root[data-motion='full'] .row.bump::after { content: ""; position: absolute; inset: 0; background: rgba(var(--c-text-rgb), 0.07); animation: bt-flash 600ms var(--e-out) both; pointer-events: none; }
+.row.cascade .amount { animation: bt-price-in 260ms var(--e-out) both; }
+
+/* Il totale: sempre l'elemento più grande (CLAUDE.md), contachilometri (SPEC §4). */
+.total { flex-shrink: 0; position: relative; border-radius: var(--radius); padding: calc(var(--t-total) * var(--k-total) * 0.16) calc(var(--t-total) * var(--k-total) * 0.2);
+  background: var(--total-fill); border: 1px solid var(--total-border); color: var(--total-text); display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+:root[data-layout='narrow'] .total, :root[data-layout='palmare'] .total { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-on-primary); }
+.total .words { display: flex; flex-direction: column; gap: 4px; padding-bottom: calc(var(--t-total) * var(--k-total) * 0.08); }
+.total .label { color: inherit; opacity: 0.85; font-size: calc(var(--t-label) * 1.12); }
+.total .vat { font-size: calc(var(--t-label) * 1.05); opacity: 0.7; white-space: nowrap; }
+.total .value { font-variant-numeric: tabular-nums; font-family: var(--font-display); font-size: calc(var(--t-total) * var(--k-total)); font-weight: 700; line-height: 1; letter-spacing: -0.035em; white-space: nowrap; }
 .total .value.pulse { animation: bt-total-pulse var(--d-total-pulse) var(--e-out) 120ms; }
 .total .value.fade { animation: bt-fade-in 140ms linear; }
-/* Il contachilometri (SPEC §4): ogni cifra è una colonna 0-9 alta 1em che scorre; gli altri caratteri stanno fermi. */
+:root[data-attr='troppo'][data-motion='full'] .total .value.breathe { animation: bt-total-breathe 3.2s ease-in-out infinite; }
+.total.arrive { animation: bt-rise 420ms var(--e-out) both; }
+:root[data-layout='palmare'] .total { flex-direction: column; align-items: stretch; gap: 0; }
+:root[data-layout='palmare'] .total .words { flex-direction: row; justify-content: space-between; align-items: baseline; padding: 0; }
+:root[data-layout='palmare'] .total .value { text-align: right; }
+.waitbill { display: none; flex-shrink: 0; align-items: center; gap: 12px; padding-top: calc(var(--t-row) * 0.6); border-top: 1px solid var(--c-line); color: var(--c-muted); font-size: calc(var(--t-row) * 0.72); }
+.waitbill i { width: 8px; height: 8px; border-radius: 50%; background: var(--c-faint); }
+:root.noprices .waitbill { display: flex; }
+:root.noprices .total { display: none; }
 .odo-c, .odo-d { display: inline-block; height: 1em; vertical-align: top; }
 .odo-d { overflow: hidden; }
 .odo-r { display: block; transition: transform var(--d-odo) var(--e-out); }
 .odo-r > i { display: block; height: 1em; font-style: normal; }
-/* "Prezzi solo sul conto": quando la cassa mostra il conto importi e totale arrivano in dissolvenza. */
-.row .amount, .total { animation: bt-fade-in var(--d-state) var(--e-out) both; }
-.side { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 24px; }
+
+/* La colonna accanto al conto (SPEC §2.2): una scheda che ruota; a Sobrio non c'è, in verticale è la scena sopra. */
+.side { flex: var(--grow-side) 1 0; min-width: 0; max-height: 100%; align-self: var(--side-align); display: flex; flex-direction: column; gap: 14px; }
 :root[data-side='none'] .side { display: none; }
-:root[data-layout='portrait'] .side { flex: 0 0 auto; max-height: 42%; }
-.side > section { display: none; flex: 1; min-height: 0; animation: bt-fade-in var(--d-state) var(--e-out) both; }
-:root[data-motion='full'] .side > .paycard { animation: bt-pop 360ms var(--e-out) both; }
-:root[data-side='promo'] .side .adcard, :root[data-side='venue'] .side .venuecard, :root[data-side='qr'] .side .paycard,
-:root[data-side='thanks'] .side .thanks { display: flex; }
-.venuecard { flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; border-radius: var(--radius);
-  background: rgba(var(--c-text-rgb), 0.03); border: 1px solid var(--c-line); padding: 32px; }
-.venuecard img { max-width: 70%; max-height: 40%; object-fit: contain; }
-.venuecard .name { font-family: var(--font-display); font-size: var(--t-promo); font-weight: 700; }
-.venuecard .tagline { font-size: var(--t-promo-text); letter-spacing: 0.2em; text-transform: uppercase; color: var(--c-muted); }
-.qrbox { position: relative; background: #FFFFFF; border-radius: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.qrbox img { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
-.qrbox img { image-rendering: pixelated; }
-.qrbox .halo { position: absolute; inset: 0; border-radius: inherit; border: 2px solid var(--c-primary); animation: bt-halo 2.4s var(--e-out) infinite; pointer-events: none; }
-.qrbox .halo:nth-child(3) { animation-delay: 0.8s; }
-.qrbox .halo:nth-child(4) { animation-delay: 1.6s; }
-:root[data-motion='eco'] .qrbox .halo { display: none; }
-.paycard { flex-direction: column; align-items: center; justify-content: center; gap: 26px; text-align: center; }
-.paycard .hint { font-size: var(--t-hint); font-weight: 600; }
-.paycard .caption { font-size: calc(var(--t-hint) * 0.66); color: var(--c-muted); max-width: 90%; }
-.thanks { position: relative; flex-direction: column; justify-content: center; gap: calc(var(--t-thanks) * 0.2); padding-left: 12px; animation: bt-rise 520ms var(--e-out) both; }
-.thanks h2 { margin: 0; font-family: var(--font-display); font-size: var(--t-thanks); font-weight: 700; line-height: 0.98; letter-spacing: -0.035em; }
-.thanks .paid { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 20px; }
-.thanks .paid .value { font-family: var(--font-display); font-size: calc(var(--t-thanks) * 0.47); font-weight: 700; }
-.thanks .paid .method { font-size: calc(var(--t-hint) * 0.8); color: var(--c-muted); }
-/* Con una reclame il saluto e il totale salgono in alto, e sotto c'è la promozione (o lo scontrino digitale). */
-.thanks.with-ad { justify-content: flex-start; padding-top: 8px; }
-.thanks.with-ad h2 { font-size: calc(var(--t-thanks) * 0.82); }
-.thanksad { display: none; flex: 1; min-height: 0; margin-top: calc(var(--t-thanks) * 0.12); animation: bt-rise 520ms var(--e-out) 140ms both; }
-.thanks.with-ad .thanksad { display: flex; }
-.rings { position: absolute; left: 30%; top: 50%; width: calc(var(--t-thanks) * 3.4); height: calc(var(--t-thanks) * 3.4); transform: translate(-50%, -50%); pointer-events: none; }
-.ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--c-primary); opacity: 0; animation: bt-ring var(--d-celebration) var(--e-out) both; }
-.ring:nth-child(2) { border-color: var(--c-accent); animation-delay: 140ms; }
-.ring:nth-child(3) { border-color: rgba(var(--c-text-rgb), 0.25); animation-delay: 280ms; }
-:root[data-layout='portrait'] .thanks h2, :root[data-format='palmare'] .thanks h2 { font-size: calc(var(--t-thanks) * 0.8); }
-:root.thanks-ad[data-layout='portrait'][data-side='thanks'] .side { max-height: 64%; }
 :root[data-side='none'] #bill .body { justify-content: center; }
+.side .stack { display: grid; min-height: 0; }
+.side .stack > * { grid-area: 1 / 1; min-width: 0; }
+.side .stack > .in { animation: bt-col-in var(--d-col) var(--e-out) 120ms both; }
+.side .stack > .out { animation: bt-col-out var(--d-col) var(--e-out) both; pointer-events: none; }
+:root[data-motion='eco'] .side .stack > .in { animation-name: bt-fade-in; animation-delay: 0ms; }
+:root[data-motion='eco'] .side .stack > .out { animation-name: bt-fade-out; }
+.dots { display: flex; gap: 8px; justify-content: center; }
+.dots i { width: 14px; height: 4px; border-radius: 2px; background: rgba(var(--c-text-rgb), 0.25); transition: transform 400ms var(--e-out), background 400ms; }
+.dots i.on { background: var(--c-accent); transform: scaleX(2.2); }
 
-/* Le reclame dei set: una foto, un video o una promozione (titolo, testo, immagine, QR). La stessa scheda nelle slide
-   dell'attesa, accanto al conto e sotto il Grazie; cambia solo la disposizione. */
-@keyframes bt-fade { from { opacity: 0; } to { opacity: 1; } }
-.ad { position: relative; isolation: isolate; box-sizing: border-box; min-width: 0; min-height: 0; overflow: hidden; }
-.ad > img, .ad > video { display: block; width: 100%; height: 100%; object-fit: cover; }
-.ad .pic { background: center / cover no-repeat; min-height: 0; }
-.ad .copy { display: flex; flex-direction: column; min-width: 0; }
-.ad h3 { margin: 0; font-family: var(--font-display); font-weight: 700; line-height: 1.06; letter-spacing: -0.015em; overflow-wrap: anywhere; }
-.ad p { margin: 0; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-line; }
-.ad .qrzone { display: flex; flex-direction: column; align-items: center; text-align: center; flex-shrink: 0; }
-.ad .qrzone .caption { font-weight: 600; line-height: 1.3; }
-.ad .qrbox { border-radius: 18px; }
+/* Le schede delle vetrine (modelli A-D, SPEC §16), nella colonna, nel Grazie, nello scontrino e nella scena. */
+.adcard { display: flex; flex-direction: column; min-height: 0; overflow: hidden; border-radius: calc(var(--radius) * 1.6); background: var(--c-surface-solid);
+  border: 1px solid var(--c-line); box-sizing: border-box; }
+.adcard .media { position: relative; flex: none; aspect-ratio: 16 / 9; overflow: hidden; background: #000; }
+.adcard .media img, .adcard .media video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.adcard .media.bands { background: var(--c-surface-solid); }
+.adcard .media.bands img, .adcard .media.bands video { object-fit: contain; }
+.adcard .copy { display: flex; flex-direction: column; gap: calc(var(--t-promo) * 0.32); padding: calc(var(--t-promo) * 0.72); min-width: 0; }
+.adcard .label { color: var(--c-accent); font-size: calc(var(--t-label) * 0.92); }
+.adcard h3 { margin: 0; font-family: var(--font-display); font-size: var(--t-promo); font-weight: 700; line-height: 1.08; letter-spacing: -0.01em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.adcard h3.long { font-size: calc(var(--t-promo) * 0.82); }
+.adcard p { margin: 0; font-size: var(--t-promo-text); color: var(--c-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+.adcard .qrzone { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 0 calc(var(--t-promo) * 0.72) calc(var(--t-promo) * 0.72); text-align: center; }
+.adcard .qrzone .caption { font-weight: 600; font-size: calc(var(--t-promo-text) * 0.95); max-width: 16em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.adcard.media-only { background: #000; }
+.adcard.media-only .media { aspect-ratio: 16 / 9; }
+.side.nophoto .adcard.promo .media { display: none; }
+.adcard .qrzone, .slide .qrzone { animation: bt-fade-in 420ms linear 460ms both; }
+/* La scena (prezzi solo sul conto): la vetrina al centro, la lista diventa una colonna stretta di controllo (SPEC §2.2.1). */
+:root.noprices #bill .body.inverted { flex-direction: row-reverse; }
+:root.noprices #bill .body.inverted .receipt { flex-grow: 8; }
+:root.noprices #bill .body.inverted .side { flex-grow: 16; align-self: flex-end; }
+.scene { display: flex; flex-direction: column; gap: calc(var(--t-slide) * 0.22); padding-bottom: 8px; }
+.scene .label { color: var(--c-accent); }
+.scene h2 { margin: 0; font-family: var(--font-display); font-size: var(--t-slide); font-weight: 700; line-height: 1.02; letter-spacing: -0.03em; max-width: 12em;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.scene p { margin: 0; font-size: var(--t-slide-text); color: var(--c-muted); max-width: 22em; line-height: 1.35; }
+:root[data-layout='narrow'] .adcard .media { display: none; }
 
-/* Nell'attesa: a tutto schermo, sempre su un fondo scuro come le foto (il logo e il testo scorrevole sono chiari). */
-#idle .ad.promo { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: space-between; gap: 64px;
-  padding: calc(var(--pad-y) + var(--logo-h) + 48px) var(--pad-x) calc(var(--pad-y) + var(--footer-h) + 56px); color: #F4F6FA;
-  background: radial-gradient(ellipse 55% 60% at 16% 22%, rgba(var(--c-primary-rgb), 0.5) 0%, transparent 64%),
-    radial-gradient(ellipse 50% 50% at 88% 84%, rgba(var(--c-accent-rgb), 0.26) 0%, transparent 62%), #080B11; }
-#idle.has-ticker .ad.promo { padding-bottom: calc(var(--pad-y) + var(--footer-h) + var(--t-ticker) * 2.4 + 72px); }
-#idle .ad.promo .pic { position: absolute; inset: 0; }
-:root[data-motion='full'] #idle .slide.on .ad.promo .pic { animation: bt-kenburns 9s linear both; }
-#idle .ad.promo.has-pic::before { content: ""; position: absolute; inset: 0; z-index: 1;
-  background: linear-gradient(90deg, rgba(5,7,9,0.84) 0%, rgba(5,7,9,0.5) 50%, rgba(5,7,9,0.08) 100%), linear-gradient(0deg, rgba(5,7,9,0.72) 0%, rgba(5,7,9,0) 48%); }
-#idle .ad.promo .copy, #idle .ad.promo .qrzone { position: relative; z-index: 2; }
-#idle .ad.promo .copy { max-width: 60%; gap: 22px; }
-#idle .ad.promo .label { color: rgba(244,246,250,0.72); }
-#idle .ad.promo h3 { font-size: calc(var(--t-welcome) * 1.5); text-wrap: balance; }
-#idle .ad.promo p { font-size: calc(var(--t-promo-text) * 1.55); color: rgba(244,246,250,0.84); max-width: 30em; }
-#idle .ad.promo .qrzone { gap: 18px; }
-#idle .ad.promo .qrzone .caption { font-size: calc(var(--t-hint) * 0.9); max-width: 13em; }
-:root[data-layout='narrow'] #idle .ad.promo { gap: 40px; }
-:root[data-layout='portrait'] #idle .ad.promo { flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; gap: 44px;
-  padding-bottom: calc(var(--pad-y) + var(--footer-h) + 96px); }
-:root[data-layout='portrait'] #idle.has-ticker .ad.promo { padding-bottom: calc(var(--pad-y) + var(--footer-h) + var(--t-ticker) * 2.4 + 120px); }
-:root[data-layout='portrait'] #idle .ad.promo .copy { max-width: none; align-items: center; }
-:root[data-layout='portrait'] #idle .ad.promo.has-pic::before { background: linear-gradient(0deg, rgba(5,7,9,0.9) 0%, rgba(5,7,9,0.55) 55%, rgba(5,7,9,0.15) 100%); }
+/* In verticale: la scena sopra a larghezza piena, il conto sotto (F-Verticale). Sul palmare niente colonna. */
+:root[data-layout='portrait'] #bill .body { flex-direction: column; justify-content: space-between; align-items: stretch; }
+:root[data-layout='portrait'] .side { flex: 0 1 auto; align-self: stretch; max-height: 46%; }
+:root[data-layout='portrait'] .receipt { flex: 0 1 auto; }
+:root[data-layout='palmare'] #bill .body { flex-direction: column; justify-content: flex-end; align-items: stretch; }
+:root[data-layout='palmare'] .receipt { flex: 0 1 auto; background: transparent; border: 0; padding: 0; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+.promoline { display: none; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--c-line); background: var(--c-surface-solid);
+  font-size: var(--t-row); line-height: 1.35; animation: bt-fade-in var(--d-state) var(--e-out) both; }
+.promoline i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--c-accent); }
+:root[data-layout='palmare'] .promoline.on { display: flex; }
 
-/* Accanto al conto: una scheda alta; la foto 16:9 come nelle slide, tagliata a colonna perderebbe le scritte. */
-.adcard { flex-direction: column; min-height: 0; }
-.adcard > .ad { animation: bt-fade 420ms var(--e-out) both; }
-.adcard > .ad.image, .adcard > .ad.video { flex: 0 0 auto; aspect-ratio: 16 / 9; margin: auto 0; border-radius: var(--radius); background: #000; border: 1px solid var(--c-line); }
-.adcard > .ad.promo { flex: 1; display: flex; flex-direction: column; border-radius: var(--radius); background: rgba(var(--c-text-rgb), 0.04); border: 1px solid var(--c-line); }
-.adcard .ad.promo .pic { flex: 0 1 auto; aspect-ratio: 16 / 9; }
-.adcard .ad.promo .copy { flex: 1 0 auto; justify-content: center; gap: 14px; padding: calc(var(--t-promo) * 0.76); }
-.adcard .ad.promo.has-pic .copy { justify-content: flex-start; }
-.adcard .ad.promo .label { color: var(--c-accent); font-size: calc(var(--t-label) * 0.9); }
-.adcard .ad.promo h3 { font-size: var(--t-promo); }
-.adcard .ad.promo p { font-size: var(--t-promo-text); color: var(--c-muted); }
-.adcard .ad.promo .qrzone { flex-direction: row; gap: 22px; padding: 0 calc(var(--t-promo) * 0.76) calc(var(--t-promo) * 0.76); text-align: left; }
-.adcard .ad.promo .qrzone .caption { font-size: calc(var(--t-hint) * 0.72); }
-.adcard .ad.promo.has-qr:not(.has-pic) .copy { flex-grow: 0; padding-top: calc(var(--t-promo) * 1.2); }
-.adcard .ad.promo.has-qr:not(.has-pic) .qrzone { flex: 1; flex-direction: column; justify-content: center; text-align: center; }
-:root[data-layout='portrait'] .adcard > .ad.promo { flex-direction: row; align-items: center; }
-:root[data-layout='portrait'] .adcard .ad.promo .pic { flex: 0 0 40%; align-self: stretch; aspect-ratio: auto; }
-:root[data-layout='portrait'] .adcard .ad.promo .copy { flex: 1 1 auto; }
-:root[data-layout='portrait'] .adcard .ad.promo .qrzone, :root[data-layout='portrait'] .adcard .ad.promo.has-qr:not(.has-pic) .qrzone { flex: 0 0 auto; flex-direction: column; padding: calc(var(--t-promo) * 0.6); }
-
-/* Sotto il Grazie: una scheda larga, il QR a sinistra come nel design (S5). */
-.thanksad > .ad { flex: 1; min-width: 0; }
-.thanksad > .ad.image, .thanksad > .ad.video { flex: 0 1 auto; aspect-ratio: 16 / 9; max-width: 100%; max-height: 100%; align-self: flex-start; border-radius: var(--radius); background: #000; }
-.thanksad > .ad.promo { display: flex; align-items: center; gap: 30px; padding: 26px; border-radius: var(--radius); background: rgba(var(--c-text-rgb), 0.04); border: 1px solid var(--c-line); align-self: stretch; }
-.thanksad .ad.promo .pic { flex: 0 0 40%; aspect-ratio: 16 / 9; align-self: center; border-radius: calc(var(--radius) * 0.6); }
-.thanksad .ad.promo .copy { flex: 1; gap: 12px; }
-.thanksad .ad.promo .label { color: var(--c-accent); font-size: calc(var(--t-label) * 0.9); }
-.thanksad .ad.promo h3 { font-size: calc(var(--t-thanks) * 0.34); }
-.thanksad .ad.promo p { font-size: calc(var(--t-hint) * 0.72); color: var(--c-muted); }
-.thanksad .ad.promo .qrzone { gap: 12px; }
-.thanksad .ad.promo .qrzone .caption { font-size: calc(var(--t-hint) * 0.66); max-width: 12em; }
-.thanksad .ad.promo.has-qr:not(.has-pic) .qrzone { order: -1; }
-:root[data-layout='portrait'] .thanksad > .ad.promo, :root[data-format='palmare'] .thanksad > .ad.promo { gap: 18px; padding: 18px; }
-/* Dove la colonna è stretta, con il QR la foto resta fuori: il QR e le scritte contano di più. */
-:root:not([data-layout='wide']) .thanksad .ad.promo.has-qr .pic, :root[data-layout='portrait'] .adcard .ad.promo.has-qr .pic,
-:root[data-format='palmare'] .thanksad .ad.promo .pic { display: none; }
-:root:not([data-layout='wide']) .thanksad .ad.promo .label { display: none; }
-:root[data-format='palmare'] .thanksad > .ad.promo { flex-direction: column; justify-content: center; text-align: center; }
-:root[data-format='palmare'] .thanksad .ad.promo .copy { flex: 0 0 auto; align-items: center; }
-:root[data-format='palmare'] .thanksad .ad.promo.has-qr:not(.has-pic) .qrzone { order: 0; }
-
-/* Pagamento a tutto schermo: importo e istruzione, il QR grande (SPEC §2.4). */
-#pay { display: flex; align-items: center; justify-content: center; gap: 110px; padding: var(--pad-y) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); }
+/* Il pagamento (SPEC §2.4): accanto al conto, o a tutto schermo. Il QR non si anima: si anima il suo contenitore. */
+.paypanel { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; align-self: center; }
+.paypanel .hint, #pay .hint { font-family: var(--font-display); font-size: var(--t-hint); font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; }
+.paypanel .sub, #pay .sub { font-size: calc(var(--t-hint) * 0.5); color: var(--c-muted); margin-top: -12px; }
+.paypanel .caption, #pay .caption { font-size: calc(var(--t-hint) * 0.46); color: var(--c-muted); max-width: 90%; }
+:root[data-motion='full'] .paypanel .qrbox { animation: bt-pop 360ms var(--e-out) 160ms both; }
+.qrbox { position: relative; background: #FFFFFF; border-radius: calc(var(--radius) * 2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.qrbox img { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.qrbox .halo { position: absolute; inset: -10px; border-radius: inherit; border: 2px solid var(--c-accent); animation: bt-halo 2.4s var(--e-out) infinite; pointer-events: none; }
+.qrbox .halo:nth-of-type(2) { animation-delay: 0.8s; }
+.qrbox .halo:nth-of-type(3) { animation-delay: 1.6s; }
+:root[data-motion='eco'] .qrbox .halo { display: none; }
+.satispay { display: none; height: calc(var(--t-hint) * 1.1); width: auto; max-width: 70%; object-fit: contain; }
+.satispay.on { display: block; }
+#pay { display: flex; align-items: center; justify-content: center; gap: 110px;
+  padding: calc(var(--pad-y) + var(--head-h)) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); }
 :root[data-layout='narrow'] #pay { gap: 56px; }
-:root[data-layout='portrait'] #pay { flex-direction: column; gap: 40px; text-align: center; }
-#pay .left { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+:root[data-layout='portrait'] #pay, :root[data-layout='palmare'] #pay { flex-direction: column; gap: 36px; text-align: center; }
+#pay .left { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+:root[data-layout='portrait'] #pay .left, :root[data-layout='palmare'] #pay .left { align-items: center; }
 #pay .amount { font-family: var(--font-display); font-size: var(--t-pay); font-weight: 700; line-height: 0.9; letter-spacing: -0.035em; white-space: nowrap; }
-#pay .hint { font-size: var(--t-hint); font-weight: 600; max-width: 14em; }
-:root[data-layout='portrait'] #pay .hint { max-width: none; }
-#pay .caption { font-size: calc(var(--t-hint) * 0.66); color: var(--c-muted); }
+#pay .hint { max-width: 12em; }
+:root[data-layout='portrait'] #pay .hint, :root[data-layout='palmare'] #pay .hint { max-width: none; }
+#pay .msg { position: absolute; left: var(--pad-x); right: var(--pad-x); top: calc(var(--pad-y) + var(--head-h) + 10px); }
 
-/* Scontrino digitale (docs/03): lo scontrino come sulla carta, il QR grande, il pulsante della copia. */
-/* Scorre solo sopra la firma, che altrimenti finiva sopra lo scontrino. Sul 4:3 in orizzontale due colonne come sul
-   16:9: in una sola il totale restava sotto il bordo, e un monitor senza touch non si scorre. */
-#digital { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap); align-items: center;
-  bottom: calc(var(--pad-y) * 0.6 + var(--footer-h)); padding: var(--pad-y) var(--pad-x) calc(var(--pad-y) * 0.5); overflow: auto; }
-:root[data-layout='portrait'] #digital { grid-template-columns: 1fr; align-content: start; }
-:root[data-layout='portrait'] #digital .scan { order: -1; }
-.paper { background: #FBFAF7; color: #1D232C; border-radius: 6px; padding: 24px 22px; font: calc(var(--t-row) * 0.62) / 1.5 ui-monospace, Consolas, "Courier New", monospace;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.35); max-width: 520px; width: 100%; justify-self: center; box-sizing: border-box; }
+/* Il Grazie (SPEC §2.5): lo scontrino si ritira in due righe; la reclame entra dopo la celebrazione, mai insieme. */
+#thanks { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--col-gutter);
+  padding: calc(var(--pad-y) + var(--head-h) + var(--col-gutter)) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); }
+#thanks .left { position: relative; display: flex; flex-direction: column; min-height: 0; }
+#thanks h1 { margin: 0; font-family: var(--font-display); font-size: var(--t-thanks); font-weight: 700; line-height: 0.98; letter-spacing: -0.04em; max-width: 9em; }
+#thanks .paid { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 22px; margin-top: calc(var(--t-thanks) * 0.32); }
+#thanks .paid .value { font-family: var(--font-display); font-size: calc(var(--t-thanks) * 0.48); font-weight: 700; letter-spacing: -0.02em; }
+#thanks .paid .method { font-size: calc(var(--t-thanks) * 0.22); color: var(--c-muted); }
+#thanks .summary { margin-top: auto; padding-top: calc(var(--t-row) * 0.9); border-top: 1px solid var(--c-line); display: grid; grid-template-columns: 1fr auto;
+  gap: 6px 20px; font-size: calc(var(--t-row) * 0.72); color: var(--c-muted); max-width: 740px; }
+#thanks .summary span:nth-child(even) { text-align: right; }
+#thanks .right { display: flex; align-items: center; justify-content: center; min-height: 0; }
+#thanks .right > * { animation: bt-rise 520ms var(--e-out) var(--thanks-ad-delay, 1320ms) both; max-width: 100%; max-height: 100%; }
+#thanks.on h1 { animation: bt-rise 520ms var(--e-out) both; }
+#thanks .rings { position: absolute; left: 28%; top: 30%; width: calc(var(--t-thanks) * 3.4); height: calc(var(--t-thanks) * 3.4); transform: translate(-50%, -50%); pointer-events: none; }
+.ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--c-primary); opacity: 0; }
+#thanks.on .ring { animation: bt-ring 1800ms var(--e-out) both; }
+#thanks.on .ring:nth-child(2) { border-color: var(--c-accent); animation-delay: 140ms; }
+#thanks.on .ring:nth-child(3) { border-color: rgba(var(--c-text-rgb), 0.3); animation-delay: 280ms; }
+#thanks.on .ring:nth-child(n+4) { animation-delay: 900ms; }
+#thanks.on .ring:nth-child(5) { animation-delay: 1040ms; border-color: var(--c-accent); }
+#thanks.on .ring:nth-child(6) { animation-delay: 1180ms; }
+#thanks.on .ring:nth-child(7) { animation-delay: 1800ms; }
+#thanks.on .ring:nth-child(8) { animation-delay: 1940ms; border-color: var(--c-accent); }
+#thanks.on .ring:nth-child(9) { animation-delay: 2080ms; }
+#thanks .flash { position: absolute; inset: 0; background: var(--c-primary); opacity: 0; pointer-events: none; }
+:root[data-motion='eco'] #thanks.on .flash { animation: bt-glow-flash 300ms linear both; }
+:root[data-motion='eco'] #thanks .ring { display: none; }
+#thanks .card-ad { width: 100%; max-width: 760px; }
+:root[data-layout='narrow'] #thanks .card-ad { max-width: 420px; }
+:root[data-layout='portrait'] #thanks { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+:root[data-layout='portrait'] #thanks .right { order: -1; }
+:root[data-layout='palmare'] #thanks { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; align-content: start; }
+:root[data-layout='palmare'] #thanks .summary { display: none; }
+:root[data-layout='palmare'] #thanks .right { align-items: flex-start; }
+#thanks .qrcard { display: flex; align-items: center; gap: 28px; padding: 26px; border-radius: calc(var(--radius) * 1.6); background: var(--c-surface-solid); border: 1px solid var(--c-line); }
+#thanks .qrcard h3 { margin: 0 0 8px; font-family: var(--font-display); font-size: calc(var(--t-thanks) * 0.32); }
+#thanks .qrcard p { margin: 0; color: var(--c-muted); font-size: calc(var(--t-row) * 0.8); }
+:root[data-layout='palmare'] #thanks .qrcard { flex-direction: column; text-align: center; }
+
+/* Lo scontrino digitale (SPEC §2.7): tre blocchi sui sei posti (3 colonne × 2 righe). Le colonne vuote spariscono. */
+#receipt { display: flex; align-items: center; justify-content: center;
+  padding: calc(var(--pad-y) + var(--head-h) + 16px) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); }
+#receipt .grid { display: flex; align-items: stretch; justify-content: center; gap: var(--receipt-gap); max-width: 100%; max-height: 100%; min-height: 0; }
+#receipt .col { display: flex; flex-direction: column; justify-content: center; gap: calc(var(--receipt-gap) * 0.3); min-height: 0; }
+#receipt .col.pair { justify-content: space-between; }
+#receipt .col > * { animation: bt-rise 520ms var(--e-out) both; }
+#receipt .col:nth-child(2) > * { animation-delay: 140ms; }
+#receipt .col:nth-child(3) > * { animation-delay: 280ms; }
+:root[data-layout='portrait'] #receipt .grid { flex-direction: column; align-items: center; width: 100%; }
+:root[data-layout='portrait'] #receipt .col { flex-direction: row; align-items: center; justify-content: center; }
+:root[data-layout='palmare'] #receipt { align-items: flex-start; overflow-y: auto; padding-top: calc(var(--pad-y) + var(--head-h)); }
+:root[data-layout='palmare'] #receipt .grid { flex-direction: column; align-items: stretch; width: 100%; gap: 14px; }
+.rblock-qr { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.rblock-qr h2 { margin: 0; font-family: var(--font-display); font-size: calc(var(--t-hint) * 1.35); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
+.rblock-qr .sub { color: var(--c-muted); font-size: calc(var(--t-hint) * 0.6); margin-top: -6px; }
+.rblock-qr .demo { font-size: calc(var(--t-label) * 0.85); letter-spacing: 0.16em; text-transform: uppercase; color: var(--c-accent); border: 1px solid currentColor; border-radius: 999px; padding: 3px 12px; }
+.rblock-qr .qrbox { border-radius: calc(var(--radius) * 2.4); }
+.paperaction { min-height: 72px; width: 100%; max-width: var(--receipt-qr-w); display: flex; align-items: center; justify-content: center; text-align: center; box-sizing: border-box; }
+.paperaction .line { font-size: calc(var(--t-hint) * 0.52); color: var(--c-text); border: 1px solid var(--c-line); border-radius: calc(var(--radius) * 1.4); padding: 14px 22px;
+  background: rgba(var(--c-text-rgb), 0.03); }
+.paperaction .line span { color: var(--c-muted); }
+.paperaction button { width: 100%; min-height: 72px; border: 0; border-radius: calc(var(--radius) * 1.4); padding: 14px 20px; font: 600 calc(var(--t-hint) * 0.62) / 1.2 var(--font-text);
+  display: flex; align-items: center; justify-content: center; gap: 14px; cursor: pointer; touch-action: manipulation; background: var(--c-primary); color: var(--c-on-primary); }
+.paperaction button svg { width: 1.2em; height: 1.2em; flex: none; }
+.paperaction button:disabled { cursor: default; background: var(--c-surface-solid); color: var(--c-text); border: 1px solid var(--c-line); }
+.paperaction button:not(:disabled):active { transform: scale(0.98); }
+.paper { background: #F7F5F0; color: #1B1F26; border-radius: 6px; padding: calc(var(--t-paper) * 1.6) calc(var(--t-paper) * 1.6); font: var(--t-paper) / 1.45 ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.28); width: var(--receipt-paper-w); max-width: 100%; box-sizing: border-box; min-height: 0; max-height: 100%; overflow: hidden;
+  display: flex; flex-direction: column; }
 .paper .center { text-align: center; }
-.paper .sep { border-top: 1px dashed #9AA3AE; margin: 8px 0; }
-.paper .pair { display: flex; gap: 12px; justify-content: space-between; }
-.paper .pair span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.paper .head { font-weight: 700; }
+.paper .sep { border-top: 1px dashed #A7AEB8; margin: 10px 0; flex-shrink: 0; }
+.paper .items { min-height: 0; }
+.paper.two { width: calc(var(--receipt-paper-w) * 1.65); }
+.paper.two .items { column-count: 2; column-gap: calc(var(--t-paper) * 2); column-rule: 1px dashed #C7CCD3; }
+.paper .pair { display: flex; gap: 12px; justify-content: space-between; break-inside: avoid; }
+.paper .pair span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .paper .pair span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.paper .under { padding-left: 2.5em; }
-.paper .muted { color: #5B6573; }
-.paper .big { font-size: 1.5em; font-weight: 700; margin-top: 6px; }
-.paper img { display: block; margin: 14px auto 6px; width: 112px; height: 112px; image-rendering: pixelated; background: #FFF; padding: 8px; }
-.scan { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.scan h2 { margin: 0; font-family: var(--font-display); font-size: calc(var(--t-hint) * 1.15); }
-.scan .caption { color: var(--c-muted); font-size: calc(var(--t-hint) * 0.7); }
-#paperbtn { font: 600 calc(var(--t-hint) * 0.85) / 1.2 var(--font-text); min-height: 88px; width: min(440px, 100%); padding: 18px 24px; border-radius: 16px; border: 0;
-  background: var(--c-primary); color: var(--c-on-primary); cursor: pointer; touch-action: manipulation; }
-#paperbtn:active { transform: scale(0.98); }
-#paperstatus { font-size: calc(var(--t-hint) * 0.8); font-weight: 600; margin: 0; min-height: 1.4em; }
+.paper .under { padding-left: 2em; }
+.paper .muted { color: #5E6672; }
+.paper .big { font-size: 1.55em; font-weight: 700; margin-top: 4px; }
+.paper .notice { margin-top: auto; padding-top: 12px; text-align: center; color: #6A727E; font-size: 0.8em; }
+:root[data-layout='palmare'] .paper { width: 100%; max-height: none; }
+.paper > * { flex-shrink: 0; }
+:root[data-layout='palmare'] #receipt .grid, :root[data-layout='palmare'] #receipt .col { max-height: none; flex-shrink: 0; }
+:root[data-layout='palmare'] #receipt .grid::after { content: ""; flex: 0 0 calc(var(--footer-h) + 8px); }   /* la carta finisce sopra la firma */
+.rblock-ad { width: calc(var(--receipt-qr-w) * 1.1); max-width: 100%; }
+:root[data-layout='narrow'] #receipt .grid { gap: calc(var(--receipt-gap) * 0.8); }
 
-/* La firma Bluetech, sempre presente; l'unica scelta del tema è chiara o scura. */
-.powered { position: absolute; right: var(--pad-x); bottom: calc(var(--pad-y) * 0.6); height: var(--footer-h); display: flex; align-items: center; gap: 12px; z-index: 5; pointer-events: none; }
-:root[data-layout='portrait'] .powered { left: 0; right: 0; justify-content: center; }
+/* L'attesa (SPEC §2.1): la vetrina dell'attesa a tutto schermo, i modelli A-D; a Sobrio il locale e il nastro. */
+#idle .slides { position: absolute; inset: 0; overflow: hidden; display: none; z-index: 0; }   /* le slide si impilano qui dentro, sotto il locale e il nastro */
+#idle.has-slides .slides { display: block; }
+.slide { position: absolute; inset: 0; overflow: hidden; color: #F4F6FA; opacity: 0; visibility: hidden; }
+.slide.on { opacity: 1; visibility: visible; }
+.slide.in-fade { animation: bt-fade-in var(--d-slide) var(--e-out) both; }
+.slide.in-push { animation: bt-push-in var(--d-push) var(--e-out) both; }
+.slide.out-push { visibility: visible; animation: bt-push-out var(--d-push) var(--e-out) both; }
+.slide.out-fade { visibility: visible; animation: bt-fade-out var(--d-slide) var(--e-out) both; }
+:root[data-motion='eco'] .slide.in-push { animation-name: bt-fade-in; animation-duration: var(--d-slide); }
+:root[data-motion='eco'] .slide.out-push { animation-name: bt-fade-out; animation-duration: var(--d-slide); }
+.slide .media { position: absolute; inset: 0; overflow: hidden; background: #000; }
+.slide .media img, .slide .media video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.slide .media.bands { background: var(--c-surface-solid); }
+.slide .media.bands img, .slide .media.bands video { object-fit: contain; }
+:root[data-motion='full'] .slide .media.kb > img { animation: bt-kb-a 9s linear both; }
+:root[data-motion='full'] .slide .media.kb.alt > img { animation-name: bt-kb-b; }
+.slide .glow { position: absolute; inset: 0; background: radial-gradient(ellipse 55% 60% at 18% 30%, color-mix(in srgb, var(--glow) 42%, transparent) 0%, transparent 64%),
+  radial-gradient(ellipse 50% 50% at 86% 80%, color-mix(in srgb, var(--glow-2) 22%, transparent) 0%, transparent 62%), #080B11; }
+:root[data-scrim='light'] .slide.model-A, :root[data-scrim='light'] .slide.model-D:not(.has-media) { color: var(--c-text); }
+:root[data-scrim='light'] .slide .glow { background: radial-gradient(ellipse 55% 60% at 18% 30%, color-mix(in srgb, var(--glow) 22%, transparent) 0%, transparent 64%),
+  radial-gradient(ellipse 50% 50% at 86% 80%, color-mix(in srgb, var(--glow-2) 14%, transparent) 0%, transparent 62%), var(--c-bg); }
+.slide .scrim { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(5,7,9,0.86) 0%, rgba(5,7,9,0.58) 46%, rgba(5,7,9,0.1) 100%),
+  linear-gradient(0deg, rgba(5,7,9,0.5) 0%, rgba(5,7,9,0) 40%); }
+.slide .band { position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: linear-gradient(0deg, rgba(5,7,9,0.82) 0%, rgba(5,7,9,0) 100%); }
+.slide .topveil { position: absolute; inset: 0 0 auto; height: 28%; background: linear-gradient(180deg, rgba(5,7,9,0.62) 0%, rgba(5,7,9,0) 100%); }
+.slide .copy { position: absolute; left: var(--slide-pad); top: 0; bottom: 0; width: 52%; display: flex; flex-direction: column; justify-content: center;
+  gap: calc(var(--t-slide) * 0.22); padding: calc(var(--pad-y) + var(--logo-h) + 40px) 0 calc(var(--pad-y) + var(--footer-h) + var(--t-ticker) * 2.6 + 30px); box-sizing: border-box; }
+.slide .copy .label { color: var(--c-accent); font-size: calc(var(--t-label) * 1.15); }
+:root[data-scrim='dark'] .slide .copy .label, .slide.has-media .copy .label { color: color-mix(in srgb, var(--c-accent) 75%, #FFFFFF); }
+.slide h2 { margin: 0; font-family: var(--font-display); font-size: var(--t-slide); font-weight: 700; line-height: 1.02; letter-spacing: -0.03em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.slide h2.long { font-size: calc(var(--t-slide) * 0.78); }
+.slide p { margin: 0; font-size: var(--t-slide-text); opacity: 0.86; line-height: 1.38; max-width: 24em; white-space: pre-line;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.slide.in-mixed .scrim { animation: bt-fade-in 200ms var(--e-out) 900ms both; }
+.slide.in-mixed .copy, .slide.in-promo .copy { animation: bt-rise 420ms var(--e-out) var(--copy-delay, 260ms) both; }
+.slide.in-mixed { --copy-delay: 1100ms; }
+:root[data-motion='eco'] .slide .copy, :root[data-motion='eco'] .slide .scrim { animation-name: bt-fade-in !important; animation-delay: 0ms !important; }
+.slide .service { position: absolute; left: var(--slide-pad); right: var(--slide-pad); bottom: calc(var(--pad-y) + var(--footer-h) + var(--t-ticker) * 2.6 + 24px);
+  font-size: calc(var(--t-slide-text) * 0.8); opacity: 0.88; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slide .qrzone { position: absolute; right: var(--slide-pad); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
+.slide .qrzone .caption { font-weight: 600; font-size: calc(var(--t-slide-text) * 0.95); max-width: 13em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#idle.has-ticker .slide .qrzone { top: calc(50% - var(--t-ticker)); }
+:root[data-layout='portrait'] .slide .copy, :root[data-layout='palmare'] .slide .copy { width: auto; right: var(--slide-pad); justify-content: flex-end; text-align: left; }
+:root[data-layout='portrait'] .slide.has-qr .copy, :root[data-layout='palmare'] .slide.has-qr .copy { justify-content: flex-start; padding-top: calc(var(--pad-y) + var(--logo-h) + 120px); }
+:root[data-layout='portrait'] .slide .qrzone, :root[data-layout='palmare'] .slide .qrzone { right: 50%; top: auto; bottom: calc(var(--pad-y) + var(--footer-h) + var(--t-ticker) * 2.6 + 80px); transform: translateX(50%); }
+:root[data-layout='portrait'] .slide .scrim, :root[data-layout='palmare'] .slide .scrim { background: linear-gradient(0deg, rgba(5,7,9,0.9) 0%, rgba(5,7,9,0.55) 55%, rgba(5,7,9,0.15) 100%); }
+:root[data-layout='narrow'] .slide .copy { width: 58%; }
+#idle .venue { position: absolute; left: var(--pad-x); top: var(--pad-y); right: 40%; color: var(--c-text); z-index: 3; }
+#idle.has-slides .venue { color: #F4F6FA; }
+#idle.has-slides .venue .glyph { border-color: rgba(244,246,250,0.5); }
+:root[data-layout='portrait'] #idle .venue, :root[data-layout='palmare'] #idle .venue { right: var(--pad-x); }
+#idle .venue .name { font-size: calc(var(--t-venue) * 1.3); }
+#idle .dots { position: absolute; right: var(--pad-x); top: calc(var(--pad-y) + 14px); z-index: 3; }
+#idle.has-slides .dots i { background: rgba(244,246,250,0.35); }
+#idle.has-slides .dots i.on { background: #F4F6FA; }
+:root[data-layout='portrait'] #idle .dots, :root[data-layout='palmare'] #idle .dots { display: none; }
+#welcome { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--t-welcome) * 0.45); text-align: center;
+  padding: 0 var(--pad-x) calc(var(--footer-h) + var(--pad-y)); box-sizing: border-box; }
+#idle.has-slides #welcome { display: none; }
+#welcome img { display: block; max-height: calc(var(--logo-h) * 3); max-width: 60%; object-fit: contain; }
+#welcome .name { font-family: var(--font-display); font-size: calc(var(--t-welcome) * 1.3); font-weight: 700; letter-spacing: 0.02em; line-height: 1; }
+#welcome .tagline { font-size: calc(var(--t-tagline) * 1.4); letter-spacing: 0.24em; text-transform: uppercase; color: var(--c-muted); }
+#welcome .rule { width: 72px; height: 3px; border-radius: 2px; background: var(--c-primary); }
+#welcome .text { font-family: var(--font-display); font-size: var(--t-welcome); font-weight: 600; margin-top: calc(var(--t-welcome) * 0.3); }
+#idle.has-slides #welcome-venue { display: none; }
+/* Il nastro con la maschera ai bordi: niente testo tagliato netto sul bordo (patologia 04). */
+.ticker { position: absolute; left: 0; right: 0; bottom: calc(var(--pad-y) + var(--footer-h) + 24px); overflow: hidden; z-index: 3;
+  padding: calc(var(--t-ticker) * 0.6) 0; border-top: 1px solid var(--c-line); border-bottom: 1px solid var(--c-line); background: rgba(var(--c-text-rgb), 0.03);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%); }
+#idle.has-slides .ticker { color: #F4F6FA; border-color: rgba(255,255,255,0.12); background: rgba(5,7,9,0.32); }
+.ticker .track { display: flex; gap: 80px; width: max-content; white-space: nowrap; padding-left: var(--pad-x); font-size: var(--t-ticker); font-weight: 500;
+  animation: bt-ticker var(--ticker-s, 24s) linear infinite; }
+:root[data-layout='portrait'] .ticker { bottom: calc(var(--pad-y) + var(--footer-h) + 48px); }
+/* Una promozione senza foto su un tema chiaro: il locale, i puntini e il nastro tornano ai colori del tema. */
+#idle.light-slide .venue { color: var(--c-text); }
+#idle.light-slide .dots i { background: rgba(var(--c-text-rgb), 0.25); }
+#idle.light-slide .dots i.on { background: var(--c-text); }
+#idle.light-slide .ticker { color: var(--c-text); border-color: var(--c-line); background: rgba(var(--c-text-rgb), 0.03); }
+
+/* La firma Bluetech: sempre, fuori dagli stati; il tema sceglie solo chiara o scura (CLAUDE.md, invarianti). */
+.powered { position: absolute; right: var(--pad-x); bottom: calc(var(--pad-y) * 0.6); height: var(--footer-h); display: flex; align-items: center; gap: 12px; z-index: 8; pointer-events: none; }
+:root[data-layout='portrait'] .powered, :root[data-layout='palmare'] .powered { left: 0; right: 0; justify-content: center; }
 .powered .by { font-size: calc(var(--footer-word) * 0.88); color: var(--bt-by); }
 .powered svg { width: var(--footer-mark); height: var(--footer-mark); }
 .powered .word { font-family: 'Archivo', 'Arial Narrow', sans-serif; font-size: var(--footer-word); font-weight: 600; letter-spacing: 0.16em; color: var(--bt-word); }
-:root[data-footer='dark'], :root.over-slides { --bt-by: #8FA3C0; --bt-word: #E6EAF2; --bt-mark: #1F6FEB; }
-:root[data-footer='light']:not(.over-slides) { --bt-by: #5A6679; --bt-word: #10151D; --bt-mark: #1757C2; }
-/* Il marchio dal kit ufficiale, se caricato, al posto di quello di serie: uno per la firma scura, uno per la chiara.
-   Dove manca, o non si carica, resta quello di serie. Niente :is(): i WebView vecchi dei palmari non lo conoscono. */
+:root[data-footer='light'], :root.over-slides { --bt-by: #9AA6BA; --bt-word: #E6EAF2; --bt-mark: #1F6FEB; }
+:root[data-footer='dark']:not(.over-slides) { --bt-by: #5A6679; --bt-word: #10151D; --bt-mark: #1757C2; }
+/* Il marchio dal kit ufficiale, se caricato: uno per i fondi scuri, uno per i chiari. Dove manca resta quello di serie. */
 .powered .mark { display: none; height: calc(var(--footer-mark) * 1.15); width: auto; max-width: calc(var(--footer-mark) * 9); object-fit: contain; }
-:root[data-footer='dark'] .powered.has-dark .mark.dark, :root.over-slides .powered.has-dark .mark.dark,
-:root[data-footer='light']:not(.over-slides) .powered.has-light .mark.light { display: block; }
-:root[data-footer='dark'] .powered.has-dark svg, :root[data-footer='dark'] .powered.has-dark .word,
+:root[data-footer='light'] .powered.has-dark .mark.dark, :root.over-slides .powered.has-dark .mark.dark,
+:root[data-footer='dark']:not(.over-slides) .powered.has-light .mark.light { display: block; }
+:root[data-footer='light'] .powered.has-dark svg, :root[data-footer='light'] .powered.has-dark .word,
 :root.over-slides .powered.has-dark svg, :root.over-slides .powered.has-dark .word,
-:root[data-footer='light']:not(.over-slides) .powered.has-light svg, :root[data-footer='light']:not(.over-slides) .powered.has-light .word { display: none; }
+:root[data-footer='dark']:not(.over-slides) .powered.has-light svg, :root[data-footer='dark']:not(.over-slides) .powered.has-light .word { display: none; }
 
-/* Il logo di Satispay sotto l'istruzione, se il locale l'ha caricato dal kit di Satispay (SPEC §2.4). */
-.satispay { display: none; height: calc(var(--t-hint) * 1.3); width: auto; max-width: 70%; object-fit: contain; }
-.satispay.on { display: block; }
-#pay .satispay { align-self: flex-start; }
-:root[data-layout='portrait'] #pay .satispay { align-self: center; }
-
-/* Connessione assente: una pillola discreta, l'ultima schermata resta com'è (SPEC §2.6). */
+/* Connessione assente: una pillola grigia, l'ultima schermata resta (SPEC §2.6). Mi ricollego: solo all'avvio (§21). */
 #offline { position: absolute; left: var(--pad-x); bottom: calc(var(--pad-y) * 0.6); height: var(--footer-h); display: flex; align-items: center; gap: 10px;
-  padding: 0 18px; border-radius: 999px; background: rgba(128,128,128,0.2); color: var(--c-muted); font-size: var(--footer-word); z-index: 6;
+  padding: 0 18px; border-radius: 999px; background: rgba(128,128,128,0.2); color: var(--c-muted); font-size: var(--footer-word); z-index: 9;
   opacity: 0; transition: opacity 300ms var(--e-out); pointer-events: none; }
 :root.over-slides #offline { color: #C9D1DD; }
-#offline.on { opacity: 1; }
+#offline.on { opacity: 1; transition-duration: 400ms; }
 #offline i { width: 10px; height: 10px; border-radius: 50%; background: currentColor; animation: bt-breathe 2s ease-in-out infinite; }
-:root[data-layout='portrait'] #offline { bottom: calc(var(--pad-y) * 0.6 + var(--footer-h) + 8px); }
+:root[data-layout='portrait'] #offline, :root[data-layout='palmare'] #offline { bottom: calc(var(--pad-y) * 0.6 + var(--footer-h) + 8px); }
+#reconnect { position: absolute; inset: 0; z-index: 7; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: var(--c-bg); text-align: center; padding: 24px; }
+#reconnect.on { display: flex; }
+#reconnect h1 { display: flex; align-items: center; gap: 14px; margin: 0; font: 600 calc(var(--t-welcome) * 0.6) / 1.2 var(--font-display); }
+#reconnect h1 i { width: 12px; height: 12px; border-radius: 50%; background: var(--c-muted); animation: bt-breathe 2s ease-in-out infinite; }
+#reconnect p { margin: 0; color: var(--c-muted); font-size: calc(var(--t-welcome) * 0.32); }
 </style>
 </head>
 <body>
 <div id="stage">
   <div id="bg"></div>
 
+  <header id="head">
+    <div class="venue" id="headvenue"></div>
+    <div class="where"><span class="cash" id="cashname"></span><i class="dot" aria-hidden="true"></i></div>
+  </header>
+
   <section id="idle" class="screen" aria-label="Attesa">
     <div class="slides"><div class="slide"></div><div class="slide"></div></div>
-    <div class="scrim"></div>
     <div id="welcome"></div>
-    <div class="venue" data-venue></div>
-    <div class="dots"></div>
+    <div class="venue" id="idlevenue"></div>
+    <div class="dots" id="idledots"></div>
     <div class="ticker" hidden><div class="track"></div></div>
   </section>
 
   <section id="bill" class="screen" aria-label="Il tuo conto">
-    <div class="head"><div class="venue" data-venue="small"></div></div>
-    <div id="msg" role="status"></div>
-    <div class="body">
-      <div class="receipt card">
+    <div class="msg" role="status"></div>
+    <div class="body" id="billbody">
+      <div class="receipt card" id="receiptcard">
         <div class="top"><span class="label" id="receipttitle">Il tuo conto</span><span class="count num" id="count"></span></div>
-        <div class="more" id="more"></div>
+        <div class="more num" id="more"></div>
         <div class="lines" id="lines"></div>
-        <div class="total"><span class="label" id="totallabel">Totale</span><span class="value num" id="total">€ 0,00</span></div>
+        <div class="promoline" id="promoline"><i></i><span></span></div>
+        <div class="waitbill"><i></i><span>Il totale compare quando il conto è pronto</span></div>
+        <div class="total" id="totalblock"><div class="words"><span class="label" id="totallabel">Totale</span><span class="vat">IVA inclusa</span></div><span class="value num" id="total">€ 0,00</span></div>
       </div>
-      <div class="side">
-        <section class="adcard" id="salead"></section>
-        <section class="venuecard" id="venuecard"></section>
-        <section class="paycard"><div class="qrbox" id="besideqr"><img alt="QR per pagare con Satispay"><i class="halo"></i><i class="halo"></i><i class="halo"></i></div>
-          <div class="hint">Inquadra il QR con l'app Satispay</div><img class="satispay" alt="Satispay"><div class="caption" id="besidecaption"></div></section>
-        <section class="thanks" id="thanks">
-          <div class="rings"><i class="ring"></i><i class="ring"></i><i class="ring"></i></div>
-          <h2 id="thankstext">Grazie e arrivederci</h2>
-          <div class="paid"><span class="label">Pagato</span><span class="value num" id="paidamount"></span><span class="method" id="paidmethod"></span></div>
-          <div class="thanksad" id="thanksad"></div>
-        </section>
+      <div class="side" id="side">
+        <div class="stack" id="sidestack"></div>
+        <div class="dots" id="sidedots"></div>
+        <div class="paypanel" id="paypanel" hidden>
+          <div class="hint">Inquadra il QR con l'app Satispay</div>
+          <div class="sub">Apri l'app e punta la fotocamera sul codice</div>
+          <div class="qrbox" id="besideqr"><img alt="QR per pagare con Satispay"><i class="halo"></i><i class="halo"></i><i class="halo"></i></div>
+          <img class="satispay" alt="Satispay"><div class="caption" id="besidecaption"></div>
+        </div>
       </div>
     </div>
   </section>
 
   <section id="pay" class="screen" aria-label="Pagamento">
+    <div class="msg" role="status"></div>
     <div class="left"><span class="label">Da pagare</span><span class="amount num" id="payamount"></span>
-      <span class="hint">Inquadra il QR con l'app Satispay</span><img class="satispay" alt="Satispay"><span class="caption" id="paycaption"></span></div>
+      <span class="hint">Inquadra il QR con l'app Satispay</span><span class="sub">Apri l'app e punta la fotocamera sul codice</span>
+      <img class="satispay" alt="Satispay"><span class="caption" id="paycaption"></span></div>
     <div class="qrbox" id="fullqr"><img alt="QR per pagare con Satispay"><i class="halo"></i><i class="halo"></i><i class="halo"></i></div>
   </section>
 
-  <section id="digital" class="screen" aria-label="Scontrino digitale">
-    <div class="paper" id="paper"></div>
-    <div class="scan">
-      <h2>Il tuo scontrino digitale</h2>
-      <div class="qrbox" id="digitalqr"><img alt="QR per scaricare lo scontrino digitale"></div>
-      <p class="caption" id="bigcaption"></p>
-      <button id="paperbtn" type="button">Preferisci la copia di carta? Tocca qui</button>
-      <p id="paperstatus"></p>
+  <section id="thanks" class="screen" aria-label="Grazie">
+    <div class="left">
+      <div class="rings" id="rings"></div>
+      <h1 id="thankstext">Grazie e arrivederci</h1>
+      <div class="paid"><span class="label">Pagato</span><span class="value num" id="paidamount"></span><span class="method" id="paidmethod"></span></div>
+      <div class="summary num" id="summary"></div>
     </div>
+    <div class="right" id="thanksad"></div>
+    <div class="flash"></div>
   </section>
+
+  <section id="receipt" class="screen" aria-label="Scontrino digitale"><div class="grid" id="receiptgrid"></div></section>
 
   <div class="powered" aria-label="powered by Bluetech">
     <span class="by">powered by</span>
@@ -457,6 +621,7 @@ html.nocursor, html.nocursor * { cursor: none !important; }
     <img class="mark dark" alt="Bluetech"><img class="mark light" alt="Bluetech">
   </div>
   <div id="offline" role="status"><i></i><span>Connessione assente</span></div>
+  <div id="reconnect" role="status"><h1><i></i>Mi ricollego alla cassa</h1><p>Riprovo da solo. Non serve toccare niente.</p></div>
 </div>
 <script>
 "use strict";
@@ -467,8 +632,10 @@ const query = new URLSearchParams(location.search);
 // ?anteprima=demo: un conto finto per il back office; ?anteprima=cassa1: dal vivo, con la sessione del back office.
 const preview = query.get("anteprima");
 const demo = preview === "demo";
-const STORE = "bluetech.monitor.aspetto";
+const STORE = "bluetech.monitor.cfg3";
+const FPS_STORE = "bluetech.monitor.fps";
 const $ = (id) => document.getElementById(id);
+const loadedAt = Date.now();
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -476,160 +643,218 @@ function el(tag, className, text) {
   if (text !== undefined && text !== null) node.textContent = text;
   return node;
 }
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+function cssNumber(name) { return parseFloat(getComputedStyle(root).getPropertyValue(name)) || 0; }
+function cssMs(name, fallback) {
+  const value = getComputedStyle(root).getPropertyValue(name).trim();
+  const n = parseFloat(value);
+  return isNaN(n) ? fallback : value.endsWith("ms") ? n : n * 1000;
+}
 
 // ---------------------------------------------------------------------------------------------------------------
-// Formato: il layout si sceglie dal rapporto d'aspetto (SPEC §9), poi la tela del formato si adatta allo schermo.
+// Formato: la disposizione si sceglie dal rapporto dei lati (SPEC §9), o la impone lo schermo (cfg.screen.disposizione);
+// poi la tela del formato si adatta allo schermo vero.
 // ---------------------------------------------------------------------------------------------------------------
 const FORMATS = {
   "1920x1080": { width: 1920, layout: "wide" }, "1366x768": { width: 1366, layout: "wide" }, "1280x800": { width: 1280, layout: "wide" },
-  "1024x768": { width: 1024, layout: "narrow" }, "1080x1920": { width: 1080, layout: "portrait" }, "palmare": { width: 430, layout: "portrait" },
+  "1024x768": { width: 1024, layout: "narrow" }, "1080x1920": { width: 1080, layout: "portrait" }, "390x844": { width: 390, layout: "palmare" },
 };
+const wideFormat = (width) => (width >= 1650 ? "1920x1080" : width >= 1330 ? "1366x768" : "1280x800");
 
 function pickFormat(width, height) {
   const ratio = width / height;
-  if (ratio < 1) return width < 700 ? "palmare" : "1080x1920";
-  // Stretta sotto 1,5:1 (SPEC §9), con un margine: un 1200×800 che il browser riporta con un pixel in più resta largo.
+  if (ratio < 0.5 || (ratio < 1 && width < 700)) return "390x844";
+  if (ratio < 1) return "1080x1920";
+  // Stretta sotto 1,5:1, con un margine: un 1200×800 che il browser riporta con un pixel in più resta largo.
   if (ratio < 1.45) return "1024x768";
   return wideFormat(width);
 }
-const wideFormat = (width) => (width >= 1650 ? "1920x1080" : width >= 1330 ? "1366x768" : "1280x800");
-
-// La disposizione forzata dal back office per questo dispositivo (messaggio layout): un iPad Pro è 4:3, ma la colonna
-// accanto al conto ci sta. Ricordata per la prossima apertura, così lo schermo non cambia faccia appena si collega.
-const LAYOUT_STORE = "bluetech.monitor.disposizione";
-let forced = null;
-try { forced = preview ? null : localStorage.getItem(LAYOUT_STORE); } catch (e) { forced = null; }
 
 function forcedFormat(width) {
-  if (forced === "wide") return wideFormat(width);
-  if (forced === "narrow") return "1024x768";
-  if (forced === "portrait") return "1080x1920";
-  if (forced === "handheld") return "palmare";
-  return null;
+  const forced = cfg && cfg.screen && cfg.screen.disposizione;
+  return forced === "wide" ? wideFormat(width) : forced === "narrow" ? "1024x768" : forced === "portrait" ? "1080x1920" : forced === "palmare" ? "390x844" : null;
 }
 
+let stageScale = 1;
 function layout() {
   const width = window.innerWidth, height = window.innerHeight;
   const key = FORMATS[query.get("formato")] ? query.get("formato") : forcedFormat(width) || pickFormat(width, height);
   const format = FORMATS[key];
-  const scale = width / format.width;
+  stageScale = width / format.width;
   root.dataset.format = key;
   root.dataset.layout = format.layout;
   stage.style.width = format.width + "px";
-  stage.style.height = height / scale + "px";
-  stage.style.transform = "scale(" + scale + ")";
+  stage.style.height = height / stageScale + "px";
+  stage.style.transform = "scale(" + stageScale + ")";
+  applyLook();
   render();
 }
+const layoutName = () => root.dataset.layout;
 
 // ---------------------------------------------------------------------------------------------------------------
-// Aspetto: il messaggio cfg dell'Agent (tema, slide, promozioni, scritte, QR del Grazie).
+// La configurazione dello schermo (cfg): già piatta, già scelta per la cassa e per questo schermo dall'Agent.
 // ---------------------------------------------------------------------------------------------------------------
 let cfg = null;
 try { cfg = demo ? null : JSON.parse(localStorage.getItem(STORE) || "null"); } catch (e) { cfg = null; }
+if (cfg && !cfg.screen) cfg = null;
+let palette = null;
+let lightBackground = false;
+const screenCfg = () => (cfg && cfg.screen) || {};
+const ATTRACTION = ["sobrio", "vivo", "spettacolo", "troppo"];
+const attr = () => (ATTRACTION.includes(screenCfg().attrazione) ? screenCfg().attrazione : "vivo");
+const level = () => ATTRACTION.indexOf(attr());
+
+// Il movimento effettivo è il più basso fra il tetto dell'attrazione, le animazioni dello schermo, prefers-reduced-motion
+// e il degrado fps (MOTION.md, "vince il più basso"). TROPPO su una cassa lenta resta TROPPO, solo fermo.
+const MOTION_ORDER = { eco: 0, light: 1, full: 2 };
+const MOTION_CAP = { sobrio: "eco", vivo: "light", spettacolo: "full", troppo: "full" };
+const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+let fpsCap = null;
+let fpsBase = null;
+try { const saved = JSON.parse(localStorage.getItem(FPS_STORE) || "null"); if (saved) { fpsCap = saved.cap; fpsBase = saved.base; } } catch (e) { /* niente memoria */ }
+
+function effectiveMotion() {
+  const s = screenCfg();
+  const wanted = [MOTION_CAP[attr()], MOTION_ORDER[s.animazioni] !== undefined ? s.animazioni : "light", reduced.matches ? "eco" : "full", fpsCap || "full"];
+  return wanted.reduce((a, b) => (MOTION_ORDER[a] <= MOTION_ORDER[b] ? a : b));
+}
 
 function rgbOf(color, fallback) {
   const c = T.parseColor(color);
   return c ? c.rgb.join(",") : fallback;
 }
 
-function applyTheme() {
-  if (!cfg) return;
-  const resolved = T.resolve(cfg, new Date());
-  const p = resolved.palette;
-  T.apply(root, p);
-  root.style.setProperty("--c-bg-rgb", rgbOf(p.bg, "11,16,23"));
-  root.style.setProperty("--c-text-rgb", rgbOf(p.text, "230,234,242"));
-  root.style.setProperty("--c-primary-rgb", rgbOf(p.primary, "31,111,235"));
-  root.style.setProperty("--c-accent-rgb", rgbOf(p.accent, "61,220,151"));
-  root.dataset.mode = resolved.mode;
-  lightBackground = (T.contrast(p.bg, "#000000") || 0) > 8;   // luminanza oltre 0,35: un fondo chiaro
-  root.dataset.footer = p.footerVariant === "light" ? "light" : "dark";
-  const motion = cfg.theme && cfg.theme.motion;
-  root.dataset.motion = motion === "full" || motion === "eco" ? motion : "light";
-  root.dataset.compactRows = cfg.theme && cfg.theme.compactRows ? "true" : "false";
-  // Sopra 40 il blur solo con le animazioni piene (SPEC §6): costa sulle grafiche integrate.
-  root.classList.toggle("blur", p.glass > 0 && (p.glass <= 40 || root.dataset.motion === "full"));
-  if (resolved.fallback) console.warn("Tema illeggibile, uso bluetech-notte", resolved.problems);
+function qrMode() {
+  if (layoutName() === "portrait" || layoutName() === "palmare") return "fullscreen";
+  return screenCfg().qrPagamento === "fullscreen" ? "fullscreen" : "beside";
 }
 
+function applyLook() {
+  const s = screenCfg();
+  const resolved = T.resolve(s, new Date());
+  palette = resolved.palette;
+  if (resolved.fallback) console.warn("Tema illeggibile, uso Bluetech", resolved.problems);
+  T.apply(root, palette);
+  root.style.setProperty("--c-text-rgb", rgbOf(palette.text, "230,234,242"));
+  root.style.setProperty("--c-primary-rgb", rgbOf(palette.primary, "31,111,235"));
+  root.style.setProperty("--c-accent-rgb", rgbOf(palette.accent, "61,220,151"));
+  lightBackground = !palette.scuro;
+  root.dataset.scrim = palette.scuro ? "dark" : "light";
+  root.dataset.footer = palette.footerVariant === "dark" ? "dark" : "light";
+  root.dataset.attr = attr();
+  const motion = effectiveMotion();
+  root.dataset.motion = motion;
+  root.dataset.compactRows = s.righeCompatte ? "true" : "false";
+  let cols = clamp(Number(s.colonneConto) || 16, 9, 17);
+  if (root.dataset.format === "1366x768" || root.dataset.format === "1280x800") cols = Math.min(cols, 16);   // la colonna deve reggere un QR
+  root.style.setProperty("--cols-conto", String(cols));
+  root.style.setProperty("--cols-pagamento", String(clamp(Number(s.colonneContoPagamento) || 10, 8, 14)));
+  root.style.setProperty("--side-align", { alto: "flex-start", centro: "center", basso: "flex-end" }[s.colonnaAllineamento] || "flex-end");
+  root.dataset.qr = qrMode();
+  // Il vetro sfoca solo con il movimento pieno; con il leggero la card è pretinta sopra un fondo a immagine o video.
+  const photoBackground = s.fondo === "immagine" || s.fondo === "video";
+  root.classList.toggle("blur", motion === "full" && palette.glass > 0);
+  root.classList.toggle("pretint", motion !== "full" && photoBackground);
+  applyBackground();
+}
+
+// Il fondo (SPEC §15): con Eco niente video, il primo fotogramma già sfocato e scurito dall'Agent; a Sobrio fermo.
 let backgroundKey = "";
-let lightBackground = false;
-
-/** Il logo per quel fondo: sopra le slide c'è sempre il velo scuro; sui fondi chiari quello chiaro, se c'è. */
-function logoFor(overSlides) {
-  const v = (cfg && cfg.venue) || {};
-  return !overSlides && lightBackground && v.logoLight ? v.logoLight : v.logo;
-}
 function applyBackground() {
-  const t = (cfg && cfg.theme) || {};
-  const key = (t.bgStyle || "mesh") + "|" + (t.bgAsset || "");
+  const s = screenCfg();
+  const media = s.fondoMedia || {};
+  const motion = root.dataset.motion;
+  let mode = s.fondo || "mesh";
+  if ((mode === "immagine" || mode === "video") && !media.src) mode = "mesh";
+  let still = null;
+  if (mode === "video" && (motion === "eco" || attr() === "sobrio")) {
+    still = motion === "eco" ? media.posterBlur || media.poster : media.poster || media.posterBlur;
+    mode = still ? "still" : "mesh";
+  }
+  const key = mode + "|" + (media.src || "") + "|" + (still || "");
   if (key === backgroundKey) return;
   backgroundKey = key;
   const bg = $("bg");
   bg.replaceChildren();
-  const style = t.bgStyle || "mesh";
-  if (style === "mesh") bg.append(el("div", "mesh"));
-  else if (style === "gradient") bg.append(el("div", "gradient"));
-  else if ((style === "image" || style === "video") && t.bgAsset) {
-    const media = el(style === "image" ? "img" : "video");
-    media.src = t.bgAsset;
-    if (style === "video") { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; media.setAttribute("muted", ""); }
-    else media.alt = "";
-    bg.append(media, el("div", "veil"));
+  const layer = el("div", "layer");
+  if (mode === "mesh") layer.classList.add("mesh");
+  else if (mode === "sfumato") layer.classList.add("gradient");
+  else if (mode === "immagine" || mode === "still") { const img = el("img"); img.alt = ""; img.src = mode === "still" ? still : media.src; layer.append(img); }
+  else if (mode === "video") {
+    const video = el("video");
+    video.muted = true; video.loop = true; video.autoplay = true; video.playsInline = true; video.setAttribute("muted", "");
+    if (media.poster) video.poster = media.poster;
+    video.src = media.src;
+    layer.append(video);
   }
+  if (mode !== "tinta") bg.append(layer);
+  if (mode === "immagine" || mode === "video" || mode === "still") bg.append(el("div", "scrim"), el("div", "scrim idle"));
 }
 
-function venueBlock(container, small, overSlides) {
-  const v = (cfg && cfg.venue) || {};
-  const logo = logoFor(overSlides);
+/** Il video di fondo: con il movimento leggero si ferma sul fotogramma quando si entra nel conto, e riparte nell'attesa. */
+function backgroundPlayback() {
+  const video = $("bg").querySelector("video");
+  if (!video) return;
+  const play = !root.classList.contains("offline") && (root.dataset.motion === "full" || screenNow === "idle");
+  if (play && video.paused) { const p = video.play(); if (p && p.catch) p.catch(() => {}); }
+  else if (!play && !video.paused) video.pause();
+}
+
+/** Il logo per quel fondo: sopra le slide c'è sempre il velo scuro; sui fondi chiari quello chiaro, se c'è. */
+function logoFor(overSlides) {
+  const id = screenCfg().identita || {};
+  return !overSlides && lightBackground && id.logoChiaro ? id.logoChiaro : id.logo;
+}
+
+function venueBlock(container, tagline, overSlides) {
+  const id = screenCfg().identita || {};
   container.replaceChildren();
-  if (logo) { const img = el("img"); img.src = logo; img.alt = v.name || "Logo del locale"; container.append(img); }
+  const logo = logoFor(overSlides);
+  if (logo) { const img = el("img"); img.src = logo; img.alt = id.nomeLocale || "Logo del locale"; container.append(img); }
   const words = el("div", "words");
-  if (v.name) words.append(el("div", "name", v.name));
-  if (v.tagline && !small) words.append(el("div", "tagline", v.tagline));
+  if (id.nomeLocale && !(logo && tagline === "logo")) words.append(el("div", "name", id.nomeLocale));
+  if (tagline && id.sottotitolo) words.append(el("div", "tagline", id.sottotitolo));
   if (words.childNodes.length) container.append(words);
 }
 
 function applyTexts() {
-  const texts = (cfg && cfg.texts) || {};
-  const v = (cfg && cfg.venue) || {};
-  document.querySelectorAll("[data-venue]").forEach((node) => venueBlock(node, node.dataset.venue === "small", node.dataset.venue === ""));
+  const s = screenCfg();
+  const id = s.identita || {};
+  const texts = s.scritte || {};
+  venueBlock($("headvenue"), false, false);
+  venueBlock($("idlevenue"), true, slides.length > 0 && slideDark);
+  $("cashname").textContent = (cfg && cfg.cassa && cfg.cassa.nome) || "";
   const welcome = $("welcome");
   welcome.replaceChildren();
   const logo = logoFor(false);
-  if (logo) { const img = el("img"); img.src = logo; img.alt = v.name || "Logo del locale"; welcome.append(img); }
-  if (v.name) welcome.append(el("div", "name", v.name));
-  if (v.tagline) welcome.append(el("div", "tagline", v.tagline));
-  if (v.logo || v.name) welcome.append(el("div", "rule"));
-  welcome.append(el("div", "text", texts.welcome || (v.logo || v.name ? "" : "Benvenuti")));
-  $("receipttitle").textContent = texts.receipt || "Il tuo conto";
-  $("thankstext").textContent = texts.thanks || "Grazie e arrivederci";
+  if (logo) { const img = el("img"); img.src = logo; img.alt = id.nomeLocale || "Logo del locale"; welcome.append(img); }
+  if (id.nomeLocale) welcome.append(el("div", "name", id.nomeLocale));
+  if (id.sottotitolo) welcome.append(el("div", "tagline", id.sottotitolo));
+  if (logo || id.nomeLocale) welcome.append(el("div", "rule"));
+  welcome.append(el("div", "text", texts.benvenuto || (logo || id.nomeLocale ? "" : "Benvenuti")));
+  $("receipttitle").textContent = texts.titoloConto || "Il tuo conto";
+  $("thankstext").textContent = texts.grazie || "Grazie e arrivederci";
   const ticker = document.querySelector(".ticker");
   const track = ticker.querySelector(".track");
   track.replaceChildren();
-  $("idle").classList.toggle("has-ticker", !!(cfg && cfg.ticker));
-  if (cfg && cfg.ticker) {
+  const tickerText = cfg && cfg.ticker;
+  $("idle").classList.toggle("has-ticker", !!tickerText);
+  if (tickerText) {
     ticker.hidden = false;
-    track.append(el("span", "", cfg.ticker), el("span", "", cfg.ticker));   // contenuto doppio: giro senza salti
-    track.style.setProperty("--ticker-s", Math.max(12, cfg.ticker.length * 0.32) + "s");
+    track.append(el("span", "", tickerText), el("span", "", tickerText));   // contenuto doppio: giro senza salti
+    track.style.setProperty("--ticker-s", Math.max(12, tickerText.length * 0.32) + "s");
   } else {
     ticker.hidden = true;
   }
-  const venueCard = $("venuecard");
-  venueCard.replaceChildren();
-  if (logo) { const img = el("img"); img.src = logo; img.alt = ""; venueCard.append(img); }
-  if (v.name) venueCard.append(el("div", "name", v.name));
-  if (v.tagline) venueCard.append(el("div", "tagline", v.tagline));
   applyMarks();
 }
 
-/** I marchi dai kit ufficiali (cfg.marks), se caricati: la firma Bluetech scura e chiara, il logo di Satispay. */
+/** I marchi dai kit ufficiali (cfg.marks): la firma Bluetech per i fondi scuri e per i chiari, il logo di Satispay. */
 function applyMarks() {
   const m = (cfg && cfg.marks) || {};
   const powered = document.querySelector(".powered");
-  for (const [variant, src] of [["dark", m.bluetech], ["light", m.bluetechLight]]) {
+  for (const [variant, src] of [["dark", m.bluetech], ["light", m.bluetechLight]])
     showImage(powered.querySelector(".mark." + variant), src, (ok) => powered.classList.toggle("has-" + variant, ok));
-  }
   const satispay = lightBackground && m.satispayLight ? m.satispayLight : m.satispay;
   document.querySelectorAll("img.satispay").forEach((img) => showImage(img, satispay, (ok) => img.classList.toggle("on", ok)));
 }
@@ -645,98 +870,87 @@ function showImage(img, src, shown) {
 }
 
 function applyConfig(next, persist) {
-  if (!next || !next.theme) return;
+  if (!next || !next.screen) return;
+  const animazioniBefore = screenCfg().animazioni;
   cfg = next;
   if (persist) { try { localStorage.setItem(STORE, JSON.stringify(cfg)); } catch (e) { /* senza memoria si aspetta l'Agent */ } }
-  applyTheme();
-  applyBackground();
+  // Il degrado fps non torna su da sé: lo rialza il tecnico cambiando le animazioni dello schermo.
+  if (fpsCap && fpsBase !== undefined && screenCfg().animazioni !== fpsBase && animazioniBefore !== undefined) {
+    fpsCap = null;
+    try { localStorage.removeItem(FPS_STORE); } catch (e) { /* niente */ }
+  }
+  layout();
   applyTexts();
-  applyPlaylists();
+  refreshShowcases();
   render();
 }
 
 // Con giorno e notte automatici si ricontrolla ogni minuto; il cambio aspetta la fine del pagamento (il QR non si copre).
-setInterval(() => { if (cfg && cfg.theme && cfg.theme.mode === "auto" && state.phase !== "payment") { applyTheme(); applyTexts(); } }, 60000);
+setInterval(() => { if (cfg && screenCfg().modo === "auto" && state.phase !== "payment") { applyLook(); applyTexts(); } }, 60000);
+reduced.addEventListener("change", () => { applyLook(); render(); });
 
 // ---------------------------------------------------------------------------------------------------------------
-// Le reclame dei set: tre playlist già scelte e messe in ordine dall'Agent (attesa, accanto al conto, Grazie), con le
-// schede delle promozioni a parte. Un cfg della versione di prima (solo ads) vale ancora per l'attesa.
+// Le vetrine (cfg.showcase): per ogni posto già scelta dall'Agent, con gli elementi e la sequenza. I QR seguono
+// l'attrazione (SPEC §14): a Vivo uno nel Grazie, a Spettacolo anche nell'attesa, a TROPPO anche accanto al conto.
 // ---------------------------------------------------------------------------------------------------------------
-let lists = { idle: [], sale: [], thanks: [] };
+const LABELS = { promozione: "Promozione", novita: "Novità", settimana: "Questa settimana", consiglio: "Il consiglio della casa", evento: "Evento", cliente: "Diventa cliente" };
+let lastLineAt = 0;
 
-function cardOf(id) { return (cfg && cfg.promoCards && cfg.promoCards[id]) || null; }
-
-function usable(item) {
-  if (!item) return false;
-  if (item.kind === "promo") return !!cardOf(item.id);
-  return (item.kind === "image" || item.kind === "video") && typeof item.src === "string";
+function showcase(place) { return (cfg && cfg.showcase && cfg.showcase[place]) || null; }
+function itemsOf(place) {
+  const sc = showcase(place);
+  if (!sc) return [];
+  const byId = new Map((sc.elementi || []).map((e) => [e.id, e]));
+  const sequence = sc.sequenza && sc.sequenza.length ? sc.sequenza : (sc.elementi || []).map((e) => e.id);
+  return sequence.map((id) => byId.get(id)).filter(Boolean);
 }
-
-function applyPlaylists() {
-  const p = (cfg && cfg.playlists) || null;
-  const old = ((cfg && cfg.ads) || []).map((a) => ({ id: a.id, kind: a.media, src: a.src, durationMs: a.durationMs }));
-  lists = { idle: (p ? p.idle : old) || [], sale: (p && p.sale) || [], thanks: (p && p.thanks) || [] };
-  for (const key of Object.keys(lists)) lists[key] = lists[key].filter(usable);
-  playlist(lists.idle);
-  salePlaylist(lists.sale);
-  thanksPlaylist(lists.thanks);
+function qrAllowed(place) {
+  if (place === "attesa") return level() >= 2;
+  if (place === "grazie") return level() >= 1;
+  return level() >= 3 && Date.now() - lastLineAt > 4000;   // la colonna: solo a TROPPO e a vendita ferma
 }
-
-/** La chiave di una playlist: cambia se cambiano gli elementi o le schede delle loro promozioni. */
-function keyOf(items) {
-  return JSON.stringify(items) + JSON.stringify(items.filter((i) => i.kind === "promo").map((i) => cardOf(i.id)));
+/** La promozione senza il suo QR, dove il QR non va: il modello D diventa C (con la foto) o A. Null se non resta niente. */
+function withoutQr(item) {
+  if (!item.qr) return item;
+  if (!item.titolo && !item.testo && !item.media) return null;
+  const copy = Object.assign({}, item);
+  delete copy.qr;
+  if (copy.modello === "D") copy.modello = copy.media ? "C" : "A";
+  if (copy.durataMs) copy.durataMs = Math.min(copy.durataMs, 15000);
+  return copy;
 }
+const isPromo = (item) => item.tipo === "promozione";
+const hasWords = (item) => !!(item.titolo || item.testo);
 
-const QR_SCALE = { slide: 1.3, side: 0.95, thanks: 1 };
-
-/**
- * La scheda di un elemento: la foto, il video (muto) o la promozione con le sue scritte, l'immagine e il QR.
- * onEnded: il video è finito (o non parte); loop: il video ricomincia da solo.
- */
-function buildAd(item, where, options) {
+function mediaNode(item, options) {
   const o = options || {};
-  if (item.kind === "promo") {
-    const card = o.card || cardOf(item.id) || {};
-    const node = el("div", "ad promo" + (card.image ? " has-pic" : "") + (card.qr && card.qr.png ? " has-qr" : ""));
-    if (card.image) {
-      const pic = el("div", "pic");
-      pic.style.backgroundImage = "url(\"" + String(card.image).replace(/["\\\n]/g, "") + "\")";
-      node.append(pic);
-    }
-    const copy = el("div", "copy");
-    if ((card.title || card.text) && !o.noLabel) copy.append(el("span", "label", "Promozione"));
-    if (card.title) copy.append(el("h3", "", card.title));
-    if (card.text) copy.append(el("p", "", card.text));
-    node.append(copy);
-    if (card.qr && card.qr.png) {
-      const box = el("div", "qrbox");
-      box.append(el("img"));
-      const img = box.firstChild;
-      img.alt = card.qr.caption || card.title || "QR";
-      const zone = el("div", "qrzone");
-      zone.append(box);
-      if (card.qr.caption) zone.append(el("span", "caption", card.qr.caption));
-      node.append(zone);
-      showQr(box, card.qr.png, cssNumber("--qr-thanks") * QR_SCALE[where] * (where === "thanks" && root.dataset.format === "palmare" ? 0.68 : 1));
-    }
-    return node;
-  }
-  const node = el("div", "ad " + item.kind);
-  if (item.kind === "video") {
+  const m = item.media;
+  const box = el("div", "media");
+  if (!m) return box;
+  const bands = m.scritte && layoutName() !== "wide";   // una foto con le scritte non si ritaglia: fasce (SPEC §16)
+  if (bands) box.classList.add("bands");
+  if (o.kb && !bands) box.classList.add("kb");
+  if (o.alt) box.classList.add("alt");
+  const position = m.focus ? (m.focus.x * 100).toFixed(1) + "% " + (m.focus.y * 100).toFixed(1) + "%" : "50% 50%";
+  const eco = root.dataset.motion === "eco";
+  if (item.tipo === "video" && !(eco && (m.poster || m.posterBlur))) {
     const video = el("video");
     video.muted = true; video.playsInline = true; video.autoplay = true; video.setAttribute("muted", ""); video.preload = "auto";
     video.loop = !!o.loop;
+    if (m.poster) video.poster = m.poster;
     if (o.onEnded) { video.addEventListener("ended", o.onEnded); video.addEventListener("error", () => setTimeout(o.onEnded, 1500)); }
-    video.src = item.src;
-    node.append(video);
+    video.style.objectPosition = position;
+    video.src = m.src;
+    box.append(video);
   } else {
     const img = el("img");
     img.alt = "";
+    img.style.objectPosition = position;
     if (o.onError) img.addEventListener("error", o.onError);
-    img.src = item.src;
-    node.append(img);
+    img.src = item.tipo === "video" ? m.poster || m.posterBlur : m.src;
+    box.append(img);
   }
-  return node;
+  return box;
 }
 
 function play(node) {
@@ -744,52 +958,142 @@ function play(node) {
   if (video) { const p = video.play(); if (p && p.catch) p.catch(() => {}); }
 }
 
-// L'attesa: due livelli, uno visibile e uno pronto, mai tre (SPEC §2.1). I puntini solo per le playlist corte: in una
-// casuale di 60 elementi non direbbero niente.
+function qrZone(qr, size) {
+  const zone = el("div", "qrzone");
+  const box = el("div", "qrbox");
+  const img = el("img");
+  img.alt = qr.didascalia || "QR";
+  box.append(img);
+  zone.append(box);
+  if (qr.didascalia) zone.append(el("span", "caption", qr.didascalia));
+  showQr(box, qr.png, size);
+  return zone;
+}
+
+/** Una scheda: una foto o un video, o una promozione con l'etichetta, il titolo, il testo e il QR. */
+function buildCard(item, options) {
+  const o = options || {};
+  if (!isPromo(item)) {
+    const card = el("div", "adcard media-only");
+    card.append(mediaNode(item, { loop: o.loop, onEnded: o.onEnded }));
+    return card;
+  }
+  const card = el("div", "adcard promo model-" + item.modello);
+  if (item.media && o.photo !== false) card.append(mediaNode(item, {}));
+  const copy = el("div", "copy");
+  if (item.etichetta && LABELS[item.etichetta]) copy.append(el("span", "label", LABELS[item.etichetta]));
+  if (item.titolo && item.modello !== "B") copy.append(el("h3", item.titolo.length > 36 ? "long" : "", item.titolo));
+  if (item.testo) copy.append(el("p", "", item.testo));
+  if (copy.childNodes.length) card.append(copy);
+  if (item.qr && o.qr !== false) card.append(qrZone(item.qr, o.qrSize || cssNumber("--qr-col") || 200));
+  return card;
+}
+
+// --- L'attesa: due livelli, mai tre (SPEC §2.1); la transizione la sceglie la coppia di elementi (MOTION.md) ---------
 let slides = [];
 let slideIndex = -1;
 let slideTimer = 0;
 let slideKey = "";
+let slideCount = 0;
+let lastSlideKind = null;
+let slideDark = true;
 const layers = Array.from(document.querySelectorAll("#idle .slide"));
 let activeLayer = 0;
 
+function idleList() {
+  if (attr() === "sobrio") return [];   // a Sobrio l'attesa è il locale e il nastro (SPEC §14)
+  let items = itemsOf("attesa");
+  if (layoutName() === "palmare") items = items.filter((i) => isPromo(i) && (hasWords(i) || i.qr));   // solo testo sul palmare
+  const qr = qrAllowed("attesa");
+  return items.map((i) => (qr ? i : withoutQr(i))).filter(Boolean);
+}
+
 function playlist(items) {
-  const key = keyOf(items);
+  const key = JSON.stringify(items) + layoutName() + root.dataset.motion;
   if (key === slideKey) return;
   slideKey = key;
   slides = items;
   slideIndex = -1;
+  lastSlideKind = null;
   clearTimeout(slideTimer);
-  layers.forEach((layer) => { layer.classList.remove("on"); layer.replaceChildren(); });
-  const dots = document.querySelector("#idle .dots");
-  dots.replaceChildren(...(slides.length > 1 && slides.length <= 12 ? slides.map(() => el("i")) : []));
+  layers.forEach((layer) => { layer.className = "slide"; layer.replaceChildren(); });
+  const distinct = new Set(items.map((i) => i.id)).size;
+  $("idledots").replaceChildren(...(distinct > 1 && items.length <= 12 ? items.map(() => el("i")) : []));
   $("idle").classList.toggle("has-slides", slides.length > 0);
+  slideDark = true;
+  $("idle").classList.remove("light-slide");
+  venueBlock($("idlevenue"), true, slides.length > 0 && slideDark);
   if (screenNow === "idle") nextSlide();
+}
+
+function slideKind(item) { return !isPromo(item) || (item.modello === "B" && item.media) ? "foto" : "promo"; }
+
+function buildSlide(item, alt) {
+  const model = isPromo(item) ? item.modello : "B";
+  const node = el("div", "slide model-" + model);
+  const content = [];
+  if (!item.media && isPromo(item)) content.push(el("div", "glow"));
+  if (item.media) {
+    node.classList.add("has-media");
+    content.push(mediaNode(item, { kb: true, alt, onEnded: () => { if (node.classList.contains("on") && !node.classList.contains("out-fade")) nextSlide(); } }));
+    content.push(el("div", "topveil"));
+  }
+  if (isPromo(item) && item.media && (model === "C" || model === "D" || model === "A")) content.push(el("div", "scrim"));
+  if (model === "B" && isPromo(item) && item.testo) {
+    content.push(el("div", "band"), el("div", "service", item.testo));   // B: al massimo una riga di servizio in fascia bassa
+  }
+  if (isPromo(item) && model !== "B") {
+    const copy = el("div", "copy");
+    if (item.etichetta && LABELS[item.etichetta]) copy.append(el("span", "label", LABELS[item.etichetta]));
+    if (item.titolo) copy.append(el("h2", item.titolo.length > 40 ? "long" : "", item.titolo));
+    if (item.testo) copy.append(el("p", "", item.testo));
+    content.push(copy);
+  }
+  if (item.qr) { node.classList.add("has-qr"); content.push(qrZone(item.qr, cssNumber("--qr-slide") || 272)); }
+  node.append(...content);
+  return node;
+}
+
+function holdOf(item) {
+  if (item.tipo === "video" && root.dataset.motion !== "eco") return 5 * 60 * 1000;   // dura quanto dura (e uno bloccato non ferma tutto)
+  let hold = item.durataMs || cssMs("--t-slide-hold", 7000);
+  if (item.qr) return Math.max(15000, hold);   // un QR almeno 15 s (SPEC §16)
+  if (attr() === "troppo") hold = Math.min(hold, 5000);
+  return hold;
 }
 
 function nextSlide() {
   clearTimeout(slideTimer);
   if (!slides.length || screenNow !== "idle") return;
   slideIndex = (slideIndex + 1) % slides.length;
-  const slide = slides[slideIndex];
+  const item = slides[slideIndex];
   const next = layers[1 - activeLayer];
   const current = layers[activeLayer];
-  // Solo la slide a schermo fa andare avanti: un video tolto che finisce o va in errore non salta la slide dopo.
-  let node = null;
-  const shown = () => node && node.parentNode === layers[activeLayer];
-  const retry = () => { if (shown()) { clearTimeout(slideTimer); slideTimer = setTimeout(nextSlide, 1500); } };
-  node = buildAd(slide, "slide", { onEnded: () => { if (shown()) nextSlide(); }, onError: retry });
-  next.replaceChildren(node);
-  $("idle").classList.toggle("promo-on", slide.kind === "promo");
-  // Un video dura quanto dura, ma uno bloccato non ferma la playlist.
-  slideTimer = setTimeout(nextSlide, slide.kind === "video" ? 5 * 60 * 1000 : slide.durationMs || 7000);
-  next.classList.add("on");
-  current.classList.remove("on");
+  const node = buildSlide(item, (slideCount++) % 2 === 1);
+  const kind = slideKind(item);
+  const transition = lastSlideKind === null ? "fade" : kind === "foto" && lastSlideKind === "foto" ? "fade" : kind === "promo" && lastSlideKind === "promo" ? "push" : "mixed";
+  lastSlideKind = kind;
+  next.className = node.className;
+  next.replaceChildren(...node.childNodes);
+  next.style.zIndex = String(slideCount);
+  next.classList.add("on", transition === "push" ? "in-push" : "in-fade");
+  if (transition === "mixed") { next.classList.add("in-mixed"); next.style.animationDuration = root.dataset.motion === "full" ? "900ms" : ""; }
+  else { next.style.animationDuration = ""; if (kind === "promo") next.classList.add("in-promo"); }
+  if (current.classList.contains("on")) {
+    current.classList.remove("on", "in-push", "in-fade", "in-mixed", "in-promo");
+    current.classList.add(transition === "push" ? "out-push" : "out-fade");
+  }
   activeLayer = 1 - activeLayer;
   const old = current;
-  setTimeout(() => { if (!old.classList.contains("on")) { const v = old.querySelector("video"); if (v) v.pause(); old.replaceChildren(); } }, 1400);
-  document.querySelectorAll("#idle .dots i").forEach((dot, i) => dot.classList.toggle("on", i === slideIndex));
-  play(node);
+  setTimeout(() => { if (!old.classList.contains("on")) { const v = old.querySelector("video"); if (v) v.pause(); old.className = "slide"; old.replaceChildren(); } }, 1500);
+  document.querySelectorAll("#idledots i").forEach((dot, i) => dot.classList.toggle("on", i === slideIndex));
+  // Sopra una foto c'è il velo scuro; una promozione senza foto su un tema chiaro resta chiara (il locale, il nastro, la firma).
+  const darkSlide = !!item.media || !lightBackground;
+  if (darkSlide !== slideDark) { slideDark = darkSlide; venueBlock($("idlevenue"), true, darkSlide); }
+  $("idle").classList.toggle("light-slide", !darkSlide);
+  root.classList.toggle("over-slides", screenNow === "idle" && darkSlide);
+  play(next);
+  slideTimer = setTimeout(nextSlide, holdOf(item));
 }
 
 function pauseSlides() {
@@ -797,114 +1101,198 @@ function pauseSlides() {
   layers.forEach((layer) => { const v = layer.querySelector("video"); if (v) v.pause(); });
 }
 
-// Accanto al conto: la scheda cambia con i tempi del set, e dal conto dopo riparte da dove era.
-let saleItems = [];
-let saleIndex = -1;
-let saleTimer = 0;
-let saleKey = "";
-let saleRunning = false;
+// --- Accanto al conto: una scheda che ruota (12/8/5 s), mai durante l'ingresso di una riga (SPEC §2.2) ---------------
+let columnItems = [];
+let columnIndex = -1;
+let columnTimer = 0;
+let columnRunning = false;
+let columnKey = "";
+let columnShown = null;
 
-function salePlaylist(items) {
-  const key = keyOf(items);
-  if (key === saleKey) return;
-  saleKey = key;
-  saleItems = items;
-  saleIndex = -1;
-  if (saleRunning) { stopSaleAds(); startSaleAds(); }
+function columnList() {
+  if (attr() === "sobrio") return [];   // a Sobrio la colonna non esiste
+  let items = itemsOf("conto");
+  // A 4:3 la colonna c'è, solo testo (modello A); sul palmare la riga sopra il totale, solo testo.
+  if (layoutName() === "narrow" || layoutName() === "palmare") items = items.filter((i) => isPromo(i) && hasWords(i));
+  return items;
 }
 
-function nextSaleAd() {
-  clearTimeout(saleTimer);
-  if (!saleRunning || !saleItems.length) return;
-  saleIndex = (saleIndex + 1) % saleItems.length;
-  const item = saleItems[saleIndex];
-  const box = $("salead");
-  const before = box.querySelector("video");
-  if (before) before.pause();
-  let node = null;
-  const shown = () => node && node.parentNode === box && saleRunning;
-  node = buildAd(item, "side", {
-    onEnded: () => { if (shown()) nextSaleAd(); },
-    onError: () => { if (shown()) { clearTimeout(saleTimer); saleTimer = setTimeout(nextSaleAd, 1500); } },
-  });
-  box.replaceChildren(node);
+function refreshColumn() {
+  const items = columnList();
+  const key = JSON.stringify(items) + layoutName();
+  if (key === columnKey) return;
+  columnKey = key;
+  columnItems = items;
+  columnIndex = -1;
+  const distinct = [...new Set(items.map((i) => i.id))];
+  $("sidedots").replaceChildren(...(distinct.length > 1 && distinct.length <= 8 ? distinct.map(() => el("i")) : []));
+  if (columnRunning) { stopColumn(); startColumn(); }
+}
+
+function columnStep() {
+  clearTimeout(columnTimer);
+  if (!columnRunning || !columnItems.length) return;
+  const since = Date.now() - lastLineAt;
+  if (columnShown && since < 1500) { columnTimer = setTimeout(columnStep, 1500 - since); return; }   // la cassa sta battendo
+  let item = null;
+  for (let tries = 0; tries < columnItems.length && !item; tries++) {
+    columnIndex = (columnIndex + 1) % columnItems.length;
+    const candidate = columnItems[columnIndex];
+    item = candidate.qr && !qrAllowed("conto") ? withoutQr(candidate) : candidate;
+    if (item && layoutName() === "narrow" && !hasWords(item)) item = null;
+  }
+  if (!item) return;
+  columnShown = item;
+  showColumnItem(item);
+  const hold = item.tipo === "video" && root.dataset.motion !== "eco" ? 60000 : item.qr ? 15000 : cssMs("--t-col-rotate", 12000);
+  columnTimer = setTimeout(columnStep, hold);
+}
+
+function showColumnItem(item) {
+  const scene = root.dataset.side === "scene";
+  const node = scene ? buildScene(item) : buildCard(item, { photo: layoutName() !== "narrow", qrSize: cssNumber("--qr-col") || 200,
+    onEnded: () => { if (columnRunning && columnShown && columnShown.id === item.id) columnStep(); } });
+  const stack = $("sidestack");
+  for (const old of [...stack.children]) {
+    old.classList.remove("in");
+    old.classList.add("out");
+    const v = old.querySelector("video");
+    if (v) v.pause();
+    setTimeout(() => old.remove(), cssMs("--d-col", 420) + 160);
+  }
+  node.classList.add("in");
+  stack.append(node);
   play(node);
-  saleTimer = setTimeout(nextSaleAd, item.kind === "video" ? 5 * 60 * 1000 : item.durationMs || 8000);
+  const distinct = [...new Set(columnItems.map((i) => i.id))];
+  document.querySelectorAll("#sidedots i").forEach((dot, i) => dot.classList.toggle("on", distinct[i] === item.id));
+  const line = $("promoline");
+  line.querySelector("span").textContent = [item.titolo, item.testo].filter(Boolean).join(" · ");
 }
 
-function startSaleAds() { saleRunning = true; nextSaleAd(); }
-function stopSaleAds() {
-  saleRunning = false;
-  clearTimeout(saleTimer);
-  const video = $("salead").querySelector("video");
-  if (video) video.pause();
+/** La scena dei "prezzi solo sul conto": la vetrina grande al centro, la lista stretta di lato (SPEC §2.2.1). */
+function buildScene(item) {
+  if (!isPromo(item)) return buildCard(item, { loop: true });
+  const scene = el("div", "scene");
+  if (item.etichetta && LABELS[item.etichetta]) scene.append(el("span", "label", LABELS[item.etichetta]));
+  if (item.titolo) scene.append(el("h2", "", item.titolo));
+  if (item.testo) scene.append(el("p", "", item.testo));
+  return scene;
 }
 
-// Nel Grazie: un elemento per cliente, nell'ordine del set. Con il QR il Grazie resta di più (thanksSeconds).
-let thanksItems = [];
+function venueScene() {
+  const s = screenCfg();
+  const id = s.identita || {};
+  const scene = el("div", "scene");
+  if (id.sottotitolo) scene.append(el("span", "label", id.sottotitolo));
+  scene.append(el("h2", "", id.nomeLocale || (s.scritte && s.scritte.benvenuto) || "Benvenuti"));
+  if (id.nomeLocale && s.scritte && s.scritte.benvenuto) scene.append(el("p", "", s.scritte.benvenuto));
+  return scene;
+}
+
+function startColumn() {
+  columnRunning = true;
+  if (!columnItems.length) {
+    const stack = $("sidestack");
+    stack.replaceChildren(root.dataset.side === "scene" ? venueScene() : venueCard());
+    columnShown = null;
+    return;
+  }
+  columnShown = null;
+  columnStep();
+}
+function stopColumn() {
+  columnRunning = false;
+  clearTimeout(columnTimer);
+  columnShown = null;
+  $("sidestack").replaceChildren();
+}
+
+function venueCard() {
+  const id = screenCfg().identita || {};
+  const card = el("div", "adcard promo");
+  const copy = el("div", "copy");
+  const logo = logoFor(false);
+  if (logo) { const img = el("img"); img.src = logo; img.alt = ""; img.style.maxWidth = "60%"; img.style.maxHeight = "120px"; img.style.objectFit = "contain"; copy.append(img); }
+  if (id.nomeLocale) copy.append(el("h3", "", id.nomeLocale));
+  if (id.sottotitolo) copy.append(el("p", "", id.sottotitolo));
+  card.append(copy);
+  return card;
+}
+
+// --- Il Grazie: un elemento per cliente, mai due QR; a Sobrio niente (SPEC §2.5) ------------------------------------
 let thanksIndex = -1;
-let thanksKey = "";
 let thanksItem = null;
 
-function thanksPlaylist(items) {
-  const key = keyOf(items);
-  if (key === thanksKey) return;
-  thanksKey = key;
-  thanksItems = items;
-  thanksIndex = -1;
+function nextThanksItem() {
   thanksItem = null;
-  if (state.phase === "thanks") nextThanksItem();   // il set è cambiato durante il Grazie (l'anteprima, o un salvataggio)
+  if (attr() === "sobrio") return;
+  const items = itemsOf("grazie");
+  if (!items.length) return;
+  // Sul palmare il saluto e un QR, niente carosello: si cerca la prossima con il QR.
+  for (let tries = 0; tries < items.length && !thanksItem; tries++) {
+    thanksIndex = (thanksIndex + 1) % items.length;
+    let item = items[thanksIndex];
+    if (item.qr && !qrAllowed("grazie")) item = withoutQr(item);
+    thanksItem = item && layoutName() === "palmare" && !item.qr ? null : item;
+    if (layoutName() !== "palmare") break;
+  }
 }
 
-function nextThanksItem() {
-  thanksItem = thanksItems.length ? thanksItems[(thanksIndex = (thanksIndex + 1) % thanksItems.length)] : null;
+function refreshShowcases() {
+  playlist(idleList());
+  refreshColumn();
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Lo stato del conto, dai messaggi dell'Agent (protocol.ts più design/ALLINEAMENTO.md §8).
+// Lo stato, dai messaggi dell'Agent (protocol.ts del design più design/ALLINEAMENTO.md §8).
 // ---------------------------------------------------------------------------------------------------------------
 const state = { phase: "idle", lines: [], total: 0, cover: 0, bill: false, payment: null, paid: null, receiptQr: null, receipt: null, message: null };
-const voidedAt = new Map();
-const seenLines = new Set();
-const THANKS_MS = 8000;
+const voidTimes = new Map();
 let thanksTimer = 0;
+let receiptTimer = 0;
 let messageTimer = 0;
-let lastTotal = null;
+let thanksStartedAt = 0;
 let firstSync = true;
+let everSynced = false;
 
 function clearSale(phase) {
   clearTimeout(thanksTimer);
-  seenLines.clear();
+  clearTimeout(receiptTimer);
+  resetRows();
   state.phase = phase; state.lines = []; state.total = 0; state.cover = 0; state.payment = null; state.paid = null;
   state.bill = false; state.receiptQr = null; state.receipt = null;
 }
 
-function thanksFor(ms) {
-  clearTimeout(thanksTimer);
-  thanksTimer = setTimeout(() => { clearSale("idle"); render(); }, ms);
-}
-
 function thanksDuration() {
   if (state.receiptQr) return 30000;
-  const card = thanksItem && thanksItem.kind === "promo" ? cardOf(thanksItem.id) : null;
-  if (card && card.qr) return Math.max(10, Math.min(120, (cfg && cfg.thanksSeconds) || 30)) * 1000;
-  return THANKS_MS;
+  if (thanksItem && thanksItem.qr) return clamp(Number(screenCfg().scritte && screenCfg().scritte.secondiGrazie) || 30, 10, 120) * 1000;
+  return 8000;
+}
+
+function thanksFor(ms) {
+  clearTimeout(thanksTimer);
+  thanksTimer = setTimeout(() => { if (state.phase === "thanks") { clearSale("idle"); render(); } }, ms);
 }
 
 function startThanks() {
+  thanksStartedAt = Date.now();
   nextThanksItem();
   thanksFor(thanksDuration());
+}
+
+/** Lo scontrino digitale arriva dopo il Grazie: la celebrazione finisce prima (MOTION, "Grazie → reclame → scontrino"). */
+function showReceipt() {
+  clearTimeout(receiptTimer);
+  const wait = state.phase === "thanks" ? 2400 - (Date.now() - thanksStartedAt) : 0;
+  if (wait > 0) { receiptTimer = setTimeout(() => { if (state.receipt) { state.phase = "receipt"; clearTimeout(thanksTimer); render(); } }, wait); return; }
+  clearTimeout(thanksTimer);
+  state.phase = "receipt";
 }
 
 function apply(m) {
   switch (m.t) {
     case "cfg":
       if (!draft) applyConfig(m, !preview);   // nell'anteprima vince la bozza del back office
-      return;
-    case "layout":
-      forced = ["wide", "narrow", "portrait", "handheld"].includes(m.force) ? m.force : null;
-      try { if (forced) localStorage.setItem(LAYOUT_STORE, forced); else localStorage.removeItem(LAYOUT_STORE); } catch (e) { /* vale fino al prossimo collegamento */ }
-      layout();
       return;
     case "sync": {
       clearTimeout(thanksTimer);
@@ -918,25 +1306,26 @@ function apply(m) {
       state.bill = !!s.bill;
       state.receiptQr = null;
       state.receipt = s.receipt || null;
-      // Appena collegato (anche dopo un riavvio dell'Agent, che ricomincia gli id) le righe ci sono già: non entra
-      // niente. A metà conto (righe unite, sconti spostati) entrano solo quelle davvero nuove (ALLINEAMENTO §8).
-      if (firstSync) { seenLines.clear(); firstSync = false; state.lines.forEach((l) => seenLines.add(l.id)); }
+      everSynced = true;
+      // Appena collegato (anche dopo un riavvio dell'Agent, che ricomincia gli id) le righe ci sono già: non entra niente.
+      // A metà conto (righe unite, sconti spostati) entrano solo quelle davvero nuove (ALLINEAMENTO §8).
+      if (firstSync) { resetRows(); firstSync = false; state.lines.forEach((l) => { seenRows.add(l.id); if (l.kind === "void") voidTimes.set(l.id, 0); }); }
       break;
     }
     case "sale.open":
       clearSale("sale");
       break;
     case "sale.line": {
-      if (state.phase === "thanks" || state.phase === "receipt") clearSale("sale");
-      if (state.phase === "idle") state.phase = "sale";
+      if (state.phase === "thanks" || state.phase === "receipt" || state.phase === "idle") clearSale("sale");   // fuori sequenza: apre la vendita
       const i = state.lines.findIndex((l) => l.id === m.line.id);
       if (i >= 0) state.lines[i] = m.line; else state.lines.push(m.line);
-      if (m.line.kind === "void") voidedAt.set(m.line.id, Date.now());
+      if (m.line.kind === "void" && !voidTimes.has(m.line.id)) voidTimes.set(m.line.id, Date.now());
+      lastLineAt = Date.now();
       break;
     }
     case "sale.total": state.total = m.total; state.cover = m.cover || 0; state.bill = !!m.bill; break;
     case "sale.close":
-      if (!m.paid) { clearSale(state.receipt ? "receipt" : "idle"); break; }
+      if (!m.paid) { if (state.receipt) { state.phase = "receipt"; state.lines = []; } else clearSale("idle"); break; }
       state.phase = "thanks"; state.payment = null; state.paid = m.paid;
       startThanks();
       break;
@@ -946,30 +1335,32 @@ function apply(m) {
       if (state.phase === "payment") state.phase = state.lines.length ? "sale" : "idle";
       break;
     case "receipt.qr":
+      // Lo scontrino digitale senza la schermata dedicata: il QR nel Grazie, al posto della reclame.
       state.receiptQr = { png: m.png, caption: m.caption };
       state.payment = null;
-      if (state.phase !== "sale") { if (state.phase !== "thanks") nextThanksItem(); state.phase = "thanks"; thanksFor(thanksDuration()); }
+      if (state.phase !== "thanks") { state.phase = "thanks"; thanksStartedAt = Date.now(); }
+      thanksFor(thanksDuration());
       break;
     case "receipt.digital":
-      clearTimeout(thanksTimer);
       state.payment = null;
-      state.receipt = m;
-      state.phase = "receipt";
+      state.receipt = Object.assign({}, m);
+      showReceipt();
       break;
     case "receipt.paper.status":
       if (state.receipt && state.receipt.id === m.id) {
         state.receipt.paper = m.state === "already" ? "requested" : m.state;
-        state.receipt.paperMessage = m.message || (m.state === "already" ? "La copia è già stata chiesta: ritirala alla cassa" : null);
+        state.receipt.paperMessage = m.message || null;
       }
       break;
     case "receipt.clear":
       if (state.receipt && state.receipt.id === m.id) {
         state.receipt = null;
+        clearTimeout(receiptTimer);
         if (state.phase === "receipt") clearSale("idle");
       }
       break;
     case "display.msg":
-      state.message = { text: String(m.text || ""), until: Date.now() + (m.ttl || 6000) };
+      state.message = { text: String(m.text || ""), at: Date.now() };
       clearTimeout(messageTimer);
       messageTimer = setTimeout(() => { state.message = null; render(); }, m.ttl || 6000);
       break;
@@ -977,12 +1368,259 @@ function apply(m) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Disegno.
+// Le righe come le vede il display (SPEC §3.2): gli articoli ripetuti si riuniscono (stessa descrizione, stesso prezzo
+// unitario, nessuna nota attaccata); uno storno riduce la quantità, a zero si barra. È solo vista: le righe restano
+// come arrivano dalla cassa e il totale è quello della cassa.
 // ---------------------------------------------------------------------------------------------------------------
 const numbers = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const plain = (cents) => (cents < 0 ? "−" : "") + numbers.format(Math.abs(cents) / 100);
-const money = (cents) => (cents < 0 ? "−" : "") + "€ " + numbers.format(Math.abs(cents) / 100);
+const money = (cents) => (cents < 0 ? "−" : "") + "€ " + numbers.format(Math.abs(cents) / 100);
 const plainPaper = (cents) => (cents < 0 ? "-" : "") + numbers.format(Math.abs(cents) / 100);
+const quantity = (q) => String(q).replace(".", ",");
+const normalize = (text) => String(text || "").trim().replace(/\s+/g, " ").toUpperCase();
+const isCover = (desc) => normalize(desc).startsWith("COPERT");
+const VOID_HOLD = 6000;
+
+function buildView(lines) {
+  const voidOf = new Map();
+  for (const l of lines) if (l.kind === "void" && l.voidsId) voidOf.set(l.voidsId, l);
+  const present = new Set(lines.map((l) => l.id));
+  const rows = [];
+  const groups = new Map();
+  lines.forEach((l, i) => {
+    if (l.kind === "void") {
+      // Uno storno che non punta a niente a video (la riga non c'era): si mostra barrato da solo.
+      if (!l.voidsId || !present.has(l.voidsId)) rows.push({ id: l.id, kind: "item", desc: l.desc, qty: 1, amount: l.amount, sources: [l.id], live: 0, voided: true, voidAt: voidTimes.get(l.id) || 0 });
+      return;
+    }
+    if (l.kind !== "item") { rows.push({ id: l.id, kind: l.kind, desc: l.kind === "note" ? l.text : l.desc, amount: l.amount || 0, sources: [l.id] }); return; }
+    const noted = lines[i + 1] && lines[i + 1].kind === "note";
+    const unit = l.qty ? Math.round(l.amount / l.qty) : l.amount;
+    const key = noted ? null : normalize(l.desc) + "|" + unit;
+    let row = key ? groups.get(key) : null;
+    if (!row) {
+      row = { id: l.id, kind: "item", desc: l.desc, qty: 0, amount: 0, allQty: 0, allAmount: 0, sources: [], live: 0, voidAt: 0 };
+      if (key) groups.set(key, row);
+      rows.push(row);
+    }
+    row.sources.push(l.id);
+    row.allQty += l.qty;
+    row.allAmount += l.amount;
+    const v = voidOf.get(l.id);
+    if (v) row.voidAt = Math.max(row.voidAt, voidTimes.has(v.id) ? voidTimes.get(v.id) : Date.now());
+    else { row.live++; row.qty += l.qty; row.amount += l.amount; }
+  });
+  for (const r of rows) {
+    if (r.kind === "item" && r.allQty !== undefined && r.live === 0) { r.voided = true; r.qty = r.allQty; r.amount = r.allAmount; }
+    if (r.qty !== undefined) r.qty = Math.round(r.qty * 1000) / 1000;
+  }
+  return rows;
+}
+
+const rowNodes = new Map();
+const rowInfo = new Map();
+const seenRows = new Set();
+const goneRows = new Set();
+
+function resetRows() {
+  rowNodes.forEach((node) => node.remove());
+  rowNodes.clear();
+  rowInfo.clear();
+  seenRows.clear();
+  goneRows.clear();
+  voidTimes.clear();
+  cascadeDone = false;
+}
+
+function restart(node, className) {
+  node.classList.remove(className);
+  void node.offsetWidth;
+  node.classList.add(className);
+}
+
+function rowNode(r) {
+  let node = rowNodes.get(r.id);
+  const fresh = !node;
+  if (fresh) {
+    node = el("div", "row");
+    node.addEventListener("animationend", (event) => {
+      if (event.target !== node) return;
+      for (const c of ["in-item", "in-note", "in-discount", "in-surcharge", "bump", "cascade"]) node.classList.remove(c);
+    });
+    rowNodes.set(r.id, node);
+  }
+  const before = rowInfo.get(r.id);
+  const signature = JSON.stringify([r.kind, r.desc, r.qty, r.amount, !!r.voided]);
+  if (!before || before.signature !== signature) {
+    const kind = r.voided ? "item voided" : r.kind;
+    const keep = [...node.classList].filter((c) => c.startsWith("in-") || c === "bump" || c === "striking" || c === "leaving" || c === "cascade");
+    node.className = "row " + kind + (keep.length ? " " + keep.join(" ") : "");
+    const parts = [el("span", "desc", r.desc)];
+    if (r.kind === "item" && r.qty !== 1 && r.qty !== 0) parts.push(el("span", "qty num", "×" + quantity(r.qty)));
+    if (r.voided) parts.push(el("span", "pill", "STORNO"));
+    if (r.kind !== "note") parts.push(el("span", "amount num", (r.kind === "surcharge" ? "+" : "") + plain(r.amount)));
+    if (r.kind === "discount") parts.push(el("i", "sweep"));
+    if (r.voided) parts.push(el("i", "strike"));
+    node.replaceChildren(...parts);
+  }
+  if (!seenRows.has(r.id)) {
+    seenRows.add(r.id);
+    if (!r.voided) node.classList.add("in-" + r.kind);
+  } else if (before && r.kind === "item" && !r.voided && r.qty > before.qty && before.qty > 0) {
+    restart(node, "bump");   // articolo già presente: la quantità rimbalza
+  }
+  if (r.voided && (!before || !before.voided)) {
+    node.classList.add("striking");   // il totale si aggiorna all'inizio della barratura, non alla fine
+    const left = Math.max(0, r.voidAt + VOID_HOLD - Date.now());
+    setTimeout(() => leaveRow(r.id), left);
+  }
+  rowInfo.set(r.id, { signature, qty: r.qty, voided: !!r.voided });
+  return node;
+}
+
+/** Dopo 6 s la riga stornata esce in opacità, poi si toglie e le righe sopra scivolano (FLIP, non height). */
+function leaveRow(id) {
+  const node = rowNodes.get(id);
+  if (!node || goneRows.has(id)) return;
+  node.classList.add("leaving");
+  setTimeout(() => { goneRows.add(id); render(); }, cssMs("--d-void-fade", 240) + 20);
+}
+
+function positions(list) {
+  const map = new Map();
+  for (const node of list.children) if (node.style.display !== "none") map.set(node, node.getBoundingClientRect().top);
+  return map;
+}
+
+function flipRows(before) {
+  for (const [node, top] of before) {
+    if (!node.isConnected || node.style.display === "none") continue;
+    const dy = (top - node.getBoundingClientRect().top) / stageScale;
+    if (Math.abs(dy) < 0.5) continue;
+    node.style.transition = "none";
+    node.style.transform = "translateY(" + dy + "px)";
+    void node.offsetWidth;
+    node.style.transition = "transform var(--d-row) var(--e-out)";
+    node.style.transform = "";
+    node.addEventListener("transitionend", () => { node.style.transition = ""; }, { once: true });
+  }
+}
+
+let cascadeDone = false;
+let wasNoPrices = false;
+
+function renderLines(noPrices) {
+  const list = $("lines");
+  const now = Date.now();
+  const view = buildView(state.lines).filter((r) => !(r.voided && (goneRows.has(r.id) || !r.voidAt || now - r.voidAt > VOID_HOLD + 600)));
+  const flip = root.dataset.motion === "full" && screenNow === "bill" && list.children.length > 0 ? positions(list) : null;
+  const nodes = view.map(rowNode);
+  const wanted = new Set(nodes);
+  for (const [id, node] of rowNodes) if (!wanted.has(node)) { node.remove(); rowNodes.delete(id); rowInfo.delete(id); }
+  // Solo le righe fuori posto si spostano: una riga reinserita ricomincerebbe l'animazione.
+  nodes.forEach((node, i) => { if (list.children[i] !== node) list.insertBefore(node, list.children[i] || null); });
+  nodes.forEach((node) => { node.style.display = ""; });
+
+  // Con tante righe restano le ultime, vicino al totale, e si dice quante ce ne sono sopra e quanto fanno (SPEC §2.2).
+  // Si toglie dall'alto finché l'ultima riga non sta nella card arrivata alla sua altezza massima. Si misura la posizione
+  // di layout (offsetTop), non scrollHeight: la riga che entra è spostata dall'animazione e sembrerebbe non starci.
+  const more = $("more");
+  let hidden = 0;
+  const tellMore = () => {
+    const hiddenRows = view.slice(0, hidden).filter((r) => r.kind !== "note" && !r.voided);
+    const sum = hiddenRows.reduce((s, r) => s + (r.amount || 0), 0);
+    more.textContent = hidden === 0 ? "" : (hidden === 1 ? "e un'altra riga sopra" : "e altre " + hidden + " righe sopra") + (noPrices ? "" : " · " + plain(sum));
+    more.classList.toggle("on", hidden > 0);
+  };
+  tellMore();
+  const last = nodes[nodes.length - 1];
+  const overflows = () => last && last.offsetTop + last.offsetHeight > list.clientHeight + 1;
+  while (overflows() && hidden < nodes.length - 1) {
+    nodes[hidden].style.display = "none";
+    hidden++;
+    tellMore();
+  }
+  list.classList.toggle("cut", hidden > 0);
+  if (flip) flipRows(flip);
+
+  const articles = view.filter((r) => r.kind === "item" && !r.voided && !(state.cover && isCover(r.desc))).length;
+  const parts = [];
+  if (articles) parts.push(articles === 1 ? "1 articolo" : articles + " articoli");
+  if (state.cover) parts.push(state.cover === 1 ? "1 coperto" : state.cover + " coperti");
+  $("count").textContent = parts.join(" · ");
+
+  // Prezzi solo sul conto: quando arriva il conto gli importi entrano a cascata dall'alto, il totale per ultimo.
+  if (wasNoPrices && !noPrices && !cascadeDone && root.dataset.motion !== "eco") {
+    cascadeDone = true;
+    const shown = nodes.filter((node) => node.style.display !== "none");
+    const stagger = cssMs("--d-price-stagger", 40);
+    shown.forEach((node, i) => { node.style.setProperty("animation-delay", "0ms"); const amount = node.querySelector(".amount"); if (amount) amount.style.animationDelay = i * stagger + "ms"; restart(node, "cascade"); });
+    const total = $("totalblock");
+    total.style.animationDelay = shown.length * stagger + cssMs("--d-total-after", 300) + "ms";
+    restart(total, "arrive");
+  }
+  wasNoPrices = noPrices;
+}
+
+/**
+ * Il totale a contachilometri (SPEC §4): ogni cifra è una colonna 0-9 che parte dalla cifra di prima (allineate da
+ * destra) e scorre fino a quella nuova; si muovono solo le cifre che cambiano. Con Eco, sostituzione con dissolvenza.
+ */
+function renderTotal(node, cents) {
+  const text = money(cents);
+  if (node.dataset.text === text) return false;
+  const before = node.dataset.text || "";
+  node.dataset.text = text;
+  const oldDigits = before.replace(/\D/g, "");
+  const count = text.replace(/\D/g, "").length;
+  const reels = [];
+  node.replaceChildren(...Array.from(text).map((ch) => {
+    if (!/\d/.test(ch)) return el("span", "odo-c", ch === " " ? "\u00A0" : ch);
+    const fromRight = count - 1 - reels.length;
+    const previous = oldDigits[oldDigits.length - 1 - fromRight];
+    const reel = el("span", "odo-r");
+    for (let n = 0; n <= 9; n++) reel.append(el("i", "", String(n)));
+    reel.style.transform = "translateY(-" + (previous === undefined ? ch : previous) + "em)";
+    reels.push([reel, ch]);
+    const cell = el("span", "odo-d");
+    cell.append(reel);
+    return cell;
+  }));
+  fitTotal(node);
+  if (!before) return false;   // la prima volta il numero c'è e basta
+  void node.offsetWidth;
+  reels.forEach(([reel, ch]) => { reel.style.transform = "translateY(-" + ch + "em)"; });
+  if (root.dataset.motion === "eco") restart(node, "fade");
+  return true;
+}
+
+/** Sul palmare un totale lungo ("€ 1.118,00") si riduce fino a starci, mai sotto il minimo del lato corto (43 px). */
+function fitTotal(node) {
+  node.style.fontSize = "";
+  if (layoutName() !== "palmare") return;
+  const box = node.parentElement;
+  const room = box.clientWidth - 8;
+  if (node.scrollWidth > room && room > 0) node.style.fontSize = Math.max(43, Math.floor(parseFloat(getComputedStyle(node).fontSize) * room / node.scrollWidth)) + "px";
+}
+
+function renderMessage() {
+  const message = state.message;
+  document.querySelectorAll(".msg").forEach((band) => {
+    band.classList.toggle("on", !!message);
+    const key = message ? message.text + "|" + message.at : "";
+    if (band.dataset.key === key) return;
+    band.dataset.key = key;
+    band.replaceChildren();
+    if (!message) return;
+    // "TOTALE € 23,50", "RESTO 1,50": etichetta e importo; altrimenti il testo com'è (SPEC §2.3). Un messaggio nuovo
+    // mentre uno è a schermo cambia il testo con una dissolvenza: la banda non esce.
+    const text = el("span", "text");
+    const match = /^(.*?)[\s:]*(?:€|EUR|EURO)?\s*(-?\d{1,3}(?:\.\d{3})*,\d{2}|-?\d+,\d{2})\s*(?:€|EUR|EURO)?$/i.exec(message.text.trim());
+    if (match && match[1]) text.append(el("span", "label", match[1].trim()), el("span", "value num", "€ " + match[2].replace("-", "−")));
+    else text.append(el("span", "value", message.text));
+    band.append(text);
+  });
+}
 
 function method(text) {
   const t = String(text || "").toUpperCase();
@@ -994,10 +1632,6 @@ function method(text) {
   return t ? t.charAt(0) + t.slice(1).toLowerCase() : "";
 }
 
-function cssNumber(name) {
-  return parseFloat(getComputedStyle(root).getPropertyValue(name)) || 300;
-}
-
 /** Il QR a un pixel per modulo, ingrandito di un multiplo intero con 4 moduli di margine bianco (SPEC §2.4). */
 function showQr(box, png, target) {
   const img = box.querySelector("img");
@@ -1006,271 +1640,316 @@ function showQr(box, png, target) {
     const modules = img.naturalWidth || 49;
     const scale = Math.max(1, Math.floor(target / modules));
     img.style.width = img.style.height = modules * scale + "px";
-    box.style.padding = Math.max(4 * scale, 16) + "px";
+    box.style.padding = Math.max(4 * scale, 12) + "px";
   };
   if (img.getAttribute("src") !== png) { img.onload = size; img.src = png; }
   if (img.complete) size();
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Il Grazie e lo scontrino digitale.
+// ---------------------------------------------------------------------------------------------------------------
+function renderThanks(entering) {
+  const paid = state.paid;
+  $("paidamount").textContent = paid ? money(paid.amount) : money(state.total);
+  $("paidmethod").textContent = paid ? method(paid.method) : "";
+  const view = buildView(state.lines);
+  const articles = view.filter((r) => r.kind === "item" && !r.voided && !(state.cover && isCover(r.desc))).length;
+  const now = new Date();
+  const summary = $("summary");
+  const left = [articles ? (articles === 1 ? "1 articolo" : articles + " articoli") : "", state.cover ? (state.cover === 1 ? "1 coperto" : state.cover + " coperti") : ""].filter(Boolean).join(" · ");
+  const cells = [left, now.toLocaleDateString("it-IT") + " · " + now.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })];
+  if (paid && paid.change != null) cells.push("Resto", plain(paid.change));
+  summary.replaceChildren(...cells.map((c) => el("span", "", c)));
+  if (!entering) return;
+
+  // La celebrazione una volta sola: un anello a Vivo (o con il movimento leggero), tre a Spettacolo, tre ondate a TROPPO.
+  const motion = root.dataset.motion;
+  const rings = attr() === "sobrio" ? 0 : motion === "light" || attr() === "vivo" ? 1 : attr() === "troppo" ? 9 : 3;
+  $("rings").replaceChildren(...Array.from({ length: rings }, () => el("i", "ring")));
+  const section = $("thanks");
+  section.classList.remove("on");
+  void section.offsetWidth;
+  section.style.setProperty("--thanks-ad-delay", (motion === "eco" ? 300 : 900) + 420 + "ms");
+  // A TROPPO il nome del locale entra a lettere.
+  const name = $("headvenue").querySelector(".name");
+  if (name && attr() === "troppo" && motion === "full") {
+    const text = name.textContent;
+    name.replaceChildren(...Array.from(text).map((ch, i) => { const s = el("span", "letter", ch === " " ? " " : ch); s.style.animationDelay = i * 45 + "ms"; return s; }));
+    setTimeout(() => { if (name.isConnected) name.textContent = text; }, text.length * 45 + 600);
+  }
+  // A destra la reclame del posto Grazie, dopo la celebrazione; con lo scontrino digitale della cassa, quel QR.
+  const area = $("thanksad");
+  area.replaceChildren();
+  if (state.receiptQr) {
+    const card = el("div", "qrcard");
+    const box = el("div", "qrbox");
+    box.append(el("img"));
+    box.firstChild.alt = "QR per scaricare lo scontrino digitale";
+    showQr(box, state.receiptQr.png, cssNumber("--qr-thanks") || 252);
+    const words = el("div");
+    words.append(el("h3", "", "Il tuo scontrino digitale"), el("p", "", state.receiptQr.caption || "Inquadra e scaricalo sul telefono"));
+    card.append(box, words);
+    area.append(card);
+  } else if (thanksItem) {
+    const card = buildCard(thanksItem, { loop: true, qrSize: cssNumber("--qr-thanks") || 252, photo: layoutName() !== "palmare" });
+    card.classList.add("card-ad");
+    area.append(card);
+    play(card);
+  }
+}
+
+/** Le colonne dello scontrino digitale dai blocchi: le vuote spariscono, la composizione resta centrata (SPEC §2.7). */
+function receiptColumns(drop) {
+  const r = state.receipt;
+  const conf = (screenCfg().receipt && screenCfg().receipt.blocchi) || [];
+  const defaults = [{ tipo: "carta", attivo: true, colonna: 1, riga: "piena" }, { tipo: "qr", attivo: true, colonna: 2, riga: "piena" }];
+  let blocks = (conf.length ? conf : defaults).filter((b) => b.attivo);
+  if (!r.receipt) blocks = blocks.filter((b) => b.tipo !== "carta");   // senza il conto abbinato resta il solo QR
+  if (!receiptAd()) blocks = blocks.filter((b) => b.tipo !== "reclame");
+  for (const type of drop) blocks = blocks.filter((b) => b.tipo !== type);
+  if (!blocks.some((b) => b.tipo === "qr") && !blocks.length) blocks.push({ tipo: "qr", colonna: 2, riga: "piena" });
+  if (layoutName() === "palmare") {
+    // Sul palmare tutto in fila, senza la reclame; il QR per primo, perché la carta scorre e il telefono è a 30 cm.
+    const order = { qr: 0, carta: 1 };
+    return [blocks.filter((b) => b.tipo !== "reclame").sort((a, b) => order[a.tipo] - order[b.tipo])];
+  }
+  const columns = new Map();
+  for (const b of blocks.slice().sort((a, b) => a.colonna - b.colonna || ["alto", "piena", "basso"].indexOf(a.riga) - ["alto", "piena", "basso"].indexOf(b.riga))) {
+    if (!columns.has(b.colonna)) columns.set(b.colonna, []);
+    columns.get(b.colonna).push(b);
+  }
+  let result = [...columns.values()];
+  // A 4:3 con tre colonne cade la reclame.
+  if (layoutName() === "narrow" && result.length === 3) return receiptColumns(drop.concat(["reclame"]));
+  return result;
+}
+
+function receiptAd() {
+  if (attr() === "sobrio") return null;
+  const items = itemsOf("grazie");
+  if (!items.length) return null;
+  const item = items[Math.max(0, thanksIndex) % items.length];
+  return item.qr && !qrAllowed("grazie") ? withoutQr(item) : item;
+}
+
+const PRINTER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>';
+
+function paperAction(r) {
+  const box = el("div", "paperaction");
+  const touch = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+  // Il pulsante vero solo sugli schermi touch con una stampante (in modalità demo anche con il mouse, per provarla).
+  if (!r.paperCopy || !(touch || r.demo)) {
+    const line = el("div", "line");
+    line.append("Preferisci la copia di carta? ", el("span", "", "Chiedila alla cassa"));
+    box.append(line);
+    return box;
+  }
+  const paper = r.paper || "none";
+  const button = el("button");
+  button.type = "button";
+  if (paper === "none") { button.innerHTML = PRINTER; button.append(el("span", "", "Voglio la copia di carta")); }
+  else button.append(el("span", "", paper === "printing" ? "Sto stampando…" : paper === "requested" ? r.paperMessage || "Ritirala alla cassa" : "Chiedi la copia alla cassa"));
+  button.disabled = paper !== "none";   // una sola richiesta per vendita, nessuna conferma
+  button.addEventListener("click", () => {
+    if (!state.receipt || state.receipt.paper && state.receipt.paper !== "none") return;
+    if (demo) { state.receipt.paper = "printing"; render(); setTimeout(() => { if (state.receipt) { state.receipt.paper = "requested"; render(); } }, 1600); return; }
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(JSON.stringify({ t: "receipt.paper", id: state.receipt.id }));
+    state.receipt.paper = "printing";
+    render();
+  });
+  box.append(button);
+  return box;
+}
+
+function qrBlock(r, half) {
+  const block = el("div", "rblock-qr" + (half ? " half" : ""));
+  if (!half) {
+    block.append(el("h2", "", "Il tuo scontrino"), el("div", "sub", "Inquadra e scaricalo sul telefono"));
+    if (r.demo) block.append(el("span", "demo", "Prova · QR finto"));
+  }
+  const box = el("div", "qrbox");
+  box.append(el("img"));
+  box.firstChild.alt = "QR per scaricare lo scontrino digitale";
+  block.append(box);
+  showQr(box, r.png, cssNumber(half ? "--qr-receipt-half" : "--qr-receipt") || 300);
+  block.append(paperAction(r));
+  return block;
+}
+
+function paperBlock(r, two, limit) {
+  const paper = el("div", "paper" + (two ? " two" : ""));
+  const bill = r.receipt;
+  for (const [i, h] of (bill.header || []).entries()) paper.append(el("div", "center" + (i === 0 ? " head" : ""), h));
+  paper.append(el("div", "sep"));
+  const items = el("div", "items");
+  const pair = (left, right, className) => { const row = el("div", "pair" + (className ? " " + className : "")); row.append(el("span", "", left), el("span", "", right)); return row; };
+  const lines = bill.lines || [];
+  const shown = limit ? lines.slice(0, limit) : lines;
+  for (const line of shown) {
+    if (line.kind === "item") items.append(pair(line.desc + (line.qty !== 1 ? " x " + quantity(line.qty) : ""), plainPaper(line.amount)));
+    else if (line.kind === "note") items.append(el("div", "muted", "  " + line.text));
+    else items.append(pair(line.desc, (line.amount > 0 ? "+" : "") + plainPaper(line.amount), line.underItem ? "under" : ""));
+  }
+  if (limit && lines.length > limit) {
+    // Oltre: le righe minori si raggruppano (E-Receipt-Lungo); il totale non scorre mai via.
+    const rest = lines.slice(limit);
+    const sum = rest.reduce((s, l) => s + (l.amount || 0), 0);
+    items.append(pair("Altri " + rest.filter((l) => l.kind === "item").length + " articoli", plainPaper(sum), "muted"));
+  }
+  paper.append(items, el("div", "sep"));
+  if (bill.total != null) paper.append(pair("TOTALE", plainPaper(bill.total), "big"));
+  if (bill.paid) {
+    paper.append(pair("Pagato " + bill.paid.method, plainPaper(bill.paid.amount)));
+    if (bill.paid.change != null) paper.append(pair("Resto", plainPaper(bill.paid.change)));
+  }
+  const when = new Date(r.issuedAt);
+  if (!isNaN(when)) paper.append(el("div", "muted", when.toLocaleDateString("it-IT") + " " + when.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })));
+  paper.append(el("div", "notice", "Documento commerciale · copia di cortesia"));
+  return paper;
+}
+
+let receiptKey = "";
+function renderReceipt() {
+  const r = state.receipt;
+  if (!r) return;
+  const key = JSON.stringify([r.id, r.paper, r.paperMessage, layoutName(), root.dataset.format, attr(), screenCfg().receipt]);
+  if (key === receiptKey) return;
+  const firstTime = !receiptKey.startsWith(JSON.stringify([r.id]).slice(0, -1));
+  receiptKey = key;
+  const grid = $("receiptgrid");
+  const compose = (drop, paperMode) => {
+    grid.replaceChildren();
+    for (const column of receiptColumns(drop)) {
+      const col = el("div", "col" + (column.length > 1 ? " pair" : ""));
+      for (const b of column) {
+        if (b.tipo === "qr") col.append(qrBlock(r, b.riga !== "piena" && layoutName() !== "palmare"));
+        else if (b.tipo === "carta") col.append(paperBlock(r, paperMode === "two", paperMode === "two-limit" ? 48 : paperMode === "limit" ? 24 : 0));
+        else if (b.tipo === "reclame") { const ad = receiptAd(); if (ad) { const card = buildCard(ad, { loop: true, qrSize: cssNumber("--qr-receipt-half") || 200 }); card.classList.add("rblock-ad"); col.append(card); play(card); } }
+      }
+      grid.append(col);
+    }
+    if (!firstTime) grid.querySelectorAll(".col > *").forEach((n) => { n.style.animation = "none"; });
+  };
+  const overflows = () => {
+    const screen = $("receipt");
+    const paper = grid.querySelector(".paper");
+    return grid.scrollWidth > screen.clientWidth - 2 * cssNumber("--pad-x") + 1 || grid.scrollHeight > screen.clientHeight - 20
+      || (paper && layoutName() !== "palmare" && paper.scrollHeight > paper.clientHeight + 1);
+  };
+  // Quando manca spazio: la carta va in due colonne, poi raggruppa le righe minori; poi cade la reclame, poi la carta.
+  const attempts = [[[], ""], [[], "two"], [[], "two-limit"], [["reclame"], ""], [["reclame"], "two"], [["reclame"], "two-limit"], [["reclame", "carta"], ""]];
+  for (const [drop, mode] of attempts) {
+    if (layoutName() === "palmare" && mode) continue;
+    compose(drop, mode);
+    if (!overflows()) return;
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Il disegno.
+// ---------------------------------------------------------------------------------------------------------------
 let screenNow = "";
-function screen() {
-  if (state.receipt) return "receipt";
-  if (state.phase === "payment" && state.payment && (root.dataset.layout !== "wide" || !cfg || !cfg.theme || cfg.theme.qrLayout === "fullscreen")) return "pay";
+let lastTotal = null;
+
+function screenName() {
+  if (state.phase === "receipt" && state.receipt) return "receipt";
+  if (state.phase === "thanks") return "thanks";
+  if (state.phase === "payment" && state.payment) return qrMode() === "fullscreen" ? "pay" : "bill";
   if (state.phase === "idle") return "idle";
   return "bill";
 }
 
-function side() {
-  if (state.phase === "thanks") return "thanks";
-  if (state.phase === "payment" && state.payment) return "qr";
-  // Sul 4:3 niente colonna (le reclame stanno nelle slide), sul palmare il conto prende tutto lo spazio.
-  if (root.dataset.layout === "narrow" || root.dataset.format === "palmare") return "none";
-  if (saleItems.length) return "promo";
-  // Il locale accanto al conto solo se c'è qualcosa da mostrare: senza logo né nome il conto sta al centro.
-  const v = (cfg && cfg.venue) || {};
-  return root.dataset.layout !== "portrait" && (logoFor(false) || v.name) ? "venue" : "none";
-}
-
-// Le righe si aggiornano, non si ridisegnano: il totale arriva qualche millisecondo dopo la riga, e ridisegnando la
-// lista l'animazione d'ingresso della riga nuova si interrompeva prima di vedersi.
-const rowNodes = new Map();
-
-function lineRow(line) {
-  let row = rowNodes.get(line.id);
-  if (!row) {
-    row = el("div", "row");
-    if (!seenLines.has(line.id)) {
-      seenLines.add(line.id);
-      row.classList.add("enter");
-      row.addEventListener("animationend", (event) => { if (event.animationName === "bt-row-in") row.classList.remove("enter"); });
-    }
-    rowNodes.set(line.id, row);
-  }
-  const key = JSON.stringify(line);
-  if (row.dataset.key !== key) {   // la quantità cambiata mentre si batte: cambia la cifra, la riga resta
-    row.dataset.key = key;
-    row.className = "row " + line.kind + (row.classList.contains("enter") ? " enter" : "");
-    row.replaceChildren(el("span", "desc", line.kind === "note" ? line.text : line.desc));
-    if (line.kind === "item" && line.qty !== 1) row.append(el("span", "qty num", "×" + String(line.qty).replace(".", ",")));
-    if (line.kind === "void") row.append(el("span", "pill", "STORNO"));
-    if (line.kind !== "note") row.append(el("span", "amount num", (line.kind === "surcharge" ? "+" : "") + plain(line.amount)));
-  }
-  return row;
-}
-
-function renderLines() {
-  const voided = new Set(state.lines.filter((l) => l.kind === "void" && l.voidsId).map((l) => l.voidsId));
-  const list = $("lines");
-  const rows = [];
-  let items = 0;
-  for (const line of state.lines) {
-    if (voided.has(line.id)) continue;
-    if (line.kind === "void" && Date.now() - (voidedAt.get(line.id) || 0) > 6000) continue;
-    if (line.kind === "item") items += Number.isInteger(line.qty) ? line.qty : 1;
-    rows.push(lineRow(line));
-  }
-  const wanted = new Set(rows);
-  for (const [id, row] of rowNodes) if (!wanted.has(row)) { row.remove(); rowNodes.delete(id); }
-  // Solo le righe fuori posto si spostano: una riga reinserita ricomincerebbe l'animazione.
-  rows.forEach((row, i) => { if (list.children[i] !== row) list.insertBefore(row, list.children[i] || null); });
-  rows.forEach((row) => { row.style.display = ""; });
-  // Con tante righe restano le ultime, vicino al totale, e si dice quante ce ne sono sopra (SPEC §2.2). Le altezze vere
-  // delle righe, non scrollHeight: la riga che entra è spostata in basso dall'animazione e sembrerebbe non starci.
-  let hidden = 0;
-  let used = rows.reduce((sum, row) => sum + row.offsetHeight, 0);
-  while (used > list.clientHeight + 1 && hidden < rows.length - 1) { used -= rows[hidden].offsetHeight; rows[hidden].style.display = "none"; hidden++; }
-  list.classList.toggle("cut", hidden > 0);
-  $("more").classList.toggle("on", hidden > 0);
-  $("more").textContent = hidden === 1 ? "un'altra riga sopra" : "altre " + hidden + " righe sopra";
-  const parts = [];
-  if (items) parts.push(items === 1 ? "1 articolo" : items + " articoli");
-  if (state.cover) parts.push(state.cover === 1 ? "1 coperto" : state.cover + " coperti");
-  $("count").textContent = parts.join(" · ");
-}
-
-/**
- * Il totale a contachilometri (SPEC §4): ogni cifra è una colonna 0-9 che parte dalla cifra di prima (allineate da
- * destra) e scorre fino a quella nuova; si muovono solo le cifre che cambiano. Con le animazioni ridotte, sostituzione
- * secca con una dissolvenza di 140 ms.
- */
-function renderTotal(node, cents) {
-  const text = money(cents);
-  if (node.dataset.text === text) return;
-  const before = node.dataset.text || "";
-  node.dataset.text = text;
-  const oldDigits = before.replace(/\D/g, "");
-  const count = text.replace(/\D/g, "").length;
-  const reels = [];
-  node.replaceChildren(...Array.from(text).map((ch) => {
-    if (!/\d/.test(ch)) return el("span", "odo-c", ch);
-    const fromRight = count - 1 - reels.length;
-    const previous = oldDigits[oldDigits.length - 1 - fromRight];
-    const reel = el("span", "odo-r");
-    for (let n = 0; n <= 9; n++) reel.append(el("i", "", String(n)));
-    reel.style.transform = "translateY(-" + (previous === undefined ? ch : previous) + "em)";
-    reels.push([reel, ch]);
-    const cell = el("span", "odo-d");
-    cell.append(reel);
-    return cell;
-  }));
-  if (!before) return;   // la prima volta il numero c'è e basta
-  void node.offsetWidth;   // le colonne partono dalle cifre di prima
-  reels.forEach(([reel, ch]) => { reel.style.transform = "translateY(-" + ch + "em)"; });
-  if (root.dataset.motion === "eco" || matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    node.classList.remove("fade"); void node.offsetWidth; node.classList.add("fade");
-  }
-}
-
-function renderMessage() {
-  const band = $("msg");
-  const message = state.message;
-  band.classList.toggle("on", !!message && screenNow === "bill");
-  band.replaceChildren();
-  if (!message) return;
-  // "TOTALE € 23,50", "RESTO 1,50": etichetta e importo; altrimenti il testo com'è (SPEC §2.3).
-  const match = /^(.*?)[\s:]*(?:€|EUR|EURO)?\s*(-?\d{1,3}(?:\.\d{3})*,\d{2}|-?\d+,\d{2})\s*(?:€|EUR|EURO)?$/i.exec(message.text.trim());
-  if (match && match[1]) {
-    band.append(el("span", "label", match[1].trim()), el("span", "value num", "€ " + match[2].replace("-", "−")));
-  } else {
-    band.append(el("span", "value", message.text));
-  }
-}
-
-function renderThanks() {
-  const paid = state.paid;
-  $("paidamount").textContent = paid ? money(paid.amount) : money(state.total);
-  $("paidmethod").textContent = paid ? [method(paid.method), paid.change > 0 ? "resto " + money(paid.change) : ""].filter(Boolean).join(" · ") : "";
-  // Lo scontrino digitale della cassa ha la precedenza sulla reclame: è il documento del cliente.
-  const area = $("thanksad");
-  let key = "", node = null;
-  if (state.receiptQr) {
-    key = "scontrino|" + state.receiptQr.png;
-    if (key !== area.dataset.key) node = buildAd({ kind: "promo" }, "thanks", { noLabel: true, card: { title: "Il tuo scontrino digitale", text: "", qr: { png: state.receiptQr.png, caption: state.receiptQr.caption || "Scarica il tuo scontrino digitale" } } });
-  } else if (thanksItem && usable(thanksItem)) {
-    key = thanksIndex + "|" + JSON.stringify(thanksItem) + JSON.stringify(cardOf(thanksItem.id));
-    if (key !== area.dataset.key) node = buildAd(thanksItem, "thanks", { loop: true });
-  }
-  if (key !== area.dataset.key) {
-    area.dataset.key = key;
-    area.replaceChildren(...(node ? [node] : []));
-  }
-  play(area.firstChild);   // anche lo stesso video del cliente prima, fermato alla fine del suo Grazie
-  $("thanks").classList.toggle("with-ad", !!key);
-  root.classList.toggle("thanks-ad", !!key);
-}
-
-function pair(left, right, className) {
-  const row = el("div", "pair" + (className ? " " + className : ""));
-  row.append(el("span", "", left), el("span", "", right));
-  return row;
-}
-
-/** Lo scontrino come uscirà sulla carta: intestazione, righe, sconti, totale, pagamenti, data, QR piccolo, dicitura. */
-function renderPaper(r) {
-  const paper = $("paper");
-  paper.replaceChildren();
-  const bill = r.receipt;
-  if (bill) {
-    for (const h of bill.header || []) paper.append(el("div", "center", h));
-    paper.append(el("div", "sep"), el("div", "muted", "EURO"));
-    for (const line of bill.lines || []) {
-      if (line.kind === "item") {
-        if (line.qty !== 1) paper.append(el("div", "muted", "  " + String(line.qty).replace(".", ",") + (line.unit != null ? " x " + plainPaper(line.unit) : "")));
-        paper.append(pair(line.desc, plainPaper(line.amount)));
-      } else if (line.kind === "note") {
-        paper.append(el("div", "muted", line.text));
-      } else {
-        paper.append(pair(line.desc, plainPaper(line.amount), line.underItem ? "under" : ""));
-      }
-    }
-    paper.append(el("div", "sep"));
-    if (bill.total != null) paper.append(pair("TOTALE", plainPaper(bill.total), "big"));
-    if (bill.paid) {
-      paper.append(pair("Pagato " + bill.paid.method, plainPaper(bill.paid.amount)));
-      if (bill.paid.change != null) paper.append(pair("Resto", plainPaper(bill.paid.change)));
-    }
-  } else {
-    paper.append(el("div", "center", r.caption || "Scontrino digitale"));
-  }
-  const when = new Date(r.issuedAt);
-  if (!isNaN(when)) paper.append(el("div", "muted", when.toLocaleDateString("it-IT") + " " + when.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })));
-  const small = el("img");
-  small.alt = "QR per scaricare il documento commerciale";
-  if (typeof r.png === "string" && r.png.startsWith("data:image/")) small.src = r.png;
-  paper.append(small);
-  if (r.notice) paper.append(el("div", "center muted", r.notice));
-}
-
-function renderDigital() {
-  const r = state.receipt;
-  if (!r) return;
-  renderPaper(r);
-  showQr($("digitalqr"), r.png, cssNumber("--qr-thanks") * 1.3);
-  $("bigcaption").textContent = r.caption || "Inquadra per scaricarlo";
-  const button = $("paperbtn");
-  const paper = r.paper || "none";
-  button.style.display = r.paperCopy && (paper === "none" || paper === "failed") ? "" : "none";
-  button.textContent = paper === "failed" ? "Riprova a stampare la copia" : "Preferisci la copia di carta? Tocca qui";
-  $("paperstatus").textContent = !r.paperCopy ? "Vuoi la copia di carta? Chiedila alla cassa"
-    : paper === "printing" ? "Sto stampando la tua copia…"
-    : paper === "requested" ? (r.paperMessage || "Ritira la copia alla cassa")
-    : paper === "failed" ? "Non riesco a stampare: chiedi la copia alla cassa"
-    : "";
+function sideMode(noPrices) {
+  if (state.phase === "payment" && state.payment && qrMode() === "beside") return "qr";
+  if (layoutName() === "palmare" || attr() === "sobrio") return "none";
+  if (noPrices && layoutName() !== "portrait") return "scene";
+  if (columnItems.length) return "ads";
+  const id = screenCfg().identita || {};
+  return layoutName() === "wide" && (logoFor(false) || id.nomeLocale) ? "venue" : "none";
 }
 
 function render() {
-  const now = screen();
-  if (now !== screenNow) {
-    const before = screenNow;
+  const now = screenName();
+  const before = screenNow;
+  if (now !== before) {
     screenNow = now;
-    document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("on", s.id === { idle: "idle", bill: "bill", pay: "pay", receipt: "digital" }[now]));
+    document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("on", s.id === now || (now === "bill" && s.id === "bill")));
     if (now === "idle") nextSlide(); else if (before === "idle") pauseSlides();
+    if (now !== "receipt") receiptKey = "";
   }
   root.dataset.screen = now;
-  const adsBeside = now === "bill" && side() === "promo";
-  if (adsBeside && !saleRunning) startSaleAds(); else if (!adsBeside && saleRunning) stopSaleAds();
-  root.classList.toggle("over-slides", now === "idle" && slides.length > 0);
-  root.classList.toggle("noprices", !!(cfg && cfg.pricesOnlyOnBill) && !state.bill && state.phase === "sale");
-  const sideBefore = root.dataset.side;
-  root.dataset.side = side();
-  if (root.dataset.side !== "thanks") { const v = $("thanksad").querySelector("video"); if (v) v.pause(); }
-  if (root.dataset.side === "thanks" && sideBefore !== "thanks") {
-    // La celebrazione una volta sola, all'arrivo del Grazie.
-    document.querySelectorAll("#thanks, #thanks .ring, #thanksad").forEach((node) => { node.style.animation = "none"; void node.offsetWidth; node.style.animation = ""; });
+  root.dataset.phase = state.phase === "payment" && state.payment ? "payment" : state.phase;
+  root.classList.toggle("over-slides", now === "idle" && slides.length > 0 && slideDark);
+  const noPrices = !!screenCfg().prezziSoloSulConto && state.phase === "sale" && !state.bill;
+  root.classList.toggle("noprices", noPrices);
+  $("billbody").classList.toggle("inverted", noPrices);
+
+  // La colonna: la vetrina del posto conto, il QR del pagamento accanto, o la scena dei prezzi solo sul conto.
+  const side = now === "bill" ? sideMode(noPrices) : "none";
+  const totalBefore = root.dataset.motion === "full" && now === "bill" && before === "bill" && root.dataset.side !== side ? $("totalblock").getBoundingClientRect() : null;
+  const sideChanged = root.dataset.side !== side;
+  root.dataset.side = side;
+  $("paypanel").hidden = side !== "qr";
+  const rotating = now === "bill" && (side === "ads" || side === "scene" || side === "venue");
+  if (rotating && (!columnRunning || sideChanged)) { stopColumn(); startColumn(); }
+  else if (!rotating && columnRunning) stopColumn();
+  if (now === "bill" && layoutName() !== "palmare") {
+    const sideBox = $("side");
+    sideBox.classList.toggle("nophoto", sideBox.offsetWidth / stage.offsetWidth < 0.28);
   }
+
   if (now === "bill") {
-    renderLines();
     renderMessage();
-    if (root.dataset.side === "thanks") renderThanks();
-    if (root.dataset.side === "qr") { showQr($("besideqr"), state.payment.png, cssNumber("--qr-beside")); $("besidecaption").textContent = state.payment.caption || ""; }
+    renderLines(noPrices);
+    if (side === "qr") { showQr($("besideqr"), state.payment.png, cssNumber("--qr-beside") || 488); $("besidecaption").textContent = state.payment.caption || ""; }
     $("totallabel").textContent = state.phase === "payment" ? "Da pagare" : "Totale";
     const total = $("total");
-    renderTotal(total, state.total);
-    if (lastTotal !== null && lastTotal !== state.total && root.dataset.motion === "full") {
-      total.classList.remove("pulse"); void total.offsetWidth; total.classList.add("pulse");
-    }
+    const changed = renderTotal(total, state.total);
+    if (changed && lastTotal !== null && root.dataset.motion === "full") restart(total, "pulse");
+    total.classList.toggle("breathe", attr() === "troppo" && root.dataset.motion === "full" && !changed);
     lastTotal = state.total;
+    if (totalBefore) flipTotal(totalBefore);
+    // Sul palmare una riga promo sopra il totale, solo a vendita ferma da 4 s.
+    const promo = layoutName() === "palmare" && columnItems.length > 0 && state.phase === "sale" && Date.now() - lastLineAt > 4000 && !noPrices;
+    if (promo) {
+      const item = columnItems[Math.floor(Date.now() / cssMs("--t-col-rotate", 12000)) % columnItems.length];
+      $("promoline").querySelector("span").textContent = [item.titolo, item.testo].filter(Boolean).join(" · ");
+    }
+    $("promoline").classList.toggle("on", promo);
   } else {
     renderMessage();
   }
   if (now === "pay") {
     $("payamount").textContent = money(state.payment.amount || state.total);
     $("paycaption").textContent = state.payment.caption || "";
-    showQr($("fullqr"), state.payment.png, cssNumber("--qr-full"));
+    showQr($("fullqr"), state.payment.png, cssNumber("--qr-full") || 404);
   }
-  if (now === "receipt") renderDigital();
+  if (now === "thanks") renderThanks(before !== "thanks");
+  if (now === "thanks" && before !== "thanks") { const section = $("thanks"); section.classList.add("on"); }
+  if (now === "receipt") renderReceipt();
+  backgroundPlayback();
 }
 
-$("paperbtn").addEventListener("click", () => {
-  const r = state.receipt;
-  if (!r || !socket || socket.readyState !== WebSocket.OPEN) return;
-  socket.send(JSON.stringify({ t: "receipt.paper", id: r.id }));
-  r.paper = "printing";
-  render();
-});
+/** Il totale fra conto e pagamento accanto non scompare: si sposta (FLIP, solo con il movimento pieno, SPEC §5). */
+function flipTotal(before) {
+  const node = $("totalblock");
+  const after = node.getBoundingClientRect();
+  if (!after.width || !before.width) return;
+  const dx = (before.left - after.left) / stageScale, dy = (before.top - after.top) / stageScale;
+  if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+  node.style.transition = "none";
+  node.style.transformOrigin = "0 0";
+  node.style.transform = "translate(" + dx + "px," + dy + "px) scale(" + before.width / after.width + "," + before.height / after.height + ")";
+  void node.offsetWidth;
+  node.style.transition = "transform var(--d-state) var(--e-move)";
+  node.style.transform = "";
+  node.addEventListener("transitionend", () => { node.style.transition = ""; node.style.transformOrigin = ""; }, { once: true });
+}
 
 // ---------------------------------------------------------------------------------------------------------------
-// Collegamento con l'Agent: battito ogni 3 s; dopo 8 s di silenzio la pillola, l'ultima schermata resta (SPEC §2.6).
+// Il collegamento: battito ogni 3 s; dopo 8 s di silenzio la pillola grigia, l'ultima schermata resta (SPEC §2.6).
 // ---------------------------------------------------------------------------------------------------------------
 let socket = null;
 let lastMessage = Date.now();
@@ -1289,21 +1968,26 @@ function connect() {
     render();
   };
   socket.onclose = async () => {
-    // Dispositivo revocato o spostato, sessione del back office scaduta: la pagina ricaricata dice cosa succede.
+    // Schermo revocato o spostato, sessione del back office scaduta: la pagina ricaricata dice cosa succede.
     try {
       const check = await fetch(preview ? "/api/bo/sessione" : "/api/abbinamento", { cache: "no-store" });
       const answer = await check.json();
       if (preview ? !answer.autenticato : answer.stato !== "autorizzato") { location.reload(); return; }
     } catch (e) { /* Agent fermo: si riprova */ }
     setTimeout(connect, delay);
-    delay = Math.min(delay * 2, 8000);
+    delay = Math.min(delay * 2, 15000);
   };
 }
 
 setInterval(() => {
   const silent = !demo && (Date.now() - lastMessage > 8000 || !socket || socket.readyState !== WebSocket.OPEN);
-  $("offline").classList.toggle("on", silent);
-  if (screenNow === "bill" && state.lines.some((l) => l.kind === "void")) render();   // le righe stornate escono dopo 6 s
+  const wasOffline = root.classList.contains("offline");
+  root.classList.toggle("offline", silent && everSynced);
+  $("offline").classList.toggle("on", silent && everSynced);
+  // Mi ricollego: solo all'avvio, quando non c'è ancora niente da mostrare (SPEC §21).
+  $("reconnect").classList.toggle("on", !demo && !preview && !everSynced && !cfg && Date.now() - loadedAt > 2000);
+  if (wasOffline !== root.classList.contains("offline")) backgroundPlayback();
+  if (screenNow === "bill" && (layoutName() === "palmare" || state.lines.some((l) => l.kind === "void"))) render();
 }, 1000);
 
 // Il cursore sparisce dopo 3 s fermo (Player, monitor con il mouse attaccato); non nell'anteprima.
@@ -1314,38 +1998,76 @@ if (!preview) {
   cursorTimer = setTimeout(hide, 3000);
 }
 
+// Degrado automatico (SPEC §11): sotto 45 fps per 3 s si scende di un livello e lo si scrive; non si torna su da sé.
+if (!preview && query.get("fps") !== "no") {
+  let frames = 0, slow = 0, last = performance.now();
+  const tick = (t) => {
+    frames++;
+    if (t - last >= 1000) {
+      const fps = frames * 1000 / (t - last);
+      frames = 0;
+      last = t;
+      if (document.visibilityState === "visible" && root.dataset.motion !== "eco") {
+        slow = fps < 45 ? slow + 1 : 0;
+        if (slow >= 3) {
+          slow = 0;
+          fpsCap = root.dataset.motion === "full" ? "light" : "eco";
+          fpsBase = screenCfg().animazioni;
+          try { localStorage.setItem(FPS_STORE, JSON.stringify({ cap: fpsCap, base: fpsBase })); } catch (e) { /* niente */ }
+          console.warn("Sotto 45 fps per 3 s: animazioni a " + fpsCap);
+          applyLook();
+          render();
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
 // ---------------------------------------------------------------------------------------------------------------
-// Anteprima dal back office: la bozza dell'aspetto arriva con postMessage, il conto finto lo fa la pagina.
+// Anteprima dal back office: la bozza arriva con postMessage, il conto finto lo fa la pagina.
 // ---------------------------------------------------------------------------------------------------------------
 const DEMO_LINES = [
   { id: "d1", kind: "item", desc: "Coperto", qty: 2, amount: 400 },
-  { id: "d2", kind: "item", desc: "Pizza Margherita", qty: 1, amount: 850 },
-  { id: "d3", kind: "note", text: "Ben cotta, poco sale" },
-  { id: "d4", kind: "item", desc: "Acqua naturale 0,75 l", qty: 1, amount: 250 },
+  { id: "d2", kind: "item", desc: "Tagliere Emilia", qty: 1, amount: 1500 },
+  { id: "d3", kind: "note", text: "senza lardo" },
+  { id: "d4", kind: "item", desc: "Cestino di tigelle", qty: 1, amount: 300 },
   { id: "d5", kind: "item", desc: "Calice di Lugana", qty: 2, amount: 1200 },
-  { id: "d6", kind: "discount", desc: "Sconto 10%", amount: -270 },
-  { id: "d7", kind: "item", desc: "Tiramisù", qty: 1, amount: 600 },
+  { id: "d6", kind: "item", desc: "Cestino di tigelle", qty: 1, amount: 300 },
+  { id: "d7", kind: "discount", desc: "Sconto amici", amount: -370 },
+  { id: "d8", kind: "item", desc: "Tiramisù della casa", qty: 1, amount: 600 },
 ];
-const DEMO_TOTAL = 3030;
+const DEMO_TOTAL = DEMO_LINES.reduce((s, l) => s + (l.amount || 0), 0);
 let demoQr = null;
 let demoTimer = 0;
 let draft = false;
+let lastDemo = null;
+
+function demoReceipt() {
+  const id = screenCfg().identita || {};
+  return {
+    id: "anteprima", png: demoQr, paperCopy: true, paper: "none", demo: true, issuedAt: new Date().toISOString(),
+    receipt: {
+      header: [(id.nomeLocale || "Il tuo locale").toUpperCase(), "Via dell'Esempio 1 · Città", "P.I. 00000000000"],
+      lines: DEMO_LINES.filter((l) => l.kind !== "note").map((l) => ({ kind: l.kind, desc: l.desc, qty: l.qty || 1, amount: l.amount })),
+      total: DEMO_TOTAL, paid: { method: "CONTANTI", amount: DEMO_TOTAL, change: 0 },
+    },
+  };
+}
 
 function demoPhase(phase) {
   clearTimeout(demoTimer);
   clearTimeout(thanksTimer);
-  seenLines.clear();
-  if (phase === "attesa") { clearSale("idle"); }
-  else if (phase === "conto") { clearSale("sale"); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2; }
-  else if (phase === "pagamento") {
-    clearSale("payment"); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2;
-    state.payment = { png: demoQr, amount: DEMO_TOTAL };
-  } else if (phase === "grazie") {
-    clearSale("thanks"); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2;
-    state.paid = { method: "C.CREDITO", amount: DEMO_TOTAL };
-    nextThanksItem();
-  } else if (phase === "auto") {
-    // Il giro completo: attesa, righe battute una alla volta, pagamento, Grazie, di nuovo l'attesa.
+  const fill = (p) => { clearSale(p); state.lines = DEMO_LINES.slice(); state.total = DEMO_TOTAL; state.cover = 2; state.bill = true; DEMO_LINES.forEach((l) => seenRows.add(l.id)); };
+  if (phase === "attesa") clearSale("idle");
+  else if (phase === "conto") fill("sale");
+  else if (phase === "prezzi") { fill("sale"); state.bill = false; }
+  else if (phase === "pagamento") { fill("payment"); state.payment = { png: demoQr, amount: DEMO_TOTAL }; }
+  else if (phase === "grazie") { fill("thanks"); state.paid = { method: "CONTANTI", amount: DEMO_TOTAL, change: 0 }; thanksStartedAt = Date.now(); nextThanksItem(); }
+  else if (phase === "scontrino") { fill("receipt"); state.receipt = demoReceipt(); }
+  else if (phase === "auto") {
+    // Il giro completo: attesa, righe battute una alla volta (con la ripetuta accorpata), pagamento, Grazie, scontrino.
     clearSale("idle");
     let step = 0;
     const run = () => {
@@ -1355,12 +2077,18 @@ function demoPhase(phase) {
         state.lines.push(DEMO_LINES[step - 1]);
         state.total = DEMO_LINES.slice(0, step).reduce((s, l) => s + (l.amount || 0), 0);
         state.cover = 2;
+        state.bill = step === DEMO_LINES.length;
+        lastLineAt = Date.now();
         render(); step++; demoTimer = setTimeout(run, 1300); return;
       }
       if (step === DEMO_LINES.length + 1 && demoQr) { state.phase = "payment"; state.payment = { png: demoQr, amount: state.total }; render(); step++; demoTimer = setTimeout(run, 6000); return; }
-      state.phase = "thanks"; state.payment = null; state.paid = { method: "C.CREDITO", amount: state.total };
-      nextThanksItem();
-      render(); step = 0; demoTimer = setTimeout(run, Math.min(thanksDuration(), 12000));
+      if (step <= DEMO_LINES.length + 2) {
+        state.phase = "thanks"; state.payment = null; state.paid = { method: "CONTANTI", amount: state.total, change: 0 };
+        startThanks(); clearTimeout(thanksTimer);
+        render(); step = DEMO_LINES.length + 3; demoTimer = setTimeout(run, 4000); return;
+      }
+      if (demoQr && screenCfg().receipt && screenCfg().receipt.attivo) { state.receipt = demoReceipt(); state.phase = "receipt"; render(); step = 0; demoTimer = setTimeout(run, 12000); return; }
+      step = 0; run();
     };
     run();
     return;
@@ -1372,15 +2100,16 @@ if (preview) {
   window.addEventListener("message", (event) => {
     if (event.origin !== location.origin || !event.data) return;
     const m = event.data;
-    if (m.t === "cfg") { draft = true; applyConfig(m, false); }
-    if (m.t === "demo") { if (m.qr) demoQr = m.qr; if (demo) demoPhase(m.fase || "auto"); }
+    if (m.t === "cfg") { draft = true; applyConfig(m, false); if (demo && lastDemo) demoPhase(lastDemo); }
+    if (m.t === "demo") { if (m.qr) demoQr = m.qr; lastDemo = m.fase || "auto"; if (demo) demoPhase(lastDemo); }
   });
   if (window.parent !== window) window.parent.postMessage({ t: "pronto" }, location.origin);
 }
 
 window.addEventListener("resize", layout);
-if (cfg) { applyTheme(); applyBackground(); applyTexts(); applyPlaylists(); } else { applyTexts(); }
 layout();
+if (cfg) { applyTexts(); refreshShowcases(); } else { applyTexts(); }
+render();
 if (!demo) connect();
 </script>
 </body>

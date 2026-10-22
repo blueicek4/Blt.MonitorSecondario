@@ -1,22 +1,190 @@
 using System.Globalization;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using Bluetech.Display.Agent.Aspetto;
 
-namespace Bluetech.Display.Agent.Impostazioni;
+namespace Bluetech.Display.Agent.Impostazioni.V2;
 
-public sealed partial class AgentSettings
+/// <summary>
+/// impostazioni.json com'era fino alla versione 2 (un aspetto solo, i set, i dispositivi): serve solo a leggere un file
+/// vecchio e portarlo alla versione 3 (<see cref="MigrazioneV2"/>). La riparazione è quella di allora, compresa la
+/// conversione delle promozioni della prima versione.
+/// </summary>
+public sealed partial class SettingsV2
+{
+    /// <summary>La password del back office, come hash. Null: si imposta dal back office aperto sul PC dell'Agent.</summary>
+    public PasswordHash? Password { get; set; }
+
+    public NetworkSettings Rete { get; set; } = new();
+
+    /// <summary>
+    /// false (di default): il back office si apre solo dal PC dell'Agent, anche in desktop remoto. true: anche dagli altri
+    /// PC e dai telefoni della rete del locale, che a volte è la stessa del Wi-Fi dei clienti. Vale subito.
+    /// </summary>
+    public bool BackOfficeDallaRete { get; set; }
+
+    /// <summary>
+    /// Vendita aperta e nessun file per tanto tempo: si chiude e il display torna alle slide. All'avvio un file più
+    /// vecchio di così è un avanzo e si toglie senza mostrarlo. 0 = mai.
+    /// </summary>
+    public int ChiusuraVenditaDopoSecondi { get; set; } = 60;
+
+    /// <summary>Scontrino digitale a video e copia cartacea su richiesta (docs/03). Spento di default.</summary>
+    public DigitalReceiptV2 ScontrinoDigitale { get; set; } = new();
+
+    /// <summary>I punti cassa: ognuno con il suo file di Passepartout.</summary>
+    public List<CashPointV2> Casse { get; set; } = [];
+
+    /// <summary>Le stampanti della copia cartacea; ogni dispositivo dice quale usa.</summary>
+    public List<PrinterConfig> Stampanti { get; set; } = [];
+
+    /// <summary>I display autorizzati (Player, palmari, tablet, schermi touch), ognuno legato a una cassa.</summary>
+    public List<DeviceV2> Dispositivi { get; set; } = [];
+
+    internal static readonly JsonSerializerOptions Json = new()
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,   // accenti leggibili per chi apre il file
+        PropertyNameCaseInsensitive = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true,
+    };
+
+    public CashPointV2? CashPoint(string? id) => Casse.Find(c => c.Id == id);
+    public PrinterConfig? Printer(string? id) => id == null ? null : Stampanti.Find(p => p.Id == id);
+    public DeviceV2? Device(string? id) => Dispositivi.Find(d => d.Id == id);
+
+    /// <summary>Il prossimo id libero: cassa1, cassa2…</summary>
+    public static string NextId(string prefix, IEnumerable<string> used)
+    {
+        var max = 0;
+        foreach (var id in used)
+            if (id.StartsWith(prefix, StringComparison.Ordinal) && int.TryParse(id[prefix.Length..], out var n))
+                max = Math.Max(max, n);
+        return prefix + (max + 1);
+    }
+
+    /// <summary>
+    /// Sistema un file scritto a mano: liste mancanti, id mancanti o doppi, riferimenti a stampanti o casse che non ci
+    /// sono più. Restituisce cosa ha cambiato, per il log.
+    /// </summary>
+    public List<string> Repair()
+    {
+        var notes = new List<string>();
+        Rete ??= new NetworkSettings();
+        Rete.Https ??= new HttpsSettings();
+        ScontrinoDigitale ??= new DigitalReceiptV2();
+        Casse ??= [];
+        Stampanti ??= [];
+        Dispositivi ??= [];
+        Casse.RemoveAll(c => c == null);
+        Stampanti.RemoveAll(p => p == null);
+        Dispositivi.RemoveAll(d => d == null);
+
+        FixIds(Casse, "cassa", c => c.Id, (c, id) => c.Id = id, notes);
+        FixIds(Stampanti, "stampante", p => p.Id, (p, id) => p.Id = id, notes);
+        FixIds(Dispositivi, "dispositivo", d => d.Id, (d, id) => d.Id = id, notes);
+
+        foreach (var device in Dispositivi)
+        {
+            if (device.Stampante != null && Printer(device.Stampante) == null)
+            {
+                notes.Add($"{device.Nome}: la stampante {device.Stampante} non c'è più");
+                device.Stampante = null;
+            }
+            if (CashPoint(device.Cassa) == null && Casse.Count > 0)
+            {
+                notes.Add($"{device.Nome}: la cassa {device.Cassa} non c'è più, passa a {Casse[0].Nome}");
+                device.Cassa = Casse[0].Id;
+            }
+        }
+        RepairAppearance(notes);
+        return notes;
+    }
+
+    static void FixIds<T>(List<T> items, string prefix, Func<T, string> get, Action<T, string> set, List<string> notes)
+    {
+        var seen = new HashSet<string>();
+        foreach (var item in items)
+        {
+            var id = get(item);
+            if (string.IsNullOrWhiteSpace(id) || !IdPattern().IsMatch(id) || !seen.Add(id))
+            {
+                var fresh = NextId(prefix, items.Select(get).Where(i => i != null).Concat(seen));
+                set(item, fresh);
+                seen.Add(fresh);
+                notes.Add($"id \"{id}\" sostituito con {fresh}");
+            }
+        }
+    }
+
+    [GeneratedRegex("^[a-z0-9-]{1,40}$")]
+    internal static partial Regex IdPattern();
+}
+
+public sealed class DigitalReceiptV2
+{
+    /// <summary>Con il QR dello scontrino digitale ("QRCODESD") mostra lo scontrino, il QR grande e, se attivo, il pulsante.</summary>
+    public bool MostraScontrino { get; set; }
+
+    /// <summary>Il pulsante "Preferisci la copia di carta?" sui dispositivi che hanno una stampante.</summary>
+    public bool CopiaCartacea { get; set; }
+
+    /// <summary>Quanto resta a video lo scontrino digitale, se non parte prima un'altra vendita.</summary>
+    public int SecondiAVideo { get; set; } = 45;
+
+    /// <summary>In fondo alla copia, sotto il QR piccolo.</summary>
+    public string Dicitura { get; set; } = "Inquadra il QR per scaricare il documento commerciale. Copia di cortesia.";
+}
+
+public sealed class CashPointV2
+{
+    public string Id { get; set; } = "";
+    public string Nome { get; set; } = "";
+
+    /// <summary>Il file scritto dal dispositivo monitor di Passepartout per questa cassa, su un disco del PC dell'Agent.</summary>
+    public string FileCassa { get; set; } = "";
+}
+
+/// <summary>Un display autorizzato con il codice di abbinamento.</summary>
+public sealed class DeviceV2
+{
+    public string Id { get; set; } = "";
+    public string Nome { get; set; } = "";
+
+    /// <summary>SHA-256 del token nel cookie del dispositivo: il token vero lo ha solo il dispositivo.</summary>
+    public string Token { get; set; } = "";
+
+    /// <summary>La cassa che il dispositivo mostra.</summary>
+    public string Cassa { get; set; } = "";
+
+    /// <summary>Dove stampa la copia cartacea chiesta da questo dispositivo; null = niente pulsante.</summary>
+    public string? Stampante { get; set; }
+
+    /// <summary>
+    /// Null: la disposizione la sceglie lo schermo dal rapporto d'aspetto (SPEC §9 del design). Altrimenti forzata:
+    /// "larga" (il conto con la colonna accanto, per esempio su un iPad Pro, che è 4:3), "stretta" (il conto a tutta
+    /// larghezza), "verticale", "palmare".
+    /// </summary>
+    public string? Disposizione { get; set; }
+
+    public static readonly string[] Layouts = ["larga", "stretta", "verticale", "palmare"];
+
+    public DateTimeOffset AutorizzatoIl { get; set; }
+}
+
+public sealed partial class SettingsV2
 {
     /// <summary>Come appare lo schermo del cliente: logo, tema, scritte, le gallerie e i set di reclame.</summary>
-    public AppearanceSettings Aspetto { get; set; } = new();
+    public AppearanceV2 Aspetto { get; set; } = new();
 
-    public MediaItem? Media(string? id) => id == null ? null : Aspetto.Media.Find(m => m.Id == id);
-    public PromoConfig? Promo(string? id) => id == null ? null : Aspetto.Promozioni.Find(p => p.Id == id);
+    public MediaV2? Media(string? id) => id == null ? null : Aspetto.Media.Find(m => m.Id == id);
+    public PromoV2? Promo(string? id) => id == null ? null : Aspetto.Promozioni.Find(p => p.Id == id);
 
     void RepairAppearance(List<string> notes)
     {
-        Aspetto ??= new AppearanceSettings();
+        Aspetto ??= new AppearanceV2();
         var a = Aspetto;
         a.Promozioni ??= [];
         a.Set ??= [];
@@ -66,7 +234,7 @@ public sealed partial class AgentSettings
                 set.Elementi.Remove(gone);
             }
         }
-        foreach (var (name, get, set) in AppearanceSettings.Logos)
+        foreach (var (name, get, set) in AppearanceV2.Logos)
         {
             if (get(a) is { } logo && Media(logo) == null)
             {
@@ -98,8 +266,8 @@ public sealed partial class AgentSettings
         if (old.Count == 0 && string.IsNullOrEmpty(thanksUrl))
             return;
 
-        var idle = new AdSetConfig { Nome = "Attesa", Dove = ["attesa"] };
-        var sale = new AdSetConfig { Nome = "Accanto al conto", Dove = ["conto"] };
+        var idle = new AdSetV2 { Nome = "Attesa", Dove = ["attesa"] };
+        var sale = new AdSetV2 { Nome = "Accanto al conto", Dove = ["conto"] };
         var scheduled = false;
         foreach (var promo in old)
         {
@@ -115,17 +283,17 @@ public sealed partial class AgentSettings
             if (!Flag("Attiva", true))
                 continue;
             if (Flag("NelleSlide", true) && media != null)
-                idle.Elementi.Add(new AdItemConfig { Id = media.Id, Secondi = media.IsVideo ? null : Math.Clamp(seconds, 3, 120) });
+                idle.Elementi.Add(new AdItemV2 { Id = media.Id, Secondi = media.IsVideo ? null : Math.Clamp(seconds, 3, 120) });
             if (Flag("NelConto", false) && (words || promo.Immagine != null))
-                sale.Elementi.Add(new AdItemConfig { Id = words ? promo.Id : promo.Immagine! });
+                sale.Elementi.Add(new AdItemV2 { Id = words ? promo.Id : promo.Immagine! });
         }
         // Senza titolo né testo una promozione era solo la sua slide: ora è la foto o il video nel set.
         a.Promozioni.RemoveAll(p => old.Contains(p) && string.IsNullOrWhiteSpace(p.Titolo) && string.IsNullOrWhiteSpace(p.Testo));
 
-        var sets = new List<AdSetConfig> { idle, sale };
+        var sets = new List<AdSetV2> { idle, sale };
         if (!string.IsNullOrEmpty(thanksUrl))
         {
-            var qr = new PromoConfig
+            var qr = new PromoV2
             {
                 Id = NextId("promo", a.Promozioni.Select(p => p.Id)),
                 Nome = "QR dopo il pagamento",
@@ -134,7 +302,7 @@ public sealed partial class AgentSettings
                 QrDidascalia = thanks.Didascalia?.Trim() ?? "",
             };
             a.Promozioni.Add(qr);
-            sets.Add(new AdSetConfig { Nome = "Grazie", Dove = ["grazie"], Attivo = thanks.Attivo, Elementi = [new AdItemConfig { Id = qr.Id }] });
+            sets.Add(new AdSetV2 { Nome = "Grazie", Dove = ["grazie"], Attivo = thanks.Attivo, Elementi = [new AdItemV2 { Id = qr.Id }] });
             a.SecondiGrazie = Math.Clamp(thanks.Secondi, 10, 120);
         }
         var made = new List<string>();
@@ -149,160 +317,6 @@ public sealed partial class AgentSettings
             + (scheduled ? "; casse, giorni e orari ora si scelgono sul set: controllali dal back office" : ""));
     }
 
-    /// <summary>I colori del locale, se ci sono e se valgono (con l'automatico valgono quelli del tema, come nel design).</summary>
-    public LocaleColors? LocaleColors() =>
-        Aspetto.Colori is { } c && Aspetto.Modo != "auto"
-            ? new LocaleColors(c.Fondo, c.Superficie, c.Testo, c.Tenue, c.Primario, c.SulPrimario, c.Accento, c.Secondario)
-            : null;
-
-    internal IEnumerable<string> AppearanceProblems()
-    {
-        var a = Aspetto;
-        if (!Palettes.IsTheme(a.Tema))
-            yield return "Aspetto: il tema è bluetech, trattoria, fine o cocktail.";
-        if (a.Modo is not ("notte" or "giorno" or "auto"))
-            yield return "Aspetto: giorno e notte è \"giorno\", \"notte\" o \"auto\".";
-        if (a.Modo == "auto" && !(ParseTime(a.GiornoDalle) is { } dayStart && ParseTime(a.GiornoAlle) is { } dayEnd && dayStart < dayEnd))
-            yield return "Aspetto: il giorno va dalle 07:00 alle 19:00, per esempio (la prima ora prima della seconda).";
-
-        if (LocaleColors() is { } colors && Palettes.IsTheme(a.Tema) && a.Modo is "notte" or "giorno")
-        {
-            var named = new (string Name, string Value)[]
-            {
-                ("il fondo", colors.Bg), ("il testo", colors.Text), ("il testo tenue", colors.Muted), ("il primario", colors.Primary),
-                ("il testo sopra il primario", colors.OnPrimary), ("l'accento", colors.Accent), ("il secondario", colors.Secondary),
-            };
-            var wrong = named.Where(n => ThemeColors.ParseHex(n.Value) == null).Select(n => n.Name).ToList();
-            if (ThemeColors.ParseColor(colors.Surface) == null)
-                wrong.Add("la card");
-            if (wrong.Count > 0)
-            {
-                yield return $"Aspetto: {string.Join(", ", wrong)} non è un colore valido (come #1F6FEB).";
-            }
-            else
-            {
-                var basePalette = Palettes.Get(a.Tema, a.Modo);
-                var failing = ThemeColors.Pairs(ThemeColors.WithLocaleColors(basePalette, colors)).Where(p => !p.Ok).ToList();
-                if (failing.Count > 0)
-                    yield return ContrastProblem(basePalette, colors, failing);
-            }
-        }
-
-        if (a.FontTitoli != null && !Palettes.Fonts.ContainsKey(a.FontTitoli))
-            yield return $"Aspetto: il font dei titoli \"{a.FontTitoli}\" non c'è. Si sceglie tra {string.Join(", ", Palettes.Fonts.Keys)}.";
-        if (a.FontTesto != null && !Palettes.Fonts.ContainsKey(a.FontTesto))
-            yield return $"Aspetto: il font del testo \"{a.FontTesto}\" non c'è. Si sceglie tra {string.Join(", ", Palettes.Fonts.Keys)}.";
-        if (a.Raggio is < 0 or > 32)
-            yield return "Aspetto: gli angoli arrotondati vanno da 0 a 32 px.";
-        if (a.Vetro is < 0 or > 100)
-            yield return "Aspetto: il vetro va da 0 a 100.";
-        if (a.Footer is not (null or "chiaro" or "scuro"))
-            yield return "Aspetto: la firma Bluetech in basso è \"chiaro\" o \"scuro\".";
-        if (a.Fondo is not ("tinta" or "sfumato" or "luci" or "immagine" or "video"))
-            yield return "Aspetto: lo sfondo è tinta, sfumato, luci, immagine o video.";
-        else if (a.Fondo is "immagine" or "video" && !(Media(a.FondoMedia) is { } background && background.IsVideo == (a.Fondo == "video")))
-            yield return a.Fondo == "video" ? "Aspetto: per lo sfondo video scegli un video." : "Aspetto: per lo sfondo a immagine scegli un'immagine.";
-        if (a.Animazioni is not ("piene" or "leggere" or "ridotte"))
-            yield return "Aspetto: le animazioni sono piene, leggere o ridotte.";
-        if (a.QrPagamento is not ("accanto" or "schermo"))
-            yield return "Aspetto: il QR del pagamento sta \"accanto\" al conto o a tutto \"schermo\".";
-        foreach (var (name, get, _) in AppearanceSettings.Logos)
-        {
-            if (get(a) is { } logo && Media(logo) is not { IsVideo: false })
-                yield return $"Aspetto: {name} è un'immagine (PNG con lo sfondo trasparente, per esempio).";
-        }
-
-        foreach (var (text, label, max) in new[]
-                 {
-                     (a.NomeLocale, "il nome del locale", 40), (a.Sottotitolo, "il sottotitolo", 60), (a.Benvenuto, "il benvenuto", 80),
-                     (a.Scorrevole, "il testo scorrevole", 500), (a.TitoloConto, "il titolo del conto", 30), (a.Grazie, "il saluto del Grazie", 60),
-                 })
-        {
-            if ((text?.Length ?? 0) > max)
-                yield return $"Aspetto: {label} è troppo lungo (al massimo {max} caratteri).";
-        }
-
-        if (a.SecondiGrazie is < 10 or > 120)
-            yield return "Aspetto: con un QR il Grazie resta tra 10 e 120 secondi.";
-
-        if (a.Promozioni.Count > 200)
-            yield return "Al massimo 200 promozioni.";
-        foreach (var promo in a.Promozioni)
-        {
-            if (Name(promo.Nome, "La promozione") is { } error)
-                yield return error;
-            var what = $"La promozione {promo.Nome}";
-            var image = Media(promo.Immagine);
-            if (promo.Immagine != null && image == null)
-                yield return $"{what}: l'immagine non c'è più.";
-            else if (image is { IsVideo: true })
-                yield return $"{what}: ha un'immagine, non un video (il video si mette direttamente nel set).";
-            if (!promo.HasContent)
-                yield return $"{what}: scrivi un titolo o un testo, o scegli un'immagine o un QR.";
-            if (promo.HasQr && !(Uri.TryCreate(promo.Qr!.Trim(), UriKind.Absolute, out var url) && url.Scheme is "https" or "http"))
-                yield return $"{what}: l'indirizzo del QR è come https://… (registrazione, recensioni, menu digitale).";
-            if ((promo.Qr?.Length ?? 0) > 400)
-                yield return $"{what}: l'indirizzo del QR è troppo lungo (al massimo 400 caratteri).";
-            if ((promo.Titolo?.Length ?? 0) > 60 || (promo.Testo?.Length ?? 0) > 200 || (promo.QrDidascalia?.Length ?? 0) > 120)
-                yield return $"{what}: il titolo arriva a 60 caratteri, il testo a 200, la scritta del QR a 120.";
-            if (promo.DalGiorno > promo.AlGiorno)
-                yield return $"{what}: l'ultimo giorno viene prima del primo.";
-        }
-
-        if (a.Set.Count > 30)
-            yield return "Al massimo 30 set.";
-        foreach (var set in a.Set)
-        {
-            if (Name(set.Nome, "Il set") is { } error)
-                yield return error;
-            var what = $"Il set {set.Nome}";
-            if (set.Dove.Count == 0 || set.Dove.Any(d => !AdSetConfig.Places.Contains(d)))
-                yield return $"{what}: scegli dove va, nell'attesa, accanto al conto o nel Grazie.";
-            if (!AdSetConfig.Orders.Contains(set.Ordine))
-                yield return $"{what}: l'ordine è elenco, casuale o alfabetico.";
-            if (set.QrDopo is < 0 or > 20)
-                yield return $"{what}: una promozione con il QR dopo 1-20 elementi (0 = come le altre).";
-            if (set.Secondi is < 3 or > 120 || set.Elementi.Any(e => e.Secondi is < 3 or > 120))
-                yield return $"{what}: una foto o una promozione resta tra 3 e 120 secondi.";
-            if (set.Elementi.Count > 100)
-                yield return $"{what}: al massimo 100 elementi.";
-            foreach (var item in set.Elementi.Where(e => Media(e.Id) == null && Promo(e.Id) == null))
-                yield return $"{what}: un elemento non c'è più ({item.Id}).";
-            foreach (var cash in set.Casse.Where(c => CashPoint(c) == null))
-                yield return $"{what}: la cassa {cash} non c'è.";
-            if (set.Giorni.Any(d => d is < 1 or > 7))
-                yield return $"{what}: i giorni vanno da 1 (lunedì) a 7 (domenica).";
-            if ((set.Dalle == null) != (set.Alle == null)
-                || (set.Dalle != null && !(ParseTime(set.Dalle) is { } from && ParseTime(set.Alle) is { } to && from != to)))
-                yield return $"{what}: gli orari sono come 18:00 e 20:00 (anche 22:00 e 02:00, a cavallo della mezzanotte).";
-            if (set.DalGiorno > set.AlGiorno)
-                yield return $"{what}: l'ultimo giorno viene prima del primo.";
-        }
-
-        if (a.Media.Count > 500)
-            yield return "Al massimo 500 immagini e video.";
-        var ids = new HashSet<string>();
-        foreach (var item in a.Media)
-        {
-            if (!MediaIdPattern().IsMatch(item.Id ?? "") || !ids.Add(item.Id!))
-                yield return $"Il file {item.Nome} ha un nome interno non valido ({item.Id}).";
-        }
-    }
-
-    static string ContrastProblem(Palette basePalette, LocaleColors colors, List<ThemeColors.Pair> failing)
-    {
-        var what = string.Join(", ", failing.Select(p => $"{p.Label} {ThemeColors.Ratio(p.Ratio ?? 0)}"));
-        var text = $"Aspetto: colori poco leggibili, {what} (serve almeno 4,5:1).";
-        if (ThemeColors.Suggest(basePalette, colors) is not { } fixedColors)
-            return text + " Scegli colori più distanti tra loro.";
-        var changes = new List<string>();
-        if (fixedColors.Text != colors.Text)
-            changes.Add($"testo {fixedColors.Text}");
-        if (fixedColors.OnPrimary != colors.OnPrimary)
-            changes.Add($"testo sopra il primario {fixedColors.OnPrimary}");
-        return text + $" La correzione più vicina: {string.Join(", ", changes)}.";
-    }
-
     /// <summary>"07:30" → 7:30; null se non è un'ora.</summary>
     public static TimeOnly? ParseTime(string? text) =>
         TimeOnly.TryParseExact(text?.Trim(), "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time) ? time : null;
@@ -311,7 +325,7 @@ public sealed partial class AgentSettings
     internal static partial Regex MediaIdPattern();
 }
 
-public sealed class AppearanceSettings
+public sealed class AppearanceV2
 {
     /// <summary>In alto sullo schermo, accanto al logo o al suo posto.</summary>
     public string NomeLocale { get; set; } = "";
@@ -335,7 +349,7 @@ public sealed class AppearanceSettings
     public string? LogoSatispayChiaro { get; set; }
 
     /// <summary>I loghi, con il nome che hanno nei messaggi: sono tutti immagini della galleria.</summary>
-    public static readonly (string Name, Func<AppearanceSettings, string?> Get, Action<AppearanceSettings, string?> Set)[] Logos =
+    public static readonly (string Name, Func<AppearanceV2, string?> Get, Action<AppearanceV2, string?> Set)[] Logos =
     [
         ("il logo", a => a.Logo, (a, id) => a.Logo = id),
         ("il logo per i fondi chiari", a => a.LogoChiaro, (a, id) => a.LogoChiaro = id),
@@ -353,7 +367,7 @@ public sealed class AppearanceSettings
     public string GiornoAlle { get; set; } = "19:00";
 
     /// <summary>Solo con giorno o notte fissi: i colori del locale al posto di quelli del tema. Null = quelli del tema.</summary>
-    public ThemeColorSettings? Colori { get; set; }
+    public ColorsV2? Colori { get; set; }
     /// <summary>Una delle otto famiglie del design; null = quella del tema.</summary>
     public string? FontTitoli { get; set; }
     public string? FontTesto { get; set; }
@@ -390,21 +404,21 @@ public sealed class AppearanceSettings
     public int SecondiGrazie { get; set; } = 30;
 
     /// <summary>La galleria delle promozioni: si mettono nei set.</summary>
-    public List<PromoConfig> Promozioni { get; set; } = [];
+    public List<PromoV2> Promozioni { get; set; } = [];
 
     /// <summary>I set di reclame, in ordine: per ogni posto va in onda il primo che vale in quel momento.</summary>
-    public List<AdSetConfig> Set { get; set; } = [];
+    public List<AdSetV2> Set { get; set; } = [];
 
     /// <summary>Le foto e i video caricati dal back office (le due gallerie, il logo, lo sfondo), in dati\media.</summary>
-    public List<MediaItem> Media { get; set; } = [];
+    public List<MediaV2> Media { get; set; } = [];
 
     /// <summary>Il QR del Grazie della prima versione: si legge solo per portarlo in una promozione e nel set Grazie.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ThanksQrSettings? QrGrazie { get; set; }
+    public ThanksQrV2? QrGrazie { get; set; }
 }
 
 /// <summary>Gli otto colori dei token del design, con i nomi del back office.</summary>
-public sealed class ThemeColorSettings
+public sealed class ColorsV2
 {
     public string Fondo { get; set; } = "";
     /// <summary>La card del conto: #rrggbb o rgba(…) per il vetro.</summary>
@@ -419,7 +433,7 @@ public sealed class ThemeColorSettings
 }
 
 /// <summary>Il QR del Grazie della prima versione, ora una promozione nel set Grazie.</summary>
-public sealed class ThanksQrSettings
+public sealed class ThanksQrV2
 {
     public bool Attivo { get; set; }
     public string Indirizzo { get; set; } = "";
@@ -432,14 +446,14 @@ public sealed class ThanksQrSettings
 /// Una promozione della galleria: un titolo, un testo, un'immagine e un QR (registrazione cliente, recensioni, menu
 /// digitale), tutti facoltativi ma almeno uno. Va in onda nei set che la contengono.
 /// </summary>
-public sealed class PromoConfig
+public sealed class PromoV2
 {
     public string Id { get; set; } = "";
     /// <summary>Per il back office, non si vede sullo schermo.</summary>
     public string Nome { get; set; } = "";
     public string Titolo { get; set; } = "";
     public string Testo { get; set; } = "";
-    /// <summary>Un'immagine di <see cref="AppearanceSettings.Media"/>, 16:9 come le slide.</summary>
+    /// <summary>Un'immagine di <see cref="AppearanceV2.Media"/>, 16:9 come le slide.</summary>
     public string? Immagine { get; set; }
     /// <summary>L'indirizzo del QR; il PNG lo fa l'Agent. Null = senza QR.</summary>
     public string? Qr { get; set; }
@@ -465,7 +479,7 @@ public sealed class PromoConfig
 /// accanto al conto o nel Grazie, per alcune casse, giorni, orari e date. Per ogni posto va in onda il primo set
 /// dell'elenco che vale in quel momento: in alto quelli con l'orario più stretto, in fondo quello di sempre.
 /// </summary>
-public sealed class AdSetConfig
+public sealed class AdSetV2
 {
     public static readonly string[] Places = ["attesa", "conto", "grazie"];
     public static readonly string[] Orders = ["elenco", "casuale", "alfabetico"];
@@ -484,7 +498,7 @@ public sealed class AdSetConfig
     public int QrDopo { get; set; }
     /// <summary>Quanto resta una foto o una promozione, se l'elemento non dice altro. Un video dura quanto dura.</summary>
     public int Secondi { get; set; } = 8;
-    public List<AdItemConfig> Elementi { get; set; } = [];
+    public List<AdItemV2> Elementi { get; set; } = [];
     /// <summary>Vuoto = tutte le casse.</summary>
     public List<string> Casse { get; set; } = [];
     /// <summary>1 = lunedì … 7 = domenica; vuoto = tutti i giorni.</summary>
@@ -496,15 +510,15 @@ public sealed class AdSetConfig
     public DateOnly? AlGiorno { get; set; }
 }
 
-public sealed class AdItemConfig
+public sealed class AdItemV2
 {
-    /// <summary>Una foto o un video di <see cref="AppearanceSettings.Media"/>, o una promozione.</summary>
+    /// <summary>Una foto o un video di <see cref="AppearanceV2.Media"/>, o una promozione.</summary>
     public string Id { get; set; } = "";
     /// <summary>Null = quelli del set.</summary>
     public int? Secondi { get; set; }
 }
 
-public sealed class MediaItem
+public sealed class MediaV2
 {
     /// <summary>Il nome del file in dati\media: l'impronta del contenuto più l'estensione.</summary>
     public string Id { get; set; } = "";

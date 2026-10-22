@@ -1,14 +1,13 @@
-// Il tema dello schermo del cliente, per /cliente e per il back office: le otto palette del design (le scrive qui
-// l'Agent, da Aspetto/Palettes.cs), il contrasto WCAG, i colori del locale sopra il tema e le variabili CSS. È lo stesso
-// calcolo di display/src/theme/theme.ts del design e di Aspetto/ThemeColors.cs: il back office rifiuta quello che il
-// display rifiuterebbe, e il display ripiega su bluetech-notte se un tema illeggibile arriva lo stesso.
+// Il tema dello schermo del cliente, per /cliente, per le pagine del dispositivo e per il back office: i dieci temi del
+// design (iterazione 2, themes.ts; li scrive qui l'Agent da Aspetto/Palettes.cs), il contrasto WCAG, i colori del locale
+// sopra il tema e le variabili CSS. È lo stesso calcolo di Aspetto/ThemeColors.cs: il back office rifiuta quello che il
+// display rifiuterebbe, e il display ripiega su Bluetech se un tema illeggibile arriva lo stesso (un file scritto a mano).
 (function () {
   "use strict";
   var PALETTES = /*PALETTES*/{};
   var FONTS = /*FONTS*/{};
   var MIN = 4.5;
-  var FALLBACK = "bluetech-notte";
-  var DAY = { start: 7, end: 19 };
+  var FALLBACK = "bluetech";
 
   function parseHex(color) {
     var match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(color || "").trim());
@@ -158,36 +157,41 @@
     return pairs(withLocaleColors(base, current)).every(function (x) { return x.ok; }) ? current : null;
   }
 
-  function modeAt(date, hours) {
-    var h = hours || DAY;
-    var hour = date.getHours() + date.getMinutes() / 60;
-    return hour >= h.start && hour < h.end ? "giorno" : "notte";
+  function minutes(text, fallback) {
+    var match = /^(\d{1,2}):(\d{2})$/.exec(String(text || "").trim());
+    return match ? Number(match[1]) * 60 + Number(match[2]) : fallback;
   }
 
-  /** Il tema da applicare adesso, dal messaggio cfg ({ preset, theme, dayHours }): resolveTheme del design. */
-  function resolve(cfg, date) {
-    var t = (cfg && cfg.theme) || {};
-    var preset = cfg && PALETTES[cfg.preset + "-notte"] ? cfg.preset : "bluetech";
-    var mode = t.mode === "auto" ? modeAt(date || new Date(), cfg && cfg.dayHours) : t.mode === "giorno" ? "giorno" : "notte";
-    var base = PALETTES[preset + "-" + mode];
-    var shape = {};
-    if (t.fontDisplay) shape.fontDisplay = t.fontDisplay;
-    if (t.fontText) shape.fontText = t.fontText;
-    if (typeof t.radius === "number") shape.radius = t.radius;
-    var palette;
-    if (t.mode === "auto" || !t.cBg) {
-      palette = Object.assign({}, base, shape);
-    } else {
-      palette = Object.assign(withLocaleColors(base, {
-        bg: t.cBg, surface: t.cSurface, text: t.cText, muted: t.cMuted,
-        primary: t.cPrimary, onPrimary: t.cOnPrimary, accent: t.cAccent, secondary: t.cSecondary,
-      }), shape);
-      if (typeof t.glass === "number") palette.glass = t.glass;
-      if (t.footerVariant) palette.footerVariant = t.footerVariant;
-    }
+  /** Di giorno, per giorno e notte automatici: tra giornoDalle (incluso) e giornoAlle. */
+  function daytime(screen, date) {
+    var now = date.getHours() * 60 + date.getMinutes();
+    return now >= minutes(screen && screen.giornoDalle, 420) && now < minutes(screen && screen.giornoAlle, 1140);
+  }
+
+  /** resolveTheme del design: con "auto" il gemello chiaro di giorno e quello scuro di sera; senza gemello resta quello. */
+  function themeAt(id, mode, isDay) {
+    var p = PALETTES[id] || PALETTES[FALLBACK];
+    if (mode !== "auto" || !p.gemello || !PALETTES[p.gemello]) return p;
+    return p.scuro === !isDay ? p : PALETTES[p.gemello];
+  }
+
+  /**
+   * Il tema da applicare adesso, dalla ScreenConfig (cfg.screen): il tema e il suo gemello, i colori del locale (solo
+   * con il modo fisso), i font, gli angoli, il vetro e la firma. Sotto 4,5:1 ripiega su Bluetech, come il design.
+   */
+  function resolve(screen, date) {
+    var s = screen || {};
+    var fixed = s.modo !== "auto";
+    var base = themeAt(s.tema, s.modo, daytime(s, date || new Date()));
+    var palette = fixed && s.colori && s.colori.bg ? withLocaleColors(base, s.colori) : Object.assign({}, base);
+    if (s.fontTitoli && FONTS[s.fontTitoli]) palette.fontDisplay = FONTS[s.fontTitoli];
+    if (s.fontTesto && FONTS[s.fontTesto]) palette.fontText = FONTS[s.fontTesto];
+    if (typeof s.raggio === "number") palette.radius = s.raggio;
+    if (fixed && typeof s.vetro === "number") palette.glass = s.vetro;
+    if (fixed && (s.footerVariant === "light" || s.footerVariant === "dark")) palette.footerVariant = s.footerVariant;
     var problems = pairs(palette).filter(function (p) { return !p.ok; });
-    if (problems.length) return { palette: PALETTES[FALLBACK], mode: "notte", fallback: true, problems: problems };
-    return { palette: palette, mode: mode, fallback: false, problems: [] };
+    if (problems.length) return { palette: PALETTES[FALLBACK], theme: FALLBACK, fallback: true, problems: problems };
+    return { palette: palette, theme: base.id, fallback: false, problems: [] };
   }
 
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
@@ -202,6 +206,8 @@
       "--glass-alpha": String(clamp(p.glass, 0, 100) * 0.0012), "--glass-blur": clamp(p.glass, 0, 100) * 0.28 + "px",
       "--total-fill": p.totalFill, "--total-border": p.totalBorder, "--total-text": p.totalText,
       "--glow": p.glow, "--glow-2": p.glow2,
+      // Sui temi chiari lo scrim sopra un video è bianco: stesso principio, segno invertito (SPEC §15).
+      "--scrim-rgb": p.scuro ? "8, 12, 18" : "244, 246, 250",
     };
   }
 
@@ -213,7 +219,7 @@
   window.BluetechTema = {
     palettes: PALETTES, fonts: FONTS, min: MIN, fallback: FALLBACK,
     parseHex: parseHex, parseColor: parseColor, toHex: toHex, contrast: contrast,
-    withLocaleColors: withLocaleColors, pairs: pairs, suggest: suggest, modeAt: modeAt,
+    withLocaleColors: withLocaleColors, pairs: pairs, suggest: suggest, daytime: daytime, themeAt: themeAt,
     resolve: resolve, cssVars: cssVars, apply: apply,
   };
 })();
