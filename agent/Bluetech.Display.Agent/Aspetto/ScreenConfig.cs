@@ -11,7 +11,8 @@ namespace Bluetech.Display.Agent.Aspetto;
 /// marchio → cassa → schermo risolta qui e non nello schermo, e quello che va in onda in ogni posto
 /// (<c>ShowcaseByPlace</c>), già scelto da <see cref="Showcases.Choose"/> per la cassa, il giorno e l'ora. Le aggiunte
 /// al protocollo del design sono in design/ALLINEAMENTO.md §8: <c>sequenza</c> in ogni vetrina (l'ordine lo fa
-/// l'Agent, anche con "un QR ogni N"), <c>marks</c> (i loghi dei kit) e <c>dicitura</c> nello scontrino digitale.
+/// l'Agent, anche con "un QR ogni N"), <c>marks</c> (i loghi dei kit), <c>cassa</c> (il suo nome, in alto a destra) e
+/// <c>dicitura</c> nello scontrino digitale.
 /// </summary>
 public static class ScreenConfig
 {
@@ -164,6 +165,8 @@ public static class ScreenConfig
 
         var config = new JsonObject
         {
+            // Il nome della cassa, in alto a destra accanto al pallino del collegamento (B-Conto del design).
+            ["cassa"] = new JsonObject { ["id"] = cashPoint, ["nome"] = cash?.Nome ?? "" },
             ["screen"] = screen,
             ["showcase"] = showcases,
             ["marks"] = marks,
