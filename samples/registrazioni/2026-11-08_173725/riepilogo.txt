@@ -1,0 +1,17 @@
+Riepilogo registrazione
+  Durata: 00:32:11
+  Versioni diverse registrate: 59
+    qrcode: 6
+    scontrino: 53
+  Riscritture identiche: 12
+  Notifiche doppie ignorate: 0
+  Letture prese durante la scrittura (messe da parte): 0
+  Letture ritentate (file bloccato): 0
+  Eventi della cartella: 75
+  File tolti in modalità consumo: 71
+  Passepartout ha sostituito da sé il file che c'era: no
+  Tempo minimo tra due scritture: - (con /consuma: 0,19 s)
+  Altro file modificato nella cartella: ScontrinoDigitale.txt (2 notifiche)
+  Note: 0
+  Codifiche viste: ASCII
+  Flussi: 1 ✓ · 2 ✓ · 3 · 4 ✓ · 5 ✓ · 6 ✓

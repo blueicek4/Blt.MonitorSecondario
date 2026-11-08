@@ -1,0 +1,9 @@
+SNF
+ 
+ Crema Fritta                               2,00
+ Verdure Fritte                             0,10
+SUBTOT.                                     2,10
+ 
+TOT. DA PAGARE                              2,10
+ 
+ 

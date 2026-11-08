@@ -1,7 +1,7 @@
 # Studio: scontrino digitale a video e copia cartacea su richiesta
 
 > Funzione **opzionale**, spenta di default, pensata per un **palmare** o uno **schermo touch**. Quando Passepartout
-> manda il QR dello scontrino digitale (`QRCODESD`), lo schermo mostra lo scontrino con il dettaglio, il QR per
+> manda il QR dello scontrino digitale, lo schermo mostra lo scontrino con il dettaglio, il QR per
 > scaricarlo e un pulsante "Vuoi la copia cartacea? Tocca qui". Il tocco stampa una copia su una stampante non
 > fiscale: intestazione, righe, sconti, pagamenti e in fondo il QR, piccolo, per scaricare il documento fiscale.
 >
@@ -36,7 +36,7 @@ cliente non deve preoccuparsi.
 | | Stato |
 |---|---|
 | Dati dello scontrino | **Li abbiamo già**: l'ultima versione del conto, quella con `PAGATO`, ha intestazione, righe, sconti, totale, pagamento e resto. È la stessa che oggi diventa la schermata Grazie |
-| `QRCODESD` | Lo riconosce il vecchio monitor 6.0 (`docs/01` §10) e l'Agent lo gestisce già (`receipt.qr`). **Non l'abbiamo mai registrato**: non sappiamo in che ordine arriva rispetto alla riga `PAGATO` (§5). Il contenuto non ci serve: il QR si stampa come immagine |
+| Il QR dello scontrino digitale | **Registrato l'08/11** ([registrazione](../samples/registrazioni/2026-11-08_173725/README.md)): Passepartout non usa `QRCODESD` (il marcatore del vecchio monitor 6.0, `docs/01` §10) ma `QRCODE` con la didascalia "Scarica il tuo scontrino digitale!", e lo scrive **prima** dello scontrino pagato, a vendita aperta. 0,3 s dopo arriva lo scontrino con `PAGATO` e in fondo il link come testo, storpiato dal modello XML (`/` → `-`, `?` → spazio). L'Agent li riconosce e li abbina (§5). Il QR si stampa come immagine; il link serve a riconoscerlo e ad abbinarlo |
 | Numero del documento | Nel file non c'è, e **non serve** |
 | Stampa | La fa l'Agent, in ESC/POS su una stampante comande standard: **nessuna richiesta a Passepartout Menu né al web service** (§6) |
 | Schermo touch | Il design attuale lo esclude: SPEC §13 "lo schermo non è touch e non ha controlli". La funzione è pensata per un palmare o uno schermo touch (§7) |
@@ -46,7 +46,7 @@ cliente non deve preoccuparsi.
 
 ```
 Passepartout Menu (cassa)
-  │ 1. Scontrino.txt: conto con PAGATO, poi QRCODESD      (come oggi: Passepartout non sa altro)
+  │ 1. Scontrino.txt: il QR, poi il conto con PAGATO      (08/11: Passepartout non sa altro)
   ▼
 Bluetech Display Agent ──2. receipt.digital { scontrino, QR, copia cartacea sì/no }──► Display (touch)
   │   ▲                                                                                  │
@@ -61,7 +61,7 @@ Bluetech Display Agent ──2. receipt.digital { scontrino, QR, copia cartacea 
 ```
 
 - Passepartout continua solo a scrivere il file, come oggi. Non riceve niente da noi.
-- L'Agent conserva l'ultimo conto pagato e lo abbina al `QRCODESD` che arriva subito dopo (§5).
+- L'Agent abbina il QR allo scontrino pagato che lo segue, o all'ultimo conto pagato se arriva dopo (§5).
 - Il display non conosce né lo scontrino fiscale né la stampante: manda solo "il cliente vuole la copia di
   *questo* scontrino digitale", con un `id` che l'Agent ha generato e che vale solo per quello.
 - Il file di interscambio si toglie sempre appena letto, come oggi.
@@ -109,7 +109,7 @@ L'Agent la compone dall'ultimo conto con `PAGATO` (la versione che chiude la ven
 5. **pagamenti** (metodo e importo; più righe se il pagamento è misto) e **resto**;
 6. data e ora: quella in cui l'Agent ha letto il conto pagato. Non è l'ora fiscale, ma la differenza è di qualche
    secondo;
-7. **il QR, piccolo**, per scaricare il documento fiscale: l'immagine del `QRCODESD` stampata così com'è (l'Agent ne
+7. **il QR, piccolo**, per scaricare il documento fiscale: l'immagine del QR della cassa stampata così com'è (l'Agent ne
    ha già la matrice dei moduli);
 8. sotto il QR la dicitura, da validare (§11): per esempio "Inquadra il QR per scaricare il documento commerciale.
    Copia di cortesia".
@@ -151,12 +151,20 @@ Resto                                 0,00
   modello a 30 colonne, 40 con quello a 48). **Non è un problema**: ai fini legali e fiscali conta solo il QR, che porta
   al PDF firmato del documento (§11).
 
-**Abbinare il QR al conto giusto.** Il `QRCODESD` non dice di quale conto è. L'Agent lo abbina all'ultimo conto
-pagato se arriva entro 30 s dalla riga `PAGATO` e nel frattempo non è partita un'altra vendita. Altrimenti mostra e
-stampa il **solo QR**, che basta ai fini fiscali: mai il QR di un cliente con le righe di un altro. Un `PAGATO` che
-arriva *dopo* il QR non si abbina, per lo stesso motivo. L'ordine "prima `PAGATO`, poi QR" è quello logico (il QR
-dello scontrino digitale esiste solo a documento emesso) ed è coerente con il vecchio monitor 6.0; va confermato con le
-prime transazioni.
+**Abbinare il QR al conto giusto.** Il QR non dice di quale conto è, ma il link che porta sì, e l'08/11 lo stesso link
+arriva anche in fondo allo scontrino pagato. L'ordine vero (08/11, due volte su due) è **prima il QR, a vendita
+aperta, poi 0,3 s dopo lo scontrino con `PAGATO`**, il contrario di quello che ci aspettavamo dal vecchio monitor 6.0.
+Quindi l'Agent:
+
+- tiene da parte il QR arrivato a vendita aperta e lo manda a video con lo scontrino pagato che lo segue entro 3 s,
+  dopo il Grazie; se i due link si conoscono tutti e due, devono essere lo stesso;
+- se il `PAGATO` non arriva, mostra il **solo QR**; se arriva più tardi con lo stesso link, il conto entra nello
+  scontrino già a video;
+- un QR che arriva a vendita chiusa (l'ordine del vecchio monitor 6.0) si abbina all'ultimo conto pagato se è entro
+  30 s e nel frattempo non è partita un'altra vendita;
+- se arriva solo il link, il QR lo fa l'Agent dal link ricostruito.
+
+Così mai il QR di un cliente con le righe di un altro: nel dubbio il solo QR, che basta ai fini fiscali.
 
 ## 6. Come stampa l'Agent
 
@@ -185,8 +193,9 @@ Dettagli da curare:
   perché non tutti usano gli stessi comandi.
 
 **Cosa mi serve**: modello della stampante comande del locale pilota (termica), dove si trova, come è collegata
-(indirizzo IP o USB, e se Passepartout la usa tramite la coda di Windows), larghezza del rotolo. E **due o tre registrazioni** col registratore
-di un pagamento con scontrino digitale (contanti, carta, Satispay), per vedere il `QRCODESD` vero e l'ordine dei file.
+(indirizzo IP o USB, e se Passepartout la usa tramite la coda di Windows), larghezza del rotolo. Le registrazioni con lo
+scontrino digitale pagato in contanti ci sono (08/11); mancano quelle pagate **con la carta e con Satispay**, per vedere
+se il `PAGATO` arriva anche lì, e il contenuto di `ScontrinoDigitale.txt` (il registratore 1.2 lo copia).
 
 ## 7. Dove si tocca: palmare, schermo touch autonomo, secondo monitor della cassa
 
@@ -354,7 +363,7 @@ stampante.
 
 | Rischio | Effetto | Contromisura |
 |---|---|---|
-| Il `QRCODESD` arriva in un ordine diverso da quello previsto | Il QR abbinato al conto sbagliato | Registrazioni prima di sviluppare; nel dubbio, QR senza scontrino e senza pulsante (§5) |
+| Il QR arriva in un ordine diverso da quello previsto (è successo: l'08/11 prima il QR, poi il `PAGATO`) | Il QR abbinato al conto sbagliato | Registrazioni; abbinamento con il link quando c'è, entro 3 s; nel dubbio, QR senza scontrino e senza pulsante (§5) |
 | Stampanti diverse da Epson, comandi diversi | Copia stampata male o non stampata | Prova sui modelli dei locali pilota; stampa con il driver di Windows (2b) |
 | Stampante comande ad aghi | QR illeggibile | Solo stampanti termiche; l'Agent lo dice nella configurazione |
 | Stampante comande lontana dalla cassa (in cucina) | Il cliente non sa dove ritirare la copia | Una stampante al banco o alla cassa; testo di ritiro configurabile |

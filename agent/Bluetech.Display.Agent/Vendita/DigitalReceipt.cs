@@ -36,6 +36,8 @@ public sealed class DigitalReceipt
     /// <summary>data:image/png;base64,… del QR, un pixel per modulo quando l'Agent ha potuto ridurlo.</summary>
     public required string Png { get; init; }
     public string? Caption { get; init; }
+    /// <summary>Il link dello scontrino digitale, se si conosce (letto dal QR o ricostruito dal testo). Solo per l'Agent.</summary>
+    public string? Url { get; init; }
     /// <summary>Il conto con PAGATO abbinato al QR; null = solo QR.</summary>
     public CashFile? Bill { get; init; }
     /// <summary>Quando è arrivato il QR, nell'orologio del tracker.</summary>

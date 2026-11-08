@@ -1,0 +1,11 @@
+SNF
+ 
+ Birra Birrina Bionda 75Cl                  9,50
+ Birra Birrina Bionda Ipa 33Cl              6,00
+ BUONO welcome20 Sconto 20,00                  
+SUBTOT.                                    15,50
+ 
+SCONTO                                     -3,10
+TOT. DA PAGARE                             12,40
+ 
+ 

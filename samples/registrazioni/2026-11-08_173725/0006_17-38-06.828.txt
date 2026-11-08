@@ -1,0 +1,12 @@
+SNF
+ 
+ Moscow Mule                                7,00
+ Caipiroska                                 7,00
+ Caipirinha                                 7,00
+ Mojito                                     7,00
+ Americano                                  6,00
+SUBTOT.                                    34,00
+ 
+TOT. DA PAGARE                             34,00
+ 
+ 

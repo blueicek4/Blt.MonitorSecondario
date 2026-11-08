@@ -1,0 +1,23 @@
+SNF
+ 
+                  BAR ESEMPIO                   
+             VIALE DELLE PROVE, 23              
+         00000 COMUNE DI PROVA      XX         
+        P.I.00000000000 C.F. 00000000000        
+ 
+------------------------------------------------
+                                            EURO
+   3 pz X 3,90 Euro
+ La Salame                                 11,70
+   2 pz X 4,50 Euro
+ La Coppa                                   9,00
+   2 pz X 5,50 Euro
+ La Crudo                                  11,00
+SUBTOT.                                    31,70
+ 
+TOT. DA PAGARE                             31,70
+ 
+PAGATO CONTANTI:   31,70
+Resto:              0,00
+ 
+ 

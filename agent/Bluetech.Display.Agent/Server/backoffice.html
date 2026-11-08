@@ -1473,7 +1473,7 @@ function blockSale(L) {
   return block("Vendita e scontrino digitale", null,
     el("label", { class: "field" }, el("span", {}, "Il conto si chiude da solo dopo (secondi)"),
       el("input", { type: "number", min: "0", max: "3600", value: String(sale.ChiusuraDopoSecondi), onchange: (e) => { sale.ChiusuraDopoSecondi = Number(e.target.value); localeChanged(); } }),
-      el("span", { class: "hint" }, "Se la cassa non manda il pagamento, il monitor torna all'attesa dopo questo tempo senza righe nuove. 0 = mai.")),
+      el("span", { class: "hint" }, "Se la cassa non manda il pagamento, il monitor torna all'attesa dopo questo tempo senza righe nuove. Con il conto a video o il QR di Satispay almeno 3 minuti: mentre il cliente paga con il POS o la cassa automatica la cassa non scrive niente. 0 = mai.")),
     toggle("Mostra lo scontrino digitale", receipt.Attivo, (v) => { receipt.Attivo = v; localeChanged(true); }),
     el("p", { class: "hint" }, "Quando la cassa manda il QR del documento commerciale, il monitor lo mostra dopo il Grazie, con la copia del conto. " + (S.config.demo ? "In modalità demo arriva un QR finto dopo ogni conto pagato." : "")),
     receipt.Attivo ? el("div", { class: "stack" },

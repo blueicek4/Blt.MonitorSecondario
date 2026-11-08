@@ -1,0 +1,12 @@
+Bluetech Display Recorder 1.1.1.0
+Inizio: 2026-11-08T17:37:25.610+01:00
+File registrato: C:\MonitorSecondario\Scontrino.txt
+Vecchio monitor aperto: no
+Display Agent aperto: no
+
+PC
+  Sistema: Windows 11 Pro 26H2 (build 26300)
+  64 bit: sì · processori logici: 16
+  WebView2 Runtime: 157.0.4341.42
+Schermi
+  1. \\.\DISPLAY1 1920×1080 in (0,0) — principale

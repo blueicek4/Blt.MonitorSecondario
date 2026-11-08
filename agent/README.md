@@ -246,7 +246,7 @@ dispositivi non viaggiano in chiaro sulla rete.
 
 ## Scontrino digitale a video e copia cartacea (opzionale)
 
-Quando Passepartout manda il QR dello scontrino digitale (`QRCODESD`), il palmare o lo schermo touch mostrano lo
+Quando Passepartout manda il QR dello scontrino digitale, il palmare o lo schermo touch mostrano lo
 scontrino com'è sulla carta, il QR grande per scaricarlo e il pulsante "Voglio la copia di carta". Il tocco stampa
 una copia **sulla stampante dello schermo**, in ESC/POS: intestazione, righe, sconti, totale, pagamenti,
 data e in fondo il QR piccolo, che è la parte che vale ai fini fiscali (il PDF firmato del documento). **Nessuna
@@ -264,10 +264,23 @@ in [`docs/03`](../docs/03-studio-copia-cartacea.md).
   cliente ritira la copia: il testo a video dopo il tocco ("Ritira la copia alla cassa") è per stampante.
 - Tabella caratteri: `1252` per le Epson e compatibili, `858` se gli accenti escono sbagliati, senza accenti per
   scrivere come la cassa (`Caffe'`). La stampa di prova serve proprio a sceglierla.
-- **Abbinamento del QR al conto.** Il QR non dice di quale conto è. L'Agent lo abbina all'ultimo conto con `PAGATO`
-  della stessa cassa se arriva entro 30 s e non è partita un'altra vendita; altrimenti mostra e stampa il solo QR. Così
-  non si stampa mai il QR di un cliente con le righe di un altro. La regola viene dal vecchio monitor 6.0: non abbiamo
-  ancora visto un `QRCODESD` vero, va controllata con le prime transazioni.
+- **Come arriva** (registrazione dell'[08/11](../samples/registrazioni/2026-11-08_173725/README.md)): Passepartout
+  scrive prima il QR, a vendita ancora aperta (`QRCODE`, il PNG e la didascalia "Scarica il tuo scontrino digitale!"),
+  e 0,3 s dopo lo scontrino pagato con in fondo `QRCODE` e il **link come testo, storpiato** dal modello XML: la barra
+  diventa un trattino e il punto di domanda uno spazio
+  (`https:--scontrinodigitalecloud.passepartout.cloud-v1-download token=…`). L'Agent riconosce il QR dello scontrino
+  digitale dalla didascalia o dal link che c'è dentro (lo legge dall'immagine), e mai come un QR di Satispay; dallo
+  scontrino pagato toglie le due righe del QR e, se è il link dello scontrino digitale di Passepartout, lo ricostruisce
+  com'era. Il vecchio monitor 6.0 usava invece `QRCODESD`: vale ancora.
+- **Abbinamento del QR al conto.** Il QR arrivato a vendita aperta aspetta lo scontrino pagato che lo segue (fino a
+  3 s) e va a video con lui, dopo il Grazie; se i due link si conoscono tutti e due devono essere lo stesso. Un QR che
+  arriva a vendita chiusa si abbina all'ultimo conto con `PAGATO` della stessa cassa se è entro 30 s e non è partita
+  un'altra vendita. Se il `PAGATO` non arriva, o l'abbinamento non è sicuro, va a video il solo QR: così non si stampa
+  mai il QR di un cliente con le righe di un altro. Se il `PAGATO` arriva dopo, con lo stesso link, entra nello
+  scontrino già a video.
+- **Solo il link**: se la cassa scrive il link in fondo allo scontrino pagato ma non l'immagine, il QR lo fa l'Agent
+  dal link ricostruito. Se arrivano tutti e due vale l'immagine della cassa, una volta sola. Qualunque altro QR stampato
+  in fondo allo scontrino (recensioni, promozioni) non è uno scontrino digitale: si toglie e basta.
 - La schermata resta i secondi scelti (45), o finché non parte la vendita successiva. Una copia per scontrino: il secondo
   tocco, anche da un altro dispositivo della stessa cassa, risponde "già chiesta"; dopo un errore si può riprovare.
 - I palmari vanno sulla rete del personale, mai su quella degli ospiti.
@@ -276,7 +289,7 @@ in [`docs/03`](../docs/03-studio-copia-cartacea.md).
 
 ### Modalità demo
 
-Per provare lo scontrino digitale e la copia di carta senza una cassa che mandi `QRCODESD` (in showroom, o prima che
+Per provare lo scontrino digitale e la copia di carta senza una cassa che mandi il suo QR (in showroom, o prima che
 Passepartout lo mandi davvero): **Installazione › Modalità demo**.
 
 - Dopo ogni conto con `PAGATO`, se la cassa non manda il suo QR entro 4 secondi, l'Agent fa uno scontrino di prova:
@@ -309,10 +322,13 @@ Le regole vengono dalle [registrazioni](../samples/registrazioni) (30 e 48 colon
 | Riga sparita, le altre uguali invariate | storno: `sale.line` `void` con `voidsId` |
 | Righe uguali unite in "dettagli conto", sconti spostati sotto le righe, ordine cambiato | `sync`, lo stato completo: niente storni finti |
 | `TOT. DA PAGARE` | `sale.total`, in centesimi (il display non somma mai). `bill: true` quando la cassa mostra il conto (c'è l'intestazione: dettagli conto, preconto, scontrino), `false` durante la battuta |
+| Un importo seguito da spazi (`BUONO welcome20 Sconto 20,00` e spazi fino all'ultima colonna) | una nota, non un articolo: gli importi veri sono allineati a destra. Lì è il 20% di sconto di un buono |
+| Nessun file per i secondi della chiusura ("Il conto si chiude da solo dopo", 60, in Il locale › Vendita e scontrino digitale) | `sale.close` senza `paid`: le slide. Con il conto a video (`bill: true`) almeno 3 minuti, con il QR di Satispay anche: mentre il cliente paga con il POS, con la cassa automatica o con Satispay Passepartout non scrive niente |
 | `PAGATO …:` e `Resto:` | `sale.close` con `paid: { method, amount, change }`: Grazie con le righe, poi le slide. Pagamento misto (una riga per metodo): metodi uniti, `BUONI PASTO + CONTANTI`, importi sommati |
 | Conto dopo un `PAGATO`, o senza nessuna riga in comune con quello a video (il coperto non conta: c'è su ogni tavolo) | `sale.open`: vendita nuova |
 | `QRCODE` e il QR in Base64 | `pay.qr` con l'ultimo totale, ridotto a un pixel per modulo (il display lo ingrandisce di un multiplo intero e aggiunge la quiet zone), e la didascalia se la cassa la scrive dopo l'immagine. Lo toglie (`pay.clear`) un conto cambiato o `PAGATO`; lo stesso conto rimandato entro 20 s no (il vecchio monitor 6.0 ignora i file per 20 s dopo il QR); altrimenti scade dopo 3 minuti |
-| `QRCODESD` e il QR in Base64 (scontrino digitale, vecchio monitor 6.0) | `receipt.qr` con la didascalia: il display lo mostra in Grazie |
+| `QRCODESD` e il QR in Base64 (scontrino digitale, vecchio monitor 6.0), oppure `QRCODE` con la didascalia "Scarica il tuo scontrino digitale!" o con dentro il link dello scontrino digitale (Passepartout, 08/11) | `receipt.qr` con la didascalia, che il display mostra in Grazie; con lo scontrino digitale a video `receipt.digital`. A vendita aperta aspetta il `PAGATO` (vedi sopra) |
+| `QRCODE` e un testo, in fondo allo scontrino (il QR che la cassa stampa) | lo scontrino si legge senza quelle due righe. Se il testo è il link dello scontrino digitale, anche storpiato, l'Agent lo ricostruisce e, se l'immagine non arriva, fa il QR |
 | Intestazione del locale, `SUBTOT.`, la valuta dopo i trattini (`EURO`) | niente |
 | Versione identica alla precedente | niente |
 | Accenti | UTF-8 o Windows-1252, riconosciuti da soli |

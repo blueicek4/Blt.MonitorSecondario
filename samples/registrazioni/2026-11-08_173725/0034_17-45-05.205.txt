@@ -1,0 +1,18 @@
+SNF
+ 
+                  BAR ESEMPIO                   
+             VIALE DELLE PROVE, 23              
+         00000 COMUNE DI PROVA      XX         
+        P.I.00000000000 C.F. 00000000000        
+ 
+------------------------------------------------
+                                            EURO
+ Crema Fritta                               2,00
+                                  SCONTO   -1,95
+ Crema Fritta                               2,00
+                                  SCONTO   -1,95
+SUBTOT.                                     0,10
+ 
+TOT. DA PAGARE                              0,10
+ 
+ 

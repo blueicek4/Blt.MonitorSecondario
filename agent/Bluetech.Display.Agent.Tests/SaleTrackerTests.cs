@@ -21,6 +21,8 @@ public class SaleTrackerTests
         public bool Open;
         public long Total;
         public JsonObject? Payment;
+        /// <summary>L'ultimo scontrino digitale arrivato (receipt.qr o receipt.digital).</summary>
+        public JsonObject? Receipt;
         public readonly List<JsonObject> Received = [];
 
         public void Apply(IEnumerable<CashIn> messages)
@@ -58,6 +60,11 @@ public class SaleTrackerTests
                         Payment = json;
                         break;
                     case "pay.clear":
+                        Payment = null;
+                        break;
+                    case "receipt.qr":
+                    case "receipt.digital":
+                        Receipt = json;
                         Payment = null;
                         break;
                     case "sync":
@@ -121,9 +128,13 @@ public class SaleTrackerTests
             {
                 Assert.False(model.Open, $"{recording} #{name[..4]}: pagato ma ancora aperto");
             }
-            else if (file.Kind == CashFileKind.Qr)
+            else if (file.Kind == CashFileKind.Qr && file.QrPurpose == QrPurpose.Payment)
             {
                 Assert.NotNull(model.Payment);
+            }
+            else if (file.Kind == CashFileKind.Qr)
+            {
+                Assert.Null(model.Payment);   // lo scontrino digitale non è mai un QR da pagare
             }
         }
         return (tracker, model, byVersion);
@@ -137,7 +148,26 @@ public class SaleTrackerTests
     [InlineData("2026-10-20_002138")]
     [InlineData("2026-10-20_064854")]
     [InlineData("2026-10-20_075632")]
+    [InlineData("2026-11-08_173725")]
     public void Every_version_of_a_real_recording_shows_exactly_the_bill(string recording) => Replay(recording);
+
+    [Fact]
+    public void The_six_flows_of_8_november_close_every_paid_receipt_and_show_the_digital_one()
+    {
+        var (_, model, v) = Replay("2026-11-08_173725");
+        // Il QR dello scontrino digitale (#54, #58) non è più un QR Satispay: aspetta lo scontrino pagato…
+        Assert.Empty(v["0054"]);
+        Assert.Empty(v["0058"]);
+        // …che prima si perdeva (file "vuoto") e ora chiude la vendita e porta il QR della cassa nel Grazie.
+        foreach (var paid in new[] { "0055", "0059" })
+            Assert.Equal(["sale.close", "receipt.qr"], v[paid].Select(m => m.Type));
+        Assert.Equal("Scarica il tuo scontrino digitale!", (string)model.Receipt!["caption"]!);
+        // La riga del buono è una nota, non un articolo da 20 euro.
+        Assert.Contains(Json(v["0051"]), j => IsLine(j, "note") && (string)j["line"]!["text"]! == "BUONO welcome20 Sconto 20,00");
+        Assert.DoesNotContain(Json(v["0051"]), j => IsLine(j, "item") && (long)j["line"]!["amount"]! == 2000);
+        // Il QR Satispay resta un pagamento.
+        Assert.Equal("pay.qr", Assert.Single(v["0035"]).Type);
+    }
 
     [Fact]
     public void Night_of_20_october_merges_voids_quantities_and_payments()
@@ -314,15 +344,16 @@ public class SaleTrackerTests
     {
         var tracker = new SaleTracker();
         var timeout = TimeSpan.FromSeconds(60);
-        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007")), T0);
-        Assert.Equal("sale.close", Assert.Single(tracker.CheckIdle(T0.AddSeconds(60), timeout)).Type);
+        tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007")), T0);   // dettagli: resta almeno 3 minuti
+        var closed = T0 + SaleTracker.MinimumWithBill;
+        Assert.Equal("sale.close", Assert.Single(tracker.CheckIdle(closed, timeout)).Type);
 
-        var qr = Assert.IsType<PayQr>(Assert.Single(tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddSeconds(70))));
+        var qr = Assert.IsType<PayQr>(Assert.Single(tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), closed.AddSeconds(10))));
         Assert.Equal(1030, qr.Amount);   // il conto chiuso per inattività, non 0
-        Assert.Empty(tracker.CheckIdle(T0.AddSeconds(70) + SaleTracker.MinimumWithQr - TimeSpan.FromSeconds(1), timeout));
-        Assert.Equal(["pay.clear", "sale.close"], tracker.CheckIdle(T0.AddSeconds(70) + SaleTracker.MinimumWithQr, timeout).Select(m => m.Type));
+        Assert.Empty(tracker.CheckIdle(closed.AddSeconds(10) + SaleTracker.MinimumWithQr - TimeSpan.FromSeconds(1), timeout));
+        Assert.Equal(["pay.clear", "sale.close"], tracker.CheckIdle(closed.AddSeconds(10) + SaleTracker.MinimumWithQr, timeout).Select(m => m.Type));
         Assert.Equal("idle", tracker.Phase);
-        Assert.NotEmpty(tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddMinutes(10)));   // rimandato: torna
+        Assert.NotEmpty(tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), closed.AddMinutes(10)));   // rimandato: torna
     }
 
     [Fact]
@@ -357,10 +388,15 @@ public class SaleTrackerTests
     [Fact]
     public void A_digital_receipt_qr_takes_the_place_of_the_payment_qr()
     {
+        // Pagato con Satispay: la cassa non scrive il PAGATO (08/11). Il QR dello scontrino digitale aspetta lo stesso
+        // un poco, poi chiude il conto e prende il posto di quello di Satispay.
         var tracker = new SaleTracker();
         tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0007")), T0);
         tracker.Apply(ReceiptParser.Parse(Samples.Version("2026-10-20_075632", "0008")), T0.AddSeconds(5));
-        Assert.Equal(["pay.clear", "receipt.qr"], tracker.Apply(DigitalReceiptQr(), T0.AddSeconds(30)).Select(m => m.Type));
+        Assert.Empty(tracker.Apply(DigitalReceiptQr(), T0.AddSeconds(30)));
+        Assert.Equal("payment", tracker.Phase);
+        Assert.Equal(["sale.close", "receipt.qr"], tracker.CheckIdle(T0.AddSeconds(30) + SaleTracker.EarlyQrWait, TimeSpan.FromSeconds(60)).Select(m => m.Type));
+        Assert.Equal("idle", tracker.Phase);
     }
 
     [Fact]
@@ -442,11 +478,16 @@ public class SaleTrackerTests
         late.Apply(PaidBill(), T0);
         Assert.Null(ShownReceipt(late.Apply(DigitalReceiptQr(), T0 + SaleTracker.PairWindow + TimeSpan.FromSeconds(1))).Bill);
 
-        // Il cliente dopo ha già cominciato: il QR non può più essere abbinato al conto di prima.
+        // Il cliente dopo ha già cominciato: il QR non può più essere abbinato al conto di prima. Aspetta un poco (a
+        // vendita aperta potrebbe essere di questa, con il PAGATO subito dopo), poi va a video da solo e la battuta resta.
         var busy = new SaleTracker(Digital);
         busy.Apply(PaidBill(), T0);
         busy.Apply(Bill("SPRITZ"), T0.AddSeconds(2));
-        Assert.Null(ShownReceipt(busy.Apply(DigitalReceiptQr(), T0.AddSeconds(4))).Bill);
+        Assert.Empty(busy.Apply(DigitalReceiptQr(), T0.AddSeconds(4)));
+        var alone = busy.CheckIdle(T0.AddSeconds(4) + SaleTracker.EarlyQrWait, TimeSpan.FromSeconds(60));
+        Assert.Equal(["receipt.digital"], alone.Select(m => m.Type));
+        Assert.Null(ShownReceipt(alone).Bill);
+        Assert.True(busy.IsOpen);
     }
 
     [Fact]
@@ -487,5 +528,154 @@ public class SaleTrackerTests
         Assert.Equal("sale", (string)state["phase"]!);
         Assert.Equal(2, state["lines"]!.AsArray().Count);
         Assert.Equal(200, (long)state["total"]!);
+    }
+
+    // Lo scontrino digitale di Passepartout del 08/11: il QR a conto aperto, poi lo scontrino pagato con il link in fondo.
+
+    const string Nov8 = "2026-11-08_173725";
+    const string Link54 = "https://scontrinodigitalecloud.passepartout.cloud/v1/download?token=00000000-0000-4000-8000-000000000054";
+
+    static CashFile Nov8Version(string prefix) => ReceiptParser.Parse(Samples.Version(Nov8, prefix));
+
+    [Fact]
+    public void The_digital_receipt_qr_before_the_paid_receipt_goes_with_it()
+    {
+        var tracker = new SaleTracker(Digital);
+        var wall = new DateTimeOffset(2026, 11, 8, 18, 6, 35, TimeSpan.FromHours(1));
+        tracker.Apply(Nov8Version("0053"), T0);
+        var qr = Nov8Version("0054");
+        Assert.Empty(tracker.Apply(qr, T0.AddSeconds(14)));   // niente schermata Satispay: aspetta il PAGATO
+        Assert.Equal("sale", tracker.Phase);
+
+        var paid = tracker.Apply(Nov8Version("0055"), T0.AddSeconds(14.3), wall);
+        Assert.Equal(["sale.close", "receipt.digital"], paid.Select(m => m.Type));
+        Assert.Equal("CONTANTI", (string)paid[0].ToJson()["paid"]!["method"]!);
+        var receipt = ShownReceipt(paid);
+        Assert.Equal(qr.QrDataUri, receipt.Png);   // l'immagine della cassa
+        Assert.Equal("Scarica il tuo scontrino digitale!", receipt.Caption);
+        Assert.Equal(Link54, receipt.Url);
+        Assert.NotNull(receipt.Bill);
+        Assert.Equal(10, receipt.Bill!.Total);
+        Assert.Equal(wall, receipt.IssuedAt);
+        Assert.Equal("receipt", tracker.Phase);
+    }
+
+    [Fact]
+    public void Without_the_digital_receipt_screen_the_early_qr_goes_into_the_thanks()
+    {
+        var tracker = new SaleTracker();
+        tracker.Apply(Nov8Version("0053"), T0);
+        Assert.Empty(tracker.Apply(Nov8Version("0054"), T0.AddSeconds(14)));
+        var paid = tracker.Apply(Nov8Version("0055"), T0.AddSeconds(14.3));
+        Assert.Equal(["sale.close", "receipt.qr"], paid.Select(m => m.Type));
+        Assert.Equal("Scarica il tuo scontrino digitale!", Assert.IsType<ReceiptQr>(paid[1]).Caption);
+    }
+
+    [Fact]
+    public void Only_the_link_in_the_paid_receipt_makes_the_qr_here()
+    {
+        var tracker = new SaleTracker(Digital);
+        tracker.Apply(Nov8Version("0053"), T0);
+        var receipt = ShownReceipt(tracker.Apply(Nov8Version("0055"), T0.AddSeconds(14)));
+        Assert.Equal(Link54, receipt.Url);
+        Assert.Null(receipt.Caption);
+        Assert.NotNull(receipt.Bill);
+        var png = Convert.FromBase64String(receipt.Png[(receipt.Png.IndexOf(',') + 1)..]);
+        Assert.Equal(Link54, QrImage.ReadText(png));   // il link vero, non quello storpiato
+    }
+
+    [Fact]
+    public void The_image_after_the_link_is_not_a_second_receipt()
+    {
+        var tracker = new SaleTracker(Digital);
+        tracker.Apply(Nov8Version("0053"), T0);
+        var first = ShownReceipt(tracker.Apply(Nov8Version("0055"), T0.AddSeconds(14)));
+        Assert.Empty(tracker.Apply(Nov8Version("0054"), T0.AddSeconds(15)));
+        Assert.Equal(first.Id, tracker.Receipt!.Id);
+
+        // Un'altra cassa (o un altro conto) con un altro link è un altro scontrino.
+        var other = new SaleTracker(Digital);
+        other.Apply(Nov8Version("0057"), T0);
+        other.Apply(Nov8Version("0059"), T0.AddSeconds(12));
+        Assert.Single(other.Apply(Nov8Version("0054"), T0.AddSeconds(13)), m => m.Type == "receipt.digital");
+    }
+
+    [Fact]
+    public void An_early_qr_without_payment_shows_alone_after_the_wait()
+    {
+        var tracker = new SaleTracker(Digital);
+        tracker.Apply(Nov8Version("0053"), T0);
+        tracker.Apply(Nov8Version("0054"), T0.AddSeconds(14));
+        Assert.Empty(tracker.CheckIdle(T0.AddSeconds(14) + SaleTracker.EarlyQrWait - TimeSpan.FromMilliseconds(1), TimeSpan.FromSeconds(60)));
+        var late = tracker.CheckIdle(T0.AddSeconds(14) + SaleTracker.EarlyQrWait, TimeSpan.FromSeconds(60));
+        Assert.Equal(["sale.close", "receipt.digital"], late.Select(m => m.Type));   // il conto a video era quello pagato
+        Assert.Null(ShownReceipt(late).Bill);   // senza PAGATO non si abbina: solo il QR
+        Assert.Equal("receipt", tracker.Phase);
+
+        // Il PAGATO che arriva dopo, con lo stesso link, entra nello scontrino a video: stesso id, ora con il conto.
+        var alone = ShownReceipt(late);
+        var again = tracker.Apply(Nov8Version("0055"), T0.AddSeconds(20));
+        Assert.Equal(["sale.close", "receipt.digital"], again.Select(m => m.Type));   // il Grazie, poi lo scontrino
+        var paired = ShownReceipt(again);
+        Assert.Equal(alone.Id, paired.Id);
+        Assert.Equal(10, paired.Bill!.Total);
+        Assert.Equal("receipt", tracker.Phase);
+        Assert.Empty(tracker.Apply(Nov8Version("0055"), T0.AddSeconds(21)));   // identico: niente
+    }
+
+    [Fact]
+    public void Without_the_screen_a_late_payment_shows_the_thanks_and_the_qr_again()
+    {
+        var tracker = new SaleTracker();
+        tracker.Apply(Nov8Version("0053"), T0);
+        tracker.Apply(Nov8Version("0054"), T0.AddSeconds(14));
+        Assert.Equal(["sale.close", "receipt.qr"], tracker.CheckIdle(T0.AddSeconds(14) + SaleTracker.EarlyQrWait, TimeSpan.FromSeconds(60)).Select(m => m.Type));
+        var paid = tracker.Apply(Nov8Version("0055"), T0.AddSeconds(20));
+        Assert.Equal(["sale.close", "receipt.qr"], paid.Select(m => m.Type));
+        Assert.Equal("CONTANTI", (string)paid[0].ToJson()["paid"]!["method"]!);
+    }
+
+    [Fact]
+    public void An_early_qr_with_another_link_does_not_go_with_this_payment()
+    {
+        // Il QR #58 (un altro token) a conto aperto, poi lo scontrino pagato #55 con il suo link: vale il link del #55.
+        var tracker = new SaleTracker(Digital);
+        tracker.Apply(Nov8Version("0053"), T0);
+        tracker.Apply(Nov8Version("0058"), T0.AddSeconds(1));
+        var receipt = ShownReceipt(tracker.Apply(Nov8Version("0055"), T0.AddSeconds(1.3)));
+        Assert.Equal(Link54, receipt.Url);
+        Assert.Null(receipt.Caption);   // fatto dal link, non l'immagine dell'altro
+    }
+
+    [Fact]
+    public void An_early_qr_is_dropped_when_another_sale_starts()
+    {
+        var tracker = new SaleTracker(Digital);
+        tracker.Apply(Nov8Version("0053"), T0);
+        tracker.Apply(Nov8Version("0054"), T0.AddSeconds(14));
+        Assert.Contains(tracker.Apply(Bill("SPRITZ"), T0.AddSeconds(15)), m => m.Type == "sale.open");
+        Assert.Empty(tracker.CheckIdle(T0.AddSeconds(30), TimeSpan.FromSeconds(60)));
+        Assert.DoesNotContain(tracker.Apply(Bill("SPRITZ", "CAFFE") , T0.AddSeconds(31)), m => m.Type.StartsWith("receipt."));
+        Assert.Null(tracker.Receipt);
+    }
+
+    [Fact]
+    public void With_the_bill_on_screen_the_sale_waits_at_least_three_minutes()
+    {
+        // Durante il pagamento con il POS o con la cassa automatica la cassa non scrive niente (08/11).
+        var tracker = new SaleTracker();
+        var timeout = TimeSpan.FromSeconds(60);
+        tracker.Apply(Nov8Version("0053"), T0);   // conto con l'intestazione
+        Assert.Empty(tracker.CheckIdle(T0.AddSeconds(61), timeout));
+        Assert.Empty(tracker.CheckIdle(T0 + SaleTracker.MinimumWithBill - TimeSpan.FromSeconds(1), timeout));
+        Assert.Equal("sale.close", Assert.Single(tracker.CheckIdle(T0 + SaleTracker.MinimumWithBill, timeout)).Type);
+
+        // Una chiusura impostata più lunga vale lei; durante la battuta resta quella impostata.
+        var longer = new SaleTracker();
+        longer.Apply(Nov8Version("0053"), T0);
+        Assert.Empty(longer.CheckIdle(T0.AddMinutes(4), TimeSpan.FromMinutes(5)));
+        var ringing = new SaleTracker();
+        ringing.Apply(Nov8Version("0052"), T0);
+        Assert.Single(ringing.CheckIdle(T0.AddSeconds(60), timeout));
     }
 }

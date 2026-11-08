@@ -49,6 +49,8 @@ public sealed class Statistics
     }
 
     readonly object _lock = new();
+    // L'ultimo scontrino digitale contato per cassa: lo stesso id rimandato non si conta due volte.
+    readonly Dictionary<string, string> _counted = new(StringComparer.Ordinal);
     readonly string _path;
     readonly Data _data;
     bool _dirty;
@@ -134,8 +136,13 @@ public sealed class Statistics
                         Today(cashPoint).QrPagamento++;
                         break;
                     case ReceiptQr:
-                    case ReceiptDigital:
                         Today(cashPoint).ScontriniDigitali++;
+                        break;
+                    case ReceiptDigital { Receipt.Id: var id }:
+                        // Lo stesso scontrino rimandato con il conto (il PAGATO arrivato dopo il suo QR) si conta una volta.
+                        if (_counted.GetValueOrDefault(cashPoint) != id)
+                            Today(cashPoint).ScontriniDigitali++;
+                        _counted[cashPoint] = id;
                         break;
                 }
                 previous = message;

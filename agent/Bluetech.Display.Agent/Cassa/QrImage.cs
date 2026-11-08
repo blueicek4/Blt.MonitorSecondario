@@ -1,6 +1,8 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
+using Net.Codecrete.QrCodeGenerator;
+using ZXing.Common;
 
 namespace Bluetech.Display.Agent.Cassa;
 
@@ -19,12 +21,66 @@ static class QrImage
         try
         {
             var image = Decode(png);
-            return image == null ? null : Reduce(image);
+            return image == null || Modules(image) is not { } grid ? null : Encode(grid.Dark, grid.Size);
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {
             return null;   // qualunque immagine strana passa com'è: il QR non si deve mai perdere qui
         }
+    }
+
+    /// <summary>
+    /// Il testo del QR: il link dello scontrino digitale, il codice di Satispay ("S6Y-PAY-…"). Null se l'immagine non è
+    /// un QR che si riesce a leggere (il QR finto con la geometria di Satispay dei campioni, per esempio): chi chiama
+    /// decide senza.
+    /// </summary>
+    public static string? ReadText(byte[] png)
+    {
+        try
+        {
+            var image = Decode(png);
+            return image == null || Modules(image) is not { } grid ? null : ReadModules(grid.Dark, grid.Size);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// I moduli già trovati (un bool per modulo, riga per riga) letti con il decodificatore di ZXing, con la correzione
+    /// degli errori: niente ricerca del QR nell'immagine, che qui è già fatta.
+    /// </summary>
+    internal static string? ReadModules(bool[] dark, int size)
+    {
+        try
+        {
+            var bits = new BitMatrix(size);
+            for (var y = 0; y < size; y++)
+            for (var x = 0; x < size; x++)
+            {
+                if (dark[y * size + x])
+                    bits[x, y] = true;
+            }
+            var text = new ZXing.QrCode.Internal.Decoder().decode(bits, null)?.Text;
+            return string.IsNullOrEmpty(text) ? null : text;
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            return null;   // ZXing segnala i QR illeggibili anche con eccezioni (ReaderException, IndexOutOfRange…)
+        }
+    }
+
+    /// <summary>Un QR fatto qui da un testo (il link dello scontrino digitale), già a un pixel per modulo.</summary>
+    public static string FromText(string text)
+    {
+        var qr = QrCode.EncodeText(text, QrCode.Ecc.Medium);
+        var n = qr.Size;
+        var modules = new bool[n * n];
+        for (var y = 0; y < n; y++)
+        for (var x = 0; x < n; x++)
+            modules[y * n + x] = qr.GetModule(x, y);
+        return "data:image/png;base64," + Convert.ToBase64String(Encode(modules, n));
     }
 
     internal sealed record Bitmap(int Width, int Height, bool[] Dark);
@@ -176,7 +232,10 @@ static class QrImage
         return (luma * a + 255 * (255 - a)) / 255;
     }
 
-    static byte[]? Reduce(Bitmap image)
+    /// <summary>La griglia dei moduli del QR (un bool per modulo, riga per riga), o null se non è un QR riconoscibile.</summary>
+    internal sealed record Grid(bool[] Dark, int Size);
+
+    internal static Grid? Modules(Bitmap image)
     {
         int left = int.MaxValue, top = int.MaxValue, right = -1, bottom = -1;
         for (var y = 0; y < image.Height; y++)
@@ -209,7 +268,7 @@ static class QrImage
         for (var x = 0; x < n; x++)
             modules[y * n + x] = image.Dark[(top + y * module + module / 2) * image.Width + left + x * module + module / 2];
 
-        return Finder(modules, n, 0, 0) && Finder(modules, n, n - 7, 0) && Finder(modules, n, 0, n - 7) ? Encode(modules, n) : null;
+        return Finder(modules, n, 0, 0) && Finder(modules, n, n - 7, 0) && Finder(modules, n, 0, n - 7) ? new Grid(modules, n) : null;
     }
 
     /// <summary>Il finder pattern 7×7: bordo scuro, anello chiaro, centro 3×3 scuro.</summary>

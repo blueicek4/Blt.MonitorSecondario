@@ -1,0 +1,30 @@
+SNF
+ 
+                  BAR ESEMPIO                   
+             VIALE DELLE PROVE, 23              
+         00000 COMUNE DI PROVA      XX         
+        P.I.00000000000 C.F. 00000000000        
+ 
+------------------------------------------------
+                                            EURO
+ Moscow Mule                                7,00
+                                  SCONTO   -6,99
+ Caipiroska                                 7,00
+                                  SCONTO   -6,98
+   2 pz X 7,00 Euro
+ Caipirinha                                14,00
+                                  SCONTO  -13,97
+ Mojito                                     7,00
+                                  SCONTO   -6,98
+ Americano                                  6,00
+                                  SCONTO   -5,99
+ Friggione   aaaa                           5,50
+                                  SCONTO   -5,49
+SUBTOT.                                     0,10
+ 
+TOT. DA PAGARE                              0,10
+ 
+PAGATO CONTANTI:    0,10
+Resto:              0,00
+ 
+ 

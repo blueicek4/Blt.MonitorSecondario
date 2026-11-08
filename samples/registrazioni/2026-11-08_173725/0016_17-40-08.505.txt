@@ -1,0 +1,11 @@
+SNF
+ 
+ La Salame                                  3,90
+ La Coppa                                   4,50
+ La Coppa                                   4,50
+ La Salame                                  3,90
+SUBTOT.                                    16,80
+ 
+TOT. DA PAGARE                             16,80
+ 
+ 

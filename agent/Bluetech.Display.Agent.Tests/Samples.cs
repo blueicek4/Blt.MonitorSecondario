@@ -8,6 +8,7 @@ static class Samples
         "2026-10-20_002138",   // 48 colonne, 6 conti, dettagli, sconti, storni, POS
         "2026-10-20_064854",   // prova A/B/A, un conto da 26 righe
         "2026-10-20_075632",   // 30 colonne, QR Satispay, fattura, promozione
+        "2026-11-08_173725",   // i sei flussi: contanti, POS, Satispay, scontrino digitale con il link storpiato, annullo
     ];
 
     public static string Folder(string recording) =>

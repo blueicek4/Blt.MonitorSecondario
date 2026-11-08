@@ -2,7 +2,6 @@ using System.Text.Json.Nodes;
 using Bluetech.Display.Agent.Cassa;
 using Bluetech.Display.Agent.Impostazioni;
 using Bluetech.Display.Agent.Vendita;
-using Net.Codecrete.QrCodeGenerator;
 
 namespace Bluetech.Display.Agent.Aspetto;
 
@@ -258,16 +257,7 @@ public static class ScreenConfig
     /// Il QR di un indirizzo come lo vuole il display: PNG a un pixel per modulo, senza quiet zone (la aggiunge il display,
     /// come per quello di Satispay). Correzione d'errore media: regge un riflesso sullo schermo.
     /// </summary>
-    public static string QrPng(string text)
-    {
-        var qr = QrCode.EncodeText(text, QrCode.Ecc.Medium);
-        var n = qr.Size;
-        var modules = new bool[n * n];
-        for (var y = 0; y < n; y++)
-        for (var x = 0; x < n; x++)
-            modules[y * n + x] = qr.GetModule(x, y);
-        return "data:image/png;base64," + Convert.ToBase64String(QrImage.Encode(modules, n));
-    }
+    public static string QrPng(string text) => QrImage.FromText(text);
 }
 
 /// <summary>Il messaggio cfg, già composto per la cassa; <see cref="ScreenConfig.ForScreen"/> lo adatta a ogni schermo.</summary>

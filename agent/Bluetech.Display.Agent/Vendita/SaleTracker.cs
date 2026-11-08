@@ -16,8 +16,13 @@ namespace Bluetech.Display.Agent.Vendita;
 ///   riga in comune con quello a video è una vendita nuova (il coperto non conta: c'è su ogni tavolo);
 /// - un conto dopo il QR toglie il QR, tranne lo stesso conto rimandato entro 20 s (il vecchio monitor 6.0 ignora ogni
 ///   file per 20 s dopo il QR: la cassa rimanda il conto mentre il cliente paga);
-/// - "QRCODESD", il QR dello scontrino digitale, è un messaggio a parte: <c>receipt.qr</c>, oppure, con lo scontrino
-///   digitale attivo (docs/03), <c>receipt.digital</c> con il conto pagato abbinato, se l'abbinamento è sicuro;
+/// - il QR dello scontrino digitale ("QRCODESD", o "QRCODE" con la didascalia o il link dello scontrino) è un messaggio a
+///   parte: <c>receipt.qr</c>, oppure, con lo scontrino digitale attivo (docs/03), <c>receipt.digital</c> con il conto
+///   pagato abbinato, se l'abbinamento è sicuro. Passepartout (08/11) scrive il QR a conto aperto e 0,3 s dopo lo
+///   scontrino pagato con il link in fondo: il QR aspetta quel PAGATO (<see cref="EarlyQrWait"/>) e va con lui. Se arriva
+///   solo il link (in fondo allo scontrino pagato), il QR si fa qui; se arrivano tutti e due, vale l'immagine della cassa;
+/// - con il conto a video (dettagli conto, preconto) la vendita si chiude per inattività dopo almeno
+///   <see cref="MinimumWithBill"/>: durante il pagamento con il POS o con la cassa automatica la cassa non scrive niente;
 /// - una versione identica alla precedente non produce niente;
 /// - in modalità demo, un conto pagato senza QR dello scontrino digitale entro <see cref="DemoDelay"/> riceve un QR finto
 ///   (<see cref="DigitalReceiptSettings.DemoQr"/>): si prova lo scontrino digitale e la copia di carta senza il servizio vero.
@@ -38,6 +43,12 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
     /// </summary>
     public static readonly TimeSpan DemoDelay = TimeSpan.FromSeconds(4);
 
+    /// <summary>
+    /// Il QR dello scontrino digitale arrivato a vendita aperta aspetta lo scontrino pagato che lo segue (0,3 s il 08/11,
+    /// due volte su due). Se non arriva, il QR va a video da solo, senza conto abbinato.
+    /// </summary>
+    public static readonly TimeSpan EarlyQrWait = TimeSpan.FromSeconds(3);
+
     DigitalReceiptSettings _digital = digital ?? DigitalReceiptSettings.Off;
     readonly List<SaleLine> _visible = [];
     long _nextId;
@@ -57,6 +68,11 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
     long _nextReceipt;
     // Modalità demo: il conto pagato che aspetta il suo QR finto.
     (CashFile Bill, DateTimeOffset At, DateTimeOffset Wall)? _demoPending;
+    // Il QR dello scontrino digitale arrivato prima del PAGATO, che lo aspetta (EarlyQrWait).
+    (CashFile Qr, DateTimeOffset At, DateTimeOffset Wall)? _earlyQr;
+    // L'ultimo scontrino digitale andato a video con il suo link: la stessa cosa ripetuta (l'immagine dopo il testo, il
+    // PAGATO dopo il QR già a video da solo) non ne fa un altro.
+    (string Url, DateTimeOffset At, string Png, string? Caption)? _lastLink;
 
     public DateTimeOffset LastActivity { get; private set; }
     public bool IsOpen => _open;
@@ -90,30 +106,23 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
             case CashFileKind.Qr when file.QrPurpose == QrPurpose.DigitalReceipt:
             {
                 _demoPending = null;   // è arrivato quello vero
+                if (Repeated(file.DigitalReceiptUrl, now))
+                    return [];   // già a video, fatto dal link in fondo allo scontrino pagato
+                if (_open)
+                {
+                    // A vendita aperta (08/11): aspetta lo scontrino pagato, che arriva subito dopo, per andare con lui dopo
+                    // il Grazie. Intanto il display resta com'è, anche con il QR di Satispay.
+                    _earlyQr = (file, now, wallNow ?? now);
+                    return [];
+                }
                 var messages = new List<CashIn>();
                 if (_qr != null)
                 {
                     _qr = null;   // lo scontrino digitale arriva a pagamento fatto
                     messages.Add(new PayClear());
                 }
-                if (!_digital.Show)
-                {
-                    messages.Add(new ReceiptQr(file.QrDataUri!, file.QrCaption));
-                    return messages;
-                }
                 var paid = _lastPaid is { } last && now - last.At <= PairWindow ? last : ((CashFile, DateTimeOffset, DateTimeOffset)?)null;
-                _receipt = new DigitalReceipt
-                {
-                    Id = NextReceiptId(),
-                    Png = file.QrDataUri!,
-                    Caption = file.QrCaption,
-                    Bill = paid?.Item1,
-                    ShownAt = now,
-                    IssuedAt = paid?.Item3 ?? wallNow ?? now,
-                    PaperCopy = _digital.PaperCopy,
-                    Notice = _digital.Notice,
-                };
-                messages.Add(new ReceiptDigital(_receipt));
+                messages.AddRange(ShowReceipt(file.QrDataUri!, file.QrCaption, file.DigitalReceiptUrl, paid, now, wallNow ?? now));
                 return messages;
             }
             case CashFileKind.Qr:
@@ -143,6 +152,25 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
     /// </summary>
     public IReadOnlyList<CashIn> CheckIdle(DateTimeOffset now, TimeSpan timeout)
     {
+        if (_earlyQr is { } early && now - early.At >= EarlyQrWait)
+        {
+            // Il PAGATO non è arrivato: il QR va a video da solo. Il conto a video (dettagli conto, preconto) era quello
+            // pagato e si chiude; una battuta in corso no, è il cliente dopo.
+            _earlyQr = null;
+            var messages = new List<CashIn>();
+            if (_open && _bill)
+            {
+                Reset();
+                messages.Add(new SaleClose(null));
+            }
+            else if (_qr != null)
+            {
+                _qr = null;
+                messages.Add(new PayClear());
+            }
+            messages.AddRange(ShowReceipt(early.Qr.QrDataUri!, early.Qr.QrCaption, early.Qr.DigitalReceiptUrl, null, now, early.Wall));
+            return [.. messages, .. CheckSaleIdle(now, timeout)];
+        }
         if (_demoPending is { } pending && now - pending.At >= DemoDelay)
         {
             _demoPending = null;
@@ -175,6 +203,71 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
 
     string NextReceiptId() => "R" + ++_nextReceipt + "-" + Convert.ToHexString(Guid.NewGuid().ToByteArray(), 0, 4);
 
+    /// <summary>
+    /// Lo scontrino digitale a video: con la schermata dedicata (<c>receipt.digital</c>, il conto pagato se l'abbinamento
+    /// è sicuro), altrimenti il QR nel Grazie (<c>receipt.qr</c>).
+    /// </summary>
+    List<CashIn> ShowReceipt(string png, string? caption, string? url, (CashFile Bill, DateTimeOffset At, DateTimeOffset Wall)? paid, DateTimeOffset now, DateTimeOffset wallNow)
+    {
+        if (url != null)
+            _lastLink = (url, now, png, caption);
+        if (!_digital.Show)
+            return [new ReceiptQr(png, caption)];
+        _receipt = new DigitalReceipt
+        {
+            Id = NextReceiptId(),
+            Png = png,
+            Caption = caption,
+            Url = url,
+            Bill = paid?.Bill,
+            ShownAt = now,
+            IssuedAt = paid?.Wall ?? wallNow,
+            PaperCopy = _digital.PaperCopy,
+            Notice = _digital.Notice,
+        };
+        return [new ReceiptDigital(_receipt)];
+    }
+
+    /// <summary>
+    /// Lo scontrino pagato che arriva quando il suo QR (stesso link) è già a video da solo, perché oltre
+    /// <see cref="EarlyQrWait"/>: è lo stesso acquisto. Il Grazie, poi lo stesso scontrino digitale (stesso id) ora con il
+    /// conto; senza la schermata dedicata, il Grazie e di nuovo il QR. Null = un conto qualunque.
+    /// </summary>
+    List<CashIn>? LatePayment(CashFile receipt, DateTimeOffset now, DateTimeOffset wallNow)
+    {
+        if (_open || receipt.Payment == null || receipt.DigitalReceiptUrl is not { } url || !Repeated(url, now))
+            return null;
+        _lastPaid = (receipt, now, wallNow);
+        _demoPending = null;
+        if (_receipt is { } shown && shown.Url == url)
+        {
+            if (shown.Bill != null)
+                return [];   // già abbinato: lo stesso scontrino rimandato
+            _receipt = new DigitalReceipt
+            {
+                Id = shown.Id,
+                Png = shown.Png,
+                Caption = shown.Caption,
+                Url = shown.Url,
+                Bill = receipt,
+                ShownAt = shown.ShownAt,
+                IssuedAt = wallNow,
+                PaperCopy = shown.PaperCopy,
+                Notice = shown.Notice,
+                Paper = shown.Paper,
+            };
+            return [new SaleClose(receipt.Payment), new ReceiptDigital(_receipt)];
+        }
+        if (_digital.Show)
+            return null;   // lo scontrino a video è già scaduto o tolto: il conto va come sempre
+        var last = _lastLink!.Value;
+        return [new SaleClose(receipt.Payment), new ReceiptQr(last.Png, last.Caption)];
+    }
+
+    /// <summary>Lo stesso link di scontrino digitale andato a video da poco: è lo stesso scontrino, mandato in due modi.</summary>
+    bool Repeated(string? url, DateTimeOffset now) =>
+        url != null && _lastLink is { } last && last.Url == url && now - last.At <= PairWindow;
+
     /// <summary>La copia cartacea dello scontrino digitale <paramref name="id"/> cambia stato; falso se non è più a video.</summary>
     public bool SetPaper(string id, PaperState state)
     {
@@ -184,10 +277,18 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
         return true;
     }
 
+    /// <summary>
+    /// Con il conto a video (dettagli conto, preconto) il cliente sta per pagare, e mentre paga con il POS o con la cassa
+    /// automatica Passepartout non scrive niente (08/11): la vendita resta almeno tanto, anche se la chiusura è più breve.
+    /// </summary>
+    public static readonly TimeSpan MinimumWithBill = TimeSpan.FromMinutes(3);
+
     IReadOnlyList<CashIn> CheckSaleIdle(DateTimeOffset now, TimeSpan timeout)
     {
         if (_qr != null && timeout > TimeSpan.Zero && timeout < MinimumWithQr)
             timeout = MinimumWithQr;
+        else if (_open && _bill && timeout > TimeSpan.Zero && timeout < MinimumWithBill)
+            timeout = MinimumWithBill;
         if (timeout <= TimeSpan.Zero || now - LastActivity < timeout)
             return [];
         if (!_open)
@@ -209,6 +310,7 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
     {
         _lastHash = null;
         _demoPending = null;
+        _earlyQr = null;
         var messages = new List<CashIn>();
         if (_receipt != null)
         {
@@ -248,6 +350,8 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
 
     List<CashIn> ApplyReceipt(CashFile receipt, DateTimeOffset now, DateTimeOffset wallNow)
     {
+        if (LatePayment(receipt, now, wallNow) is { } late)
+            return late;
         var messages = new List<CashIn>();
         if (_qr != null)
         {
@@ -265,6 +369,7 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
         {
             messages.Add(new SaleClose(null));
             Reset();
+            _earlyQr = null;   // era della vendita di prima, che non è arrivata al PAGATO
         }
 
         var opening = !_open;
@@ -279,6 +384,7 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
             }
             _lastPaid = null;
             _demoPending = null;
+            _earlyQr = null;
             messages.Add(new SaleOpen());
             _open = true;
         }
@@ -309,7 +415,17 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
             Reset();
             _lastBillTotal = 0;
             _lastPaid = (receipt, now, wallNow);
-            if (_digital.DemoQr != null && _digital.Show)
+            // Il QR arrivato poco prima va con questo conto, se i link (quando si conoscono tutti e due) sono lo stesso.
+            var early = _earlyQr is { } e && now - e.At <= PairWindow
+                && (e.Qr.DigitalReceiptUrl == null || receipt.DigitalReceiptUrl == null || e.Qr.DigitalReceiptUrl == receipt.DigitalReceiptUrl)
+                ? e.Qr
+                : null;
+            _earlyQr = null;
+            if (early != null)
+                messages.AddRange(ShowReceipt(early.QrDataUri!, early.QrCaption, early.DigitalReceiptUrl ?? receipt.DigitalReceiptUrl, _lastPaid, now, wallNow));
+            else if (receipt.DigitalReceiptUrl is { } url && !Repeated(url, now))
+                messages.AddRange(ShowReceipt(QrImage.FromText(url), null, url, _lastPaid, now, wallNow));
+            else if (_digital.DemoQr != null && _digital.Show)
                 _demoPending = _lastPaid;
         }
         return messages;

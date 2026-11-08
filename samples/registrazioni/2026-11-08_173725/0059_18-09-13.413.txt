@@ -1,0 +1,22 @@
+SNF
+ 
+                  BAR ESEMPIO                   
+             VIALE DELLE PROVE, 23              
+         00000 COMUNE DI PROVA      XX         
+        P.I.00000000000 C.F. 00000000000        
+ 
+------------------------------------------------
+                                            EURO
+ Verdure Fritte                             0,10
+SUBTOT.                                     0,10
+ 
+TOT. DA PAGARE                              0,10
+ 
+PAGATO CONTANTI:    0,10
+Resto:              0,00
+ 
+ 
+ 
+QRCODE
+https:--scontrinodigitalecloud.passepartout.cloud-v1-download token=00000000-0000-4000-8000-000000000058
+ 

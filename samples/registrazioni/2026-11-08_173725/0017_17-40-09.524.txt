@@ -1,0 +1,12 @@
+SNF
+ 
+ La Salame                                  3,90
+ La Coppa                                   4,50
+ La Coppa                                   4,50
+ La Salame                                  3,90
+ La Crudo                                   5,50
+SUBTOT.                                    22,30
+ 
+TOT. DA PAGARE                             22,30
+ 
+ 

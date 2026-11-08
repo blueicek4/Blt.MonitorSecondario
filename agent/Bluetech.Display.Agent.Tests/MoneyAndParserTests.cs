@@ -45,7 +45,8 @@ public class MoneyAndParserTests
                 });
                 Assert.True(file.Total.HasValue, $"{recording}/{name}: manca il totale");
                 Assert.True(sum == file.Total, $"{recording}/{name}: righe {sum}, totale {file.Total}");
-                Assert.DoesNotContain(file.Entries, e => e is NoteEntry);   // nessuna riga non riconosciuta
+                // Nessuna riga non riconosciuta, tranne il testo vero: il buono con la sua percentuale (08/11).
+                Assert.DoesNotContain(file.Entries, e => e is NoteEntry note && note.Text != "BUONO welcome20 Sconto 20,00");
                 checkedFiles++;
             }
         }

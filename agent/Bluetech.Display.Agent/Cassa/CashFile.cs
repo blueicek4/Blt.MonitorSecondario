@@ -40,7 +40,10 @@ public enum QrPurpose
 {
     /// <summary>"QRCODE": il cliente paga inquadrandolo (Satispay).</summary>
     Payment,
-    /// <summary>"QRCODESD": il cliente scarica lo scontrino digitale, a pagamento fatto.</summary>
+    /// <summary>
+    /// Il cliente scarica lo scontrino digitale, a pagamento fatto: "QRCODESD" (vecchio monitor 6.0), oppure "QRCODE" con
+    /// la didascalia "Scarica il tuo scontrino digitale!" o con dentro il link dello scontrino (Passepartout, 08/11).
+    /// </summary>
     DigitalReceipt,
 }
 
@@ -67,6 +70,16 @@ public sealed class CashFile
     public QrPurpose QrPurpose { get; init; }
     /// <summary>La riga dopo l'immagine, se non è vuota: il vecchio monitor 6.0 la scrive sopra il QR.</summary>
     public string? QrCaption { get; init; }
+    /// <summary>
+    /// Il testo del QR: letto dall'immagine (tipo <see cref="CashFileKind.Qr"/>), oppure, per uno scontrino, la riga
+    /// scritta dopo "QRCODE" in fondo (il QR che la cassa stampa sullo scontrino, come testo). Null se non c'è o non si legge.
+    /// </summary>
+    public string? QrText { get; init; }
+    /// <summary>
+    /// Il link dello scontrino digitale, ricostruito se il file lo porta storpiato (<see cref="DigitalReceiptLink"/>):
+    /// dall'immagine del QR o dalla riga dopo "QRCODE" in fondo allo scontrino pagato.
+    /// </summary>
+    public string? DigitalReceiptUrl { get; init; }
     public string? MessageText { get; init; }
 
     public IEnumerable<ItemEntry> Items => Entries.OfType<ItemEntry>();
@@ -127,26 +140,54 @@ public static partial class ReceiptParser
         var qrIndex = lines.FindIndex(l => l.Trim() is "QRCODE" or "QRCODESD");
         if (qrIndex >= 0)
         {
+            var marker = lines[qrIndex].Trim();
             var payload = qrIndex + 1 < lines.Count ? lines[qrIndex + 1].Trim() : "";
             var caption = qrIndex + 2 < lines.Count ? lines[qrIndex + 2].Trim() : "";
-            var dataUri = ImageDataUri(payload);
-            return dataUri == null
+            if (ImageDataUri(payload, out var qrText) is { } dataUri)
+            {
+                var link = DigitalReceiptLink.Parse(qrText);
+                return new CashFile
+                {
+                    Kind = CashFileKind.Qr,
+                    Hash = hash,
+                    Encoding = encoding,
+                    QrDataUri = dataUri,
+                    QrPurpose = marker == "QRCODESD" || link != null || DigitalReceiptLink.IsCaption(caption)
+                        ? QrPurpose.DigitalReceipt
+                        : QrPurpose.Payment,
+                    QrCaption = caption.Length > 0 ? caption : null,
+                    QrText = qrText,
+                    DigitalReceiptUrl = link,
+                };
+            }
+
+            // Testo al posto dell'immagine: il QR che la cassa stampa in fondo allo scontrino (StampaQRCode del modello XML,
+            // "QRCODE" e a capo il valore), il 08/11 il link dello scontrino digitale. Lo scontrino si legge senza quelle
+            // due righe; il link, se è quello dello scontrino digitale, va con lui.
+            var before = lines.Skip(1).Take(qrIndex - 1).ToList();
+            var after = lines.Skip(qrIndex + 2).ToList();
+            var textLink = DigitalReceiptLink.Parse(payload);
+            if (before.Concat(after).Any(l => l.Trim().Length > 0))
+                return ParseReceipt(before.Concat(after).ToList(), hash, encoding, payload.Length > 0 ? payload : null, textLink);
+            // Solo il link, senza scontrino: il QR si fa qui.
+            return textLink == null
                 ? new CashFile { Kind = CashFileKind.Empty, Hash = hash, Encoding = encoding }
                 : new CashFile
                 {
                     Kind = CashFileKind.Qr,
                     Hash = hash,
                     Encoding = encoding,
-                    QrDataUri = dataUri,
-                    QrPurpose = lines[qrIndex].Trim() == "QRCODESD" ? QrPurpose.DigitalReceipt : QrPurpose.Payment,
-                    QrCaption = caption.Length > 0 ? caption : null,
+                    QrDataUri = QrImage.FromText(textLink),
+                    QrPurpose = QrPurpose.DigitalReceipt,
+                    QrText = payload,
+                    DigitalReceiptUrl = textLink,
                 };
         }
 
         return ParseReceipt(lines.Skip(1).ToList(), hash, encoding);
     }
 
-    static CashFile ParseReceipt(List<string> lines, string hash, string encoding)
+    static CashFile ParseReceipt(List<string> lines, string hash, string encoding, string? qrText = null, string? digitalReceiptUrl = null)
     {
         var header = new List<string>();
         var start = 0;
@@ -167,6 +208,9 @@ public static partial class ReceiptParser
         foreach (var raw in lines.Skip(start))
         {
             var line = raw.TrimEnd();
+            // Gli importi delle righe sono allineati a destra, fino all'ultima colonna. Un importo seguito da spazi è
+            // testo: "BUONO welcome20 Sconto 20,00" (08/11) è lo sconto del 20% di un buono, non un articolo da 20 euro.
+            var amountInText = line.Length < raw.Length;
             var trimmed = line.Trim();
             if (trimmed.Length == 0)
                 continue;
@@ -212,7 +256,7 @@ public static partial class ReceiptParser
                 pendingQuantity = (qty, unit);
                 continue;
             }
-            if ((match = ItemLine().Match(line)).Success && Money.TryParseCents(match.Groups["amount"].Value, out var amount))
+            if (!amountInText && (match = ItemLine().Match(line)).Success && Money.TryParseCents(match.Groups["amount"].Value, out var amount))
             {
                 var desc = match.Groups["desc"].Value.Trim();
                 if (amount < 0)
@@ -232,12 +276,12 @@ public static partial class ReceiptParser
                 continue;
             }
             pendingQuantity = null;   // il dettaglio quantità precede sempre la sua riga articolo
-            if ((match = UnderItemAdjustment().Match(line)).Success && Money.TryParseCents(match.Groups["amount"].Value, out var under))
+            if (!amountInText && (match = UnderItemAdjustment().Match(line)).Success && Money.TryParseCents(match.Groups["amount"].Value, out var under))
             {
                 entries.Add(new AdjustmentEntry(match.Groups["label"].Value.Trim(), under, UnderItem: true));
                 continue;
             }
-            if ((match = ReceiptAdjustment().Match(line)).Success && Money.TryParseCents(match.Groups["amount"].Value, out var adjustment))
+            if (!amountInText && (match = ReceiptAdjustment().Match(line)).Success && Money.TryParseCents(match.Groups["amount"].Value, out var adjustment))
             {
                 entries.Add(new AdjustmentEntry(match.Groups["label"].Value.Trim(), adjustment, UnderItem: false));
                 continue;
@@ -256,6 +300,8 @@ public static partial class ReceiptParser
             Subtotal = subtotal,
             Total = total,
             Payment = paidMethod == null ? null : new Payment(paidMethod, paidAmount, change),
+            QrText = qrText,
+            DigitalReceiptUrl = digitalReceiptUrl,
         };
     }
 
@@ -267,10 +313,12 @@ public static partial class ReceiptParser
 
     /// <summary>
     /// Il QR arriva come immagine in Base64 su una riga; il display la vuole come data URI. Un PNG riconosciuto come QR
-    /// viene ridotto a un pixel per modulo (<see cref="QrImage"/>); altrimenti passa com'è.
+    /// viene ridotto a un pixel per modulo (<see cref="QrImage"/>) e letto (<paramref name="text"/>); altrimenti passa
+    /// com'è.
     /// </summary>
-    static string? ImageDataUri(string base64)
+    static string? ImageDataUri(string base64, out string? text)
     {
+        text = null;
         if (base64.Length == 0)
             return null;
         byte[] data;
@@ -292,8 +340,12 @@ public static partial class ReceiptParser
         };
         if (type == null)
             return null;
-        if (type == "image/png" && QrImage.ToModules(data) is { } modules)
-            return $"data:image/png;base64,{Convert.ToBase64String(modules)}";
+        if (type == "image/png")
+        {
+            text = QrImage.ReadText(data);
+            if (QrImage.ToModules(data) is { } modules)
+                return $"data:image/png;base64,{Convert.ToBase64String(modules)}";
+        }
         return $"data:{type};base64,{base64}";
     }
 }

@@ -193,11 +193,11 @@ Un nome non riconosciuto diventa bianco.
 |---|---|---|
 | `InizioStampaNonFiscale` | `SNF` | intestazione che il monitor riconosce come scontrino |
 | `StampaStringa` | `{0}` | le righe di testo dello scontrino |
-| `StampaQRCode` | `QRCODE` + a capo + `{0}` | QR Satispay |
+| `StampaQRCode` | `QRCODE` + a capo + `{0}` | il QR che la cassa "stampa" in fondo allo scontrino, come testo: l'08/11 il link dello scontrino digitale (il QR di Satispay e quello dello scontrino digitale come immagine arrivano invece con `DisplayInviaQRCode`) |
 | `VisualizzaMessaggioDisplay` | `{1} {2}` | messaggi del visore → barra alta |
 | `NumeroColonne` | 30 (dal 20/10: 48) | larghezza delle righe di testo |
 | `NumeroColonneDisplay` | 16 | larghezza del visore |
-| `CaratteriAmmessi` | `!/:-=€` | probabilmente per questo gli accenti arrivano come apostrofo (`Maesta'`): da provare aggiungendo `àèéìòù`, guardando col registratore che codifica usa poi il file |
+| `CaratteriAmmessi` | `!/:-=€` | probabilmente per questo gli accenti arrivano come apostrofo (`Maesta'`): da provare aggiungendo `àèéìòù`, guardando col registratore che codifica usa poi il file. L'08/11 il link dello scontrino digitale è arrivato con `/` → `-` e `?` → spazio, **anche se `/` è nell'elenco**: la conversione della barra non viene da qui, o non solo (da provare: aggiungere `?` e vedere se resta) |
 | `TestoSoloMaiuscole` | `false` | maiuscole e minuscole come in anagrafica |
 | `ParametriStampaSuFile` | 3 tentativi, 1 s, `SovrascriviSeEsistente=false` (dal 20/10: `true`), `DisplayInviaSNF=true`, `DisplayInviaQRCode=true` | se il file c'è già, Passepartout aspetta e poi lo sostituisce o rinuncia (sotto) |
 
@@ -313,7 +313,7 @@ monitor non usa.
 | **Didascalia del QR dalla cassa** | La riga dopo il Base64 diventa la didascalia sopra il QR. Con i file visti il 20/10 quella riga è di 30 spazi: la didascalia risulta vuota. Se il Base64 è l'ultima riga del file l'indice va fuori dai limiti, l'eccezione è presa dal ciclo dei tentativi e il QR non compare (bug) |
 | **Il QR non si toglie con il file successivo** | Finché il QR è a video, ogni file nuovo viene **ignorato** per `TimeoutClearDisplay` secondi (20 di default); poi il QR sparisce da solo. Nella 2.0 lo toglieva qualunque file. Se in quei secondi arriva lo scontrino con `PAGATO`, va perso: il monitor non lo rilegge |
 | **Pulizia dopo l'inattività** (`TimeoutClearDisplay`, default 20 s) | Passati i secondi senza file: toglie il QR, scrive "ARRIVEDERCI E GRAZIE" in alto se c'era un messaggio e **cancella lo scontrino** (nella 2.0 restava a video fino alla vendita successiva, bug 10). Vale anche a conto aperto: una pausa di 20 s mentre si batte svuota il monitor fino alla battuta successiva |
-| **Intestazione** | Le righe prima della riga di trattini sono l'intestazione: centrate in un blocco in alto invece che spezzate sull'ultimo spazio (la foto del 20/10: `40033 CASALECCHIO DI R` … `BO`). `HideHeader=true` la nasconde sempre |
+| **Intestazione** | Le righe prima della riga di trattini sono l'intestazione: centrate in un blocco in alto invece che spezzate sull'ultimo spazio (la foto del 20/10: il comune spezzato a 22 caratteri, la sigla della provincia sulla riga dopo). `HideHeader=true` la nasconde sempre |
 | **Prezzi durante la presa comanda** (`ShowPricesDuringOrder`, default true) | Con `false`, finché il conto non ha l'intestazione (cioè durante la battuta, prima di "dettagli conto", preconto o scontrino) mostra solo le descrizioni: niente importi e niente totale |
 | **Riga della valuta** | La riga uguale a `Currency` (default `EURO`) non si mostra più |
 | **Dimensione del testo** (`ReceiptFontSize`, default 20) | Letta solo se nel config c'è anche `ShowPricesDuringOrder` (bug) |
