@@ -41,6 +41,8 @@ sealed class PlayerForm : Form
     bool _noActivate;
     bool _taskbarButton;
     readonly FocusGuard _focusGuard;
+    TouchShield _shield;
+    bool _shieldSuspended;
     bool _windowed;
     FormWindowState _lastState;
     bool _allowClose;
@@ -52,7 +54,7 @@ sealed class PlayerForm : Form
         _forceWindowed = forceWindowed;
         _noActivate = settings.FullScreen && !forceWindowed;
         _taskbarButton = !_noActivate;
-        _focusGuard = new FocusGuard(this) { Enabled = _noActivate && settings.KeepCashFocus };
+        _focusGuard = new FocusGuard(this) { Enabled = _noActivate && settings.KeepCashFocus, CashApplication = settings.CashApplication ?? "" };
 
         Text = "Bluetech Display Player";
         Icon = AppIcon.Get();
@@ -230,6 +232,7 @@ sealed class PlayerForm : Form
             _restartTimer.Dispose();
             _saveWindowTimer.Dispose();
             _focusGuard.Dispose();
+            _shield?.Dispose();
         }
         base.Dispose(disposing);
     }
@@ -332,6 +335,66 @@ sealed class PlayerForm : Form
         }
         NativeMethods.SetWindowPos(Handle, _settings.TopMost ? NativeMethods.HWND_TOPMOST : NativeMethods.HWND_NOTOPMOST,
             b.X, b.Y, b.Width, b.Height, NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_SHOWWINDOW);
+        UpdateShield();
+    }
+
+    /// <summary>
+    /// Lo schermo di vetro (<see cref="TouchShield"/>): solo a schermo intero, con l'opzione accesa e nessuna finestra
+    /// di configurazione aperta (il vetro, sempre sopra il Player, ne prenderebbe i clic se fosse sullo stesso schermo).
+    /// </summary>
+    void UpdateShield()
+    {
+        var wanted = IsHandleCreated && Visible && _noActivate && _settings.TouchShield && !_shieldSuspended;
+        if (!wanted)
+        {
+            if (_shield != null && _shield.Visible)
+                _shield.Hide();
+            return;
+        }
+        if (_shield == null)
+        {
+            _shield = new TouchShield(OnTap) { Owner = this };   // di proprietà del Player: sempre sopra di lui
+            Log.Info("Schermo di vetro acceso: i tocchi arrivano alla pagina senza togliere il focus alla cassa");
+        }
+        _shield.HideCursor = _settings.HideCursor;
+        var b = RectangleToScreen(ClientRectangle);
+        if (!_shield.Visible)
+        {
+            _shield.Bounds = b;
+            _shield.Show();
+        }
+        NativeMethods.SetWindowPos(_shield.Handle, _settings.TopMost ? NativeMethods.HWND_TOPMOST : NativeMethods.HWND_NOTOPMOST,
+            b.X, b.Y, b.Width, b.Height, NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_SHOWWINDOW);
+    }
+
+    /// <summary>Mentre è aperta una finestra di configurazione o del codice il vetro si toglie.</summary>
+    public void SuspendShield(bool suspended)
+    {
+        _shieldSuspended = suspended;
+        UpdateShield();
+    }
+
+    /// <summary>Il tocco sul vetro diventa un clic nella pagina, nel punto toccato (window.btTap di /cliente).</summary>
+    async void OnTap(Point screenPoint)
+    {
+        if (!_browserReady || _web?.CoreWebView2 == null)
+            return;
+        var p = _web.PointToClient(screenPoint);
+        try
+        {
+            await _web.CoreWebView2.ExecuteScriptAsync(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                "window.btTap && window.btTap({0}, {1})", p.X, p.Y));
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Tocco non passato alla pagina", ex);
+        }
+    }
+
+    protected override void OnVisibleChanged(EventArgs e)
+    {
+        base.OnVisibleChanged(e);
+        UpdateShield();
     }
 
     /// <summary>
@@ -361,12 +424,14 @@ sealed class PlayerForm : Form
         }
         NativeMethods.SetWindowPos(Handle, NativeMethods.HWND_NOTOPMOST, 0, 0, 0, 0,
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
+        UpdateShield();   // in finestra niente vetro: il Player si usa con mouse e tastiera
     }
 
     void SetNoActivate(bool enabled)
     {
         _noActivate = enabled;
         _focusGuard.Enabled = enabled && _settings.KeepCashFocus;
+        _focusGuard.CashApplication = _settings.CashApplication ?? "";
         if (!IsHandleCreated)
             return;
         var style = NativeMethods.GetWindowLong(Handle, NativeMethods.GWL_EXSTYLE);

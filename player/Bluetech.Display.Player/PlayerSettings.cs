@@ -41,11 +41,24 @@ public sealed class PlayerSettings
     public bool PreventSleep { get; set; } = true;
 
     /// <summary>
-    /// A schermo intero, se un tocco sul monitor cliente porta in primo piano il Player, il primo piano torna subito alla
-    /// finestra di prima (Passepartout): la tastiera e il lettore di codici a barre restano alla cassa. Si spegne solo
-    /// a mano nel file di configurazione, se in un locale desse problemi.
+    /// Schermo di vetro, a schermo intero: una finestra trasparente sopra il browser riceve i tocchi senza mai diventare
+    /// attiva (come la tastiera a video di Windows) e li passa alla pagina come clic. Il browser non riceve mai input e
+    /// non può prendere il focus alla cassa. Solo tocchi semplici: niente scorrimento.
+    /// </summary>
+    public bool TouchShield { get; set; } = true;
+
+    /// <summary>
+    /// A schermo intero, se il Player diventa comunque la finestra attiva, la finestra attiva torna subito alla cassa
+    /// (<see cref="CashApplication"/>, o la finestra di prima se non è indicata): la tastiera e il lettore di codici a
+    /// barre restano a Passepartout.
     /// </summary>
     public bool KeepCashFocus { get; set; } = true;
+
+    /// <summary>
+    /// Il nome del processo dell'applicazione della cassa, senza ".exe" (scelto nella configurazione tra i programmi
+    /// aperti). Vuoto = la finestra usata prima che il Player diventasse attivo.
+    /// </summary>
+    public string CashApplication { get; set; } = "";
     public int ZoomPercent { get; set; } = 100;
 
     /// <summary>Ricarica periodica della pagina in minuti, 0 = mai.</summary>

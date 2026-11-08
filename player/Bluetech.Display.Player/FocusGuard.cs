@@ -4,12 +4,13 @@ using System.Windows.Forms;
 namespace Bluetech.Display.Player;
 
 /// <summary>
-/// Il tocco del cliente sul monitor touch non toglie la tastiera alla cassa (docs/03 §7.2). A schermo intero la finestra
-/// ha WS_EX_NOACTIVATE, quindi un clic non la attiva; ma il WebView2 che ha dentro è un browser in un altro processo e al
-/// tocco può chiedere il primo piano per conto suo. Se succede, la battuta successiva e il lettore di codici a barre
-/// finirebbero sul monitor del cliente invece che in Passepartout. Qui si guarda ogni cambio di finestra in primo piano
-/// (evento di sistema, senza entrare negli altri processi): se diventa il Player, il primo piano torna subito alla
-/// finestra che c'era prima. Le finestre di configurazione del Player sono altre finestre: non si toccano.
+/// La rete di sicurezza del monitor touch (docs/03 §7.2): a schermo intero la finestra ha WS_EX_NOACTIVATE e lo schermo
+/// di vetro tiene i tocchi lontani dal browser, ma se il Player diventa comunque la finestra attiva la battuta successiva
+/// e il lettore di codici a barre finirebbero sul monitor del cliente invece che in Passepartout. Qui si guarda ogni
+/// cambio di finestra in primo piano (evento di sistema, senza entrare negli altri processi): se diventa il Player, la
+/// finestra attiva torna subito all'applicazione della cassa indicata nella configurazione (la sua finestra più in
+/// alto, anche una finestra di dialogo), oppure, senza applicazione indicata o se non è aperta, alla finestra di prima.
+/// Le finestre di configurazione del Player sono altre finestre: non si toccano.
 /// </summary>
 sealed class FocusGuard : IDisposable
 {
@@ -23,6 +24,7 @@ sealed class FocusGuard : IDisposable
     IntPtr _older;
     int _restored;
     DateTime _lastLog = DateTime.MinValue;
+    DateTime _lastMissingLog = DateTime.MinValue;
 
     public FocusGuard(Form form)
     {
@@ -32,6 +34,9 @@ sealed class FocusGuard : IDisposable
 
     /// <summary>Solo a schermo intero: in finestra il Player è una finestra normale, che si usa con mouse e tastiera.</summary>
     public bool Enabled { get; set; }
+
+    /// <summary>Il processo della cassa (senza ".exe"); vuoto = la finestra di prima.</summary>
+    public string CashApplication { get; set; } = "";
 
     /// <summary>Quante volte ha restituito il primo piano da quando il Player è partito.</summary>
     public int Restored => _restored;
@@ -67,7 +72,7 @@ sealed class FocusGuard : IDisposable
             }
             if (!Enabled)
                 return;
-            var back = Alive(_previous) ? _previous : Alive(_older) ? _older : IntPtr.Zero;
+            var back = Target();
             if (back == IntPtr.Zero)
                 return;
             if (!NativeMethods.SetForegroundWindow(back))
@@ -77,13 +82,40 @@ sealed class FocusGuard : IDisposable
             if (now - _lastLog >= TimeSpan.FromMinutes(1))
             {
                 _lastLog = now;
-                Log.Info($"Il monitor cliente aveva preso il primo piano (un tocco?): restituito alla finestra di prima ({_restored} volte da quando il player è aperto)");
+                Log.Info($"Il monitor cliente era diventato la finestra attiva (un tocco?): ridata a {CashApplications.ProcessName(back, out _) ?? "la finestra di prima"} ({_restored} volte da quando il player è aperto)");
             }
         }
         catch (Exception ex)
         {
             Log.Error("Protezione del focus della cassa", ex);
         }
+    }
+
+    /// <summary>
+    /// Dove ridare la finestra attiva: la finestra di prima se è della cassa; altrimenti la finestra più in alto della
+    /// cassa (chi aveva cliccato sul desktop o sulla barra delle applicazioni non perde la battuta); senza cassa
+    /// indicata, o se non è aperta, la finestra di prima.
+    /// </summary>
+    IntPtr Target()
+    {
+        var previous = Alive(_previous) ? _previous : Alive(_older) ? _older : IntPtr.Zero;
+        var cash = CashApplication;
+        if (string.IsNullOrEmpty(cash))
+            return previous;
+        if (previous != IntPtr.Zero && !NativeMethods.IsIconic(previous)
+            && string.Equals(CashApplications.ProcessName(previous, out _), cash, StringComparison.OrdinalIgnoreCase))
+            return previous;
+        // Cercata a ogni volta: se la cassa non è aperta adesso non è un errore, e appena la aprono funziona.
+        var top = CashApplications.TopWindowOf(cash);
+        if (top != IntPtr.Zero)
+            return top;
+        var now = DateTime.Now;
+        if (now - _lastMissingLog >= TimeSpan.FromMinutes(1))
+        {
+            _lastMissingLog = now;
+            Log.Info($"L'applicazione della cassa ({cash}) non è aperta: la finestra attiva torna a quella di prima, se c'è");
+        }
+        return previous;
     }
 
     static bool Alive(IntPtr window) =>

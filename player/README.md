@@ -58,12 +58,31 @@ Ogni accesso alla configurazione e la chiusura chiedono il codice. Dopo 5 codici
 
 - **A schermo intero non prende mai il focus**: la tastiera resta a Passepartout anche quando il player si apre o si
   riposiziona.
-- **Monitor touch**: un tocco del cliente (il pulsante "Voglio la copia di carta") non deve togliere la tastiera alla
-  cassa. Un clic sulla finestra non la attiva; e se il browser che c'è dentro si prende comunque il primo piano, il
-  player lo restituisce subito alla finestra di prima, Passepartout (nel log: "Il monitor cliente aveva preso il primo
-  piano…"). Si può spegnere solo a mano, con `<KeepCashFocus>false</KeepCashFocus>` in `player.config.xml`.
+- **Monitor touch**: un tocco del cliente (il pulsante "Voglio la copia di carta") non deve togliere la tastiera e il
+  lettore di codici a barre alla cassa. Vedi [Monitor touch accanto alla cassa](#monitor-touch-accanto-alla-cassa).
 
-## Monitor touch: due cose da fare all'installazione
+## Monitor touch accanto alla cassa
+
+Su un PC Windows la tastiera e il lettore di codici a barre vanno alla finestra attiva. Il player a schermo intero non
+diventa mai attivo con un clic, ma il browser che ha dentro è un programma a parte e al tocco potrebbe farlo per
+conto suo: la battuta successiva finirebbe sul monitor del cliente. Due difese, nella configurazione, sezione
+**Monitor touch accanto alla cassa** (valgono a schermo intero, accese di default):
+
+- **Tocchi senza togliere il focus alla cassa** (schermo di vetro): sopra il browser c'è una finestra trasparente che
+  riceve il tocco senza mai diventare attiva, come la tastiera a video di Windows, e lo passa alla pagina come clic sul
+  punto toccato. Il browser non riceve mai input, quindi non può prendere il focus. Solo tocchi semplici: niente
+  scorrimento, che sul monitor del cliente non serve. Si toglie da solo quando si apre la configurazione.
+- **Se il player diventa la finestra attiva, ridalla subito all'applicazione della cassa**: la rete di sicurezza, se
+  il player diventasse attivo comunque. **Applicazione della cassa** si sceglie dall'elenco dei programmi aperti
+  ("Aggiorna" lo rilegge) e resta salvata in `player.config.xml` (`CashApplication`, il nome del programma senza
+  `.exe`): la finestra attiva torna alla sua finestra più in alto (anche una finestra di dialogo, come il pagamento).
+  "Nessuna" = la finestra usata prima del tocco. Se l'applicazione scelta non è aperta non è un errore: la finestra
+  attiva torna a quella di prima, se c'è, e appena la aprono funziona di nuovo. Nel log una riga quando interviene.
+
+Il ripasso arriva un istante dopo: se in quell'istante passa un codice a barre, qualche carattere potrebbe perdersi. Per
+questo lo schermo di vetro, che evita il problema, è la difesa principale.
+
+### Due cose da fare all'installazione
 
 1. **Il tocco sullo schermo giusto.** Windows deve sapere che il touch è quello del monitor cliente, altrimenti il tocco
    finisce sullo schermo della cassa: Pannello di controllo › **Impostazioni Tablet PC** › Configura › Input tocco, poi

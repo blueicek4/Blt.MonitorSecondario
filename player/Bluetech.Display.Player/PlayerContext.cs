@@ -65,6 +65,7 @@ sealed class PlayerContext : ApplicationContext
         if (_dialogOpen)
             return;
         _dialogOpen = true;
+        _form.SuspendShield(true);   // il vetro, sempre sopra il Player, prenderebbe i clic delle finestre di configurazione
         try
         {
             if (!PinProtector.Prompt("Accesso alla configurazione", _settings))
@@ -81,6 +82,7 @@ sealed class PlayerContext : ApplicationContext
         finally
         {
             _dialogOpen = false;
+            _form.SuspendShield(false);
         }
     }
 
@@ -89,6 +91,7 @@ sealed class PlayerContext : ApplicationContext
         if (_dialogOpen)
             return;
         _dialogOpen = true;
+        _form.SuspendShield(true);
         try
         {
             if (!PinProtector.Prompt("Chiusura del monitor cliente", _settings))
@@ -97,6 +100,7 @@ sealed class PlayerContext : ApplicationContext
         finally
         {
             _dialogOpen = false;
+            _form.SuspendShield(false);
         }
 
         Log.Info("Player chiuso dall'operatore");

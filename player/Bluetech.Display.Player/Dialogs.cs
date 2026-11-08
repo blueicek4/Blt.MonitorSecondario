@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
@@ -128,6 +129,9 @@ sealed class ConfigForm : DialogBase
     readonly CheckBox _hideCursor = Check("Nascondi il puntatore del mouse");
     readonly CheckBox _preventSleep = Check("Impedisci lo spegnimento dello schermo");
     readonly CheckBox _autoStart = Check("Avvia automaticamente all'accesso a Windows");
+    readonly CheckBox _touchShield = Check("Tocchi senza togliere il focus alla cassa (schermo di vetro: solo tocchi, niente scorrimento)");
+    readonly CheckBox _keepFocus = Check("Se il player diventa la finestra attiva, ridalla subito all'applicazione della cassa");
+    readonly ComboBox _cashApp = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 420 };
     readonly NumericUpDown _zoom = new() { Minimum = 25, Maximum = 300, Increment = 5, Width = 80 };
     readonly NumericUpDown _reload = new() { Minimum = 0, Maximum = 1440, Width = 80 };
     readonly TextBox _pin = new() { UseSystemPasswordChar = true, Width = 240, MaxLength = PinProtector.MaxLength };
@@ -153,6 +157,12 @@ sealed class ConfigForm : DialogBase
 
         var screenRow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = Padding.Empty };
         screenRow.Controls.AddRange(new Control[] { _screen, identify });
+
+        var refreshApps = new Button { Text = "Aggiorna", AutoSize = true };
+        refreshApps.Click += (_, _) => FillCashApplications(SelectedCashApplication());
+        var cashRow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = Padding.Empty };
+        cashRow.Controls.AddRange(new Control[] { _cashApp, refreshApps });
+        _keepFocus.CheckedChanged += (_, _) => cashRow.Enabled = _keepFocus.Checked;
 
         var grid = new TableLayoutPanel { ColumnCount = 2, AutoSize = true, Dock = DockStyle.Fill };
         grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -189,6 +199,11 @@ sealed class ConfigForm : DialogBase
         Wide(_autoStart);
         Row("Zoom pagina (%)", _zoom);
         Row("Ricarica ogni (minuti, 0 = mai)", _reload);
+
+        Section("Monitor touch accanto alla cassa (valgono a schermo intero)");
+        Wide(_touchShield);
+        Wide(_keepFocus);
+        Row("Applicazione della cassa", cashRow);
 
         Section(firstRun ? "Codice di accesso (obbligatorio)" : "Cambia codice di accesso (lascia vuoto per non cambiarlo)");
         Row("Nuovo codice", _pin);
@@ -247,6 +262,50 @@ sealed class ConfigForm : DialogBase
         _autoStart.Checked = _firstRun || AutoStart.IsEnabled;
         _zoom.Value = Math.Max(_zoom.Minimum, Math.Min(_zoom.Maximum, s.ZoomPercent));
         _reload.Value = Math.Max(_reload.Minimum, Math.Min(_reload.Maximum, s.ReloadMinutes));
+        _touchShield.Checked = s.TouchShield;
+        _keepFocus.Checked = s.KeepCashFocus;
+        FillCashApplications(s.CashApplication ?? "");
+    }
+
+    /// <summary>
+    /// I programmi aperti adesso, per scegliere quello della cassa. Quello già scelto resta in elenco anche se ora non è
+    /// aperto: si salva il nome, e il player lo cerca a ogni tocco.
+    /// </summary>
+    void FillCashApplications(string selected)
+    {
+        _cashApp.Items.Clear();
+        _cashApp.Items.Add(new CashItem("", "Nessuna: la finestra usata prima del tocco"));
+        List<CashApplications.Item> open;
+        try
+        {
+            open = CashApplications.Open();
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Elenco dei programmi aperti", ex);
+            open = new List<CashApplications.Item>();
+        }
+        foreach (var app in open)
+            _cashApp.Items.Add(new CashItem(app.ProcessName, app.ToString()));
+        if (selected.Length > 0 && !open.Any(a => string.Equals(a.ProcessName, selected, StringComparison.OrdinalIgnoreCase)))
+            _cashApp.Items.Add(new CashItem(selected, selected + " (non aperta ora)"));
+        _cashApp.SelectedItem = _cashApp.Items.Cast<CashItem>()
+            .FirstOrDefault(i => string.Equals(i.ProcessName, selected, StringComparison.OrdinalIgnoreCase)) ?? _cashApp.Items[0];
+    }
+
+    string SelectedCashApplication() => (_cashApp.SelectedItem as CashItem)?.ProcessName ?? "";
+
+    sealed class CashItem
+    {
+        public CashItem(string processName, string text)
+        {
+            ProcessName = processName;
+            Text = text;
+        }
+
+        public string ProcessName { get; }
+        public string Text { get; }
+        public override string ToString() => Text;
     }
 
     void TrySave()
@@ -287,6 +346,9 @@ sealed class ConfigForm : DialogBase
         result.PreventSleep = _preventSleep.Checked;
         result.ZoomPercent = (int)_zoom.Value;
         result.ReloadMinutes = (int)_reload.Value;
+        result.TouchShield = _touchShield.Checked;
+        result.KeepCashFocus = _keepFocus.Checked;
+        result.CashApplication = SelectedCashApplication();
         if (pinRequested)
             PinProtector.SetPin(result, _pin.Text);
 
@@ -312,7 +374,7 @@ sealed class ConfigForm : DialogBase
                 Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
-        Log.Info($"Configurazione salvata: url={result.Url} schermo={(result.Screen.Length == 0 ? "auto" : result.Screen)} schermo intero={result.FullScreen}");
+        Log.Info($"Configurazione salvata: url={result.Url} schermo={(result.Screen.Length == 0 ? "auto" : result.Screen)} schermo intero={result.FullScreen} vetro={result.TouchShield} focus alla cassa={result.KeepCashFocus} cassa={(result.CashApplication.Length == 0 ? "finestra di prima" : result.CashApplication)}");
         Result = result;
         DialogResult = DialogResult.OK;
     }

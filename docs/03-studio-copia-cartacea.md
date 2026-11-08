@@ -254,12 +254,17 @@ proviamo.**
 4. Windows deve sapere che il touch è quello del monitor cliente ("Impostazioni Tablet PC" → "Configura"),
    altrimenti il tocco finisce sullo schermo della cassa. Va nelle istruzioni di installazione.
 
-**Fatto (08/11), da provare sul monitor vero**: il Player risponde `MA_NOACTIVATE` a `WM_MOUSEACTIVATE` (anche per i
-clic che salgono dalle finestre del browser) e ha il **ripristino immediato** del punto 3: guarda i cambi di primo piano
-(`EVENT_SYSTEM_FOREGROUND`, senza entrare negli altri processi) e, se il primo piano passa al Player a schermo intero, lo
-restituisce subito alla finestra di prima. Si spegne con `KeepCashFocus=false`. La prova del punto 1, con la tastiera
-e il lettore di codici a barre subito dopo il tocco, è nel README del Player; se il ripristino non bastasse (tasti persi
-in quell'istante), resta la modalità visuale di WebView2.
+**Fatto (08/11), da provare sul monitor vero.** Il Player 1.2 ha due difese, ognuna con la sua opzione:
+
+- lo **schermo di vetro**: una finestra trasparente `WS_EX_NOACTIVATE` sopra il browser, come la tastiera a video di
+  Windows, riceve il tocco e lo passa alla pagina come clic (`window.btTap`). Il browser non riceve mai input e non può
+  chiedere il focus: è l'effetto della modalità visuale di WebView2 del punto 3, con molto meno codice. Solo tocchi
+  semplici, che sul monitor del cliente bastano;
+- il **ripristino immediato** del punto 3, come rete di sicurezza: se il primo piano passa comunque al Player, torna
+  all'applicazione della cassa scelta nella configurazione (o alla finestra di prima). Il Player risponde anche
+  `MA_NOACTIVATE` a `WM_MOUSEACTIVATE`.
+
+La prova del punto 1, con la tastiera e il lettore di codici a barre subito dopo il tocco, è nel README del Player.
 
 Senza touch la funzione resta utile **senza pulsante**: scontrino a video, QR e la scritta "Vuoi la copia di carta?
 Chiedila alla cassa".
