@@ -163,12 +163,20 @@ public static partial class ReceiptParser
 
             // Testo al posto dell'immagine: il QR che la cassa stampa in fondo allo scontrino (StampaQRCode del modello XML,
             // "QRCODE" e a capo il valore), il 08/11 il link dello scontrino digitale. Lo scontrino si legge senza quelle
-            // due righe; il link, se è quello dello scontrino digitale, va con lui.
-            var before = lines.Skip(1).Take(qrIndex - 1).ToList();
-            var after = lines.Skip(qrIndex + 2).ToList();
+            // due righe (e senza la didascalia dello scontrino digitale, se c'è); il link, se è quello dello scontrino
+            // digitale, va con lui.
             var textLink = DigitalReceiptLink.Parse(payload);
-            if (before.Concat(after).Any(l => l.Trim().Length > 0))
-                return ParseReceipt(before.Concat(after).ToList(), hash, encoding, payload.Length > 0 ? payload : null, textLink);
+            var textCaption = DigitalReceiptLink.IsCaption(caption) ? caption : null;
+            var before = lines.Skip(1).Take(qrIndex - 1);
+            var after = lines.Skip(qrIndex + (textCaption != null ? 3 : 2));
+            var rest = before.Concat(after).ToList();
+            if (rest.Any(l => l.Trim().Length > 0))
+            {
+                var bill = ParseReceipt(rest, hash, encoding, payload.Length > 0 ? payload : null, textLink);
+                // Uno scontrino vero ha righe, totale o pagamento; del solo testo (un QR con la sua didascalia) non lo è.
+                if (bill.Items.Any() || bill.Total != null || bill.Payment != null)
+                    return bill;
+            }
             // Solo il link, senza scontrino: il QR si fa qui.
             return textLink == null
                 ? new CashFile { Kind = CashFileKind.Empty, Hash = hash, Encoding = encoding }
@@ -179,6 +187,7 @@ public static partial class ReceiptParser
                     Encoding = encoding,
                     QrDataUri = QrImage.FromText(textLink),
                     QrPurpose = QrPurpose.DigitalReceipt,
+                    QrCaption = textCaption,
                     QrText = payload,
                     DigitalReceiptUrl = textLink,
                 };
@@ -198,6 +207,16 @@ public static partial class ReceiptParser
             start = separator + 1;
         }
 
+        // La larghezza del modello (48 o 30 colonne): la riga di trattini e quella del totale arrivano all'ultima colonna,
+        // come ogni riga con un importo (751 su 752 nelle registrazioni). Una riga più corta con un importo in fondo è
+        // testo: "BUONO welcome20 Sconto 20,00" (08/11, 47 colonne su 48) è lo sconto del 20% di un buono, non un articolo
+        // da 20 euro; su un modello a 30 colonne la stessa riga ne occupa 29 senza spazi in fondo.
+        var widths = lines
+            .Where(l => Separator().IsMatch(l.Trim()) || l.TrimStart().StartsWith("TOT", StringComparison.OrdinalIgnoreCase)
+                || l.TrimStart().StartsWith("SUBTOT", StringComparison.OrdinalIgnoreCase))
+            .Select(l => l.TrimEnd('\r').Length)
+            .ToHashSet();
+
         var entries = new List<ReceiptEntry>();
         var currencyNext = separator >= 0;
         long? subtotal = null, total = null, change = null;
@@ -208,9 +227,9 @@ public static partial class ReceiptParser
         foreach (var raw in lines.Skip(start))
         {
             var line = raw.TrimEnd();
-            // Gli importi delle righe sono allineati a destra, fino all'ultima colonna. Un importo seguito da spazi è
-            // testo: "BUONO welcome20 Sconto 20,00" (08/11) è lo sconto del 20% di un buono, non un articolo da 20 euro.
-            var amountInText = line.Length < raw.Length;
+            // Più corta della larghezza del modello: testo. Senza totale né trattini (un file a metà) vale almeno questo:
+            // un importo seguito da spazi non è allineato a destra.
+            var amountInText = widths.Count > 0 ? raw.TrimEnd('\r').Length < widths.Min() : line.Length < raw.Length;
             var trimmed = line.Trim();
             if (trimmed.Length == 0)
                 continue;

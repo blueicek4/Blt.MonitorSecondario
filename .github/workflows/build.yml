@@ -59,6 +59,8 @@ jobs:
           path: |
             out/agent/BluetechDisplayAgent.exe
             out/agent/appsettings.json
+            out/agent/licenze/
+            out/agent/licenze-font/
             agent/README.md
 
   # L'app Android del monitor cliente per i tablet. Si compila qui: serve l'SDK Android.

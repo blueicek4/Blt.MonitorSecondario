@@ -48,6 +48,8 @@
     <None Remove="Server\fonts\**" />
     <EmbeddedResource Include="Server\fonts\*.woff2;Server\fonts\fonts.css" LogicalName="fonts/%(Filename)%(Extension)" />
     <None Include="Server\fonts\licenze\*" Link="licenze-font\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- Le licenze delle librerie dentro l'exe (ZXing.Net Apache 2.0, QrCodeGenerator MIT): anche loro accanto all'exe. -->
+    <None Include="Licenze\*" Link="licenze\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <!-- La PWA di /cliente: manifest, service worker, pagina di attesa, script dell'installazione, icone. -->
     <Content Remove="Server\pwa\**" />
     <None Remove="Server\pwa\**" />

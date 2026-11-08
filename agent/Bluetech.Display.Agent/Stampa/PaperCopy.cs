@@ -201,7 +201,15 @@ public static class PaperCopy
         {
             return null;
         }
-        var image = QrImage.Decode(png);
+        QrImage.Bitmap? image;
+        try
+        {
+            image = QrImage.Decode(png);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            return null;   // un PNG rovinato (dati compressi non validi): la copia esce senza QR invece di fermare tutto
+        }
         if (image == null)
             return null;
         // Il QR ridotto ha al massimo 177 moduli per lato (versione 40); un'immagine più grande è in pixel.

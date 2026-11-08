@@ -274,10 +274,11 @@ in [`docs/03`](../docs/03-studio-copia-cartacea.md).
   com'era. Il vecchio monitor 6.0 usava invece `QRCODESD`: vale ancora.
 - **Abbinamento del QR al conto.** Il QR arrivato a vendita aperta aspetta lo scontrino pagato che lo segue (fino a
   3 s) e va a video con lui, dopo il Grazie; se i due link si conoscono tutti e due devono essere lo stesso. Un QR che
-  arriva a vendita chiusa si abbina all'ultimo conto con `PAGATO` della stessa cassa se è entro 30 s e non è partita
-  un'altra vendita. Se il `PAGATO` non arriva, o l'abbinamento non è sicuro, va a video il solo QR: così non si stampa
-  mai il QR di un cliente con le righe di un altro. Se il `PAGATO` arriva dopo, con lo stesso link, entra nello
-  scontrino già a video.
+  arriva a vendita chiusa si abbina all'ultimo conto con `PAGATO` della stessa cassa se è entro 30 s, non è partita
+  un'altra vendita e il link è lo stesso. Se il `PAGATO` non arriva entro 3 s va a video il solo QR, sopra la vendita,
+  che resta aperta: se il `PAGATO` arriva dopo con lo stesso link, il Grazie e poi lo stesso scontrino con il conto; se
+  la cassa invece cambia ancora la vendita, lo scontrino si toglie. Così non si stampa mai il QR di un cliente con le
+  righe di un altro.
 - **Solo il link**: se la cassa scrive il link in fondo allo scontrino pagato ma non l'immagine, il QR lo fa l'Agent
   dal link ricostruito. Se arrivano tutti e due vale l'immagine della cassa, una volta sola. Qualunque altro QR stampato
   in fondo allo scontrino (recensioni, promozioni) non è uno scontrino digitale: si toglie e basta.
@@ -323,7 +324,7 @@ Le regole vengono dalle [registrazioni](../samples/registrazioni) (30 e 48 colon
 | Righe uguali unite in "dettagli conto", sconti spostati sotto le righe, ordine cambiato | `sync`, lo stato completo: niente storni finti |
 | `TOT. DA PAGARE` | `sale.total`, in centesimi (il display non somma mai). `bill: true` quando la cassa mostra il conto (c'è l'intestazione: dettagli conto, preconto, scontrino), `false` durante la battuta |
 | Un importo seguito da spazi (`BUONO welcome20 Sconto 20,00` e spazi fino all'ultima colonna) | una nota, non un articolo: gli importi veri sono allineati a destra. Lì è il 20% di sconto di un buono |
-| Nessun file per i secondi della chiusura ("Il conto si chiude da solo dopo", 60, in Il locale › Vendita e scontrino digitale) | `sale.close` senza `paid`: le slide. Con il conto a video (`bill: true`) almeno 3 minuti, con il QR di Satispay anche: mentre il cliente paga con il POS, con la cassa automatica o con Satispay Passepartout non scrive niente |
+| Nessun file per i secondi della chiusura ("Il conto si chiude da solo dopo", 60, in Il locale › Vendita e scontrino digitale) | `sale.close` senza `paid`: le slide. Con il conto a video (`bill: true`: dettagli conto, preconto) almeno 3 minuti, con il QR di Satispay anche: mentre il cliente paga con il POS, con la cassa automatica o con Satispay Passepartout non scrive niente. **Se in cassa si paga direttamente dalla battuta**, senza aprire il conto, vale la chiusura impostata: nei locali con la cassa automatica conviene alzarla a 120–180 s, perché inserire i contanti può durare più di un minuto |
 | `PAGATO …:` e `Resto:` | `sale.close` con `paid: { method, amount, change }`: Grazie con le righe, poi le slide. Pagamento misto (una riga per metodo): metodi uniti, `BUONI PASTO + CONTANTI`, importi sommati |
 | Conto dopo un `PAGATO`, o senza nessuna riga in comune con quello a video (il coperto non conta: c'è su ogni tavolo) | `sale.open`: vendita nuova |
 | `QRCODE` e il QR in Base64 | `pay.qr` con l'ultimo totale, ridotto a un pixel per modulo (il display lo ingrandisce di un multiplo intero e aggiunge la quiet zone), e la didascalia se la cassa la scrive dopo l'immagine. Lo toglie (`pay.clear`) un conto cambiato o `PAGATO`; lo stesso conto rimandato entro 20 s no (il vecchio monitor 6.0 ignora i file per 20 s dopo il QR); altrimenti scade dopo 3 minuti |

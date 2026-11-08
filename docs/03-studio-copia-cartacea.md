@@ -158,10 +158,10 @@ Quindi l'Agent:
 
 - tiene da parte il QR arrivato a vendita aperta e lo manda a video con lo scontrino pagato che lo segue entro 3 s,
   dopo il Grazie; se i due link si conoscono tutti e due, devono essere lo stesso;
-- se il `PAGATO` non arriva, mostra il **solo QR**; se arriva più tardi con lo stesso link, il conto entra nello
-  scontrino già a video;
+- se il `PAGATO` non arriva entro 3 s, mostra il **solo QR** sopra la vendita, che resta aperta; se il `PAGATO` arriva
+  più tardi con lo stesso link, il Grazie e poi lo stesso scontrino con il conto;
 - un QR che arriva a vendita chiusa (l'ordine del vecchio monitor 6.0) si abbina all'ultimo conto pagato se è entro
-  30 s e nel frattempo non è partita un'altra vendita;
+  30 s, nel frattempo non è partita un'altra vendita e il link (quando c'è) è lo stesso;
 - se arriva solo il link, il QR lo fa l'Agent dal link ricostruito.
 
 Così mai il QR di un cliente con le righe di un altro: nel dubbio il solo QR, che basta ai fini fiscali.

@@ -100,6 +100,9 @@ public sealed record PayQr(string Png, long Amount, string? Caption = null) : Ca
 public sealed record ReceiptQr(string Png, string? Caption) : CashIn
 {
     public override string Type => "receipt.qr";
+
+    /// <summary>Il link dello scontrino, se si conosce: solo per l'Agent (statistiche), non va al display.</summary>
+    public string? Url { get; init; }
     protected override void Fill(JsonObject json)
     {
         json["png"] = Png;

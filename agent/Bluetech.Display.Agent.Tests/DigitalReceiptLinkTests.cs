@@ -126,6 +126,57 @@ public class DigitalReceiptLinkTests
         Assert.Equal(1240, file.Total);
     }
 
+    [Fact]
+    public void A_text_qr_with_the_caption_is_the_digital_receipt_not_a_note()
+    {
+        // La stessa forma di #54, con il link come testo al posto dell'immagine (un modello che non manda l'immagine).
+        var file = Parse("SNF", new string(' ', 48), "QRCODE", Mangled54, "Scarica il tuo scontrino digitale!", new string(' ', 48));
+        Assert.Equal(CashFileKind.Qr, file.Kind);
+        Assert.Equal(QrPurpose.DigitalReceipt, file.QrPurpose);
+        Assert.Equal("Scarica il tuo scontrino digitale!", file.QrCaption);
+        Assert.Equal(Link54, QrImage.ReadText(FromDataUri(file.QrDataUri!)));
+
+        // Un altro QR come testo con la sua scritta non è né scontrino né QR: come prima, si ignora.
+        Assert.Equal(CashFileKind.Empty, Parse("SNF", " ", "QRCODE", "https:--example.com-promo", "Scansiona per lo sconto", " ").Kind);
+    }
+
+    [Fact]
+    public void On_a_30_column_model_the_voucher_that_fills_the_line_is_still_a_note()
+    {
+        // " BUONO welcome20 Sconto 20,00" è lungo 29: su un modello a 30 colonne non ha spazi in fondo.
+        var file = Parse("SNF", " ",
+            " CAFFE                     1,20",
+            " BUONO welcome20 Sconto 20,00",
+            "SCONTO                   -0,24",
+            "TOT. DA PAGARE            0,96");
+        Assert.Equal(["CAFFE"], file.Items.Select(i => i.Desc));
+        Assert.Contains(new NoteEntry("BUONO welcome20 Sconto 20,00"), file.Entries);
+        Assert.Equal(96, file.Entries.Sum(e => e is ItemEntry i ? i.Amount : e is AdjustmentEntry a ? a.Amount : 0));
+    }
+
+    [Fact]
+    public void A_broken_png_with_the_caption_does_not_stop_the_receipt_nor_the_copy()
+    {
+        // Il PNG di #54 con i dati compressi rovinati: il Base64 resta valido, la didascalia lo fa scontrino digitale.
+        var text = Encoding.ASCII.GetString(Samples.Version(Recording, "0054")).Split("\r\n");
+        var png = Convert.FromBase64String(text[3]);
+        var idat = png.AsSpan().IndexOf("IDAT"u8);
+        for (var i = idat + 8; i < idat + 40; i++)
+            png[i] ^= 0x5A;
+        text[3] = Convert.ToBase64String(png);
+        var file = ReceiptParser.Parse(Encoding.ASCII.GetBytes(string.Join("\r\n", text)));
+        Assert.Equal(QrPurpose.DigitalReceipt, file.QrPurpose);
+        Assert.Null(file.QrText);
+
+        var tracker = new Vendita.SaleTracker(new Vendita.DigitalReceiptSettings(true, true, TimeSpan.FromSeconds(45)));
+        var t0 = new DateTimeOffset(2026, 11, 8, 18, 6, 0, TimeSpan.FromHours(1));
+        tracker.Apply(ReceiptParser.Parse(Samples.Version(Recording, "0053")), t0);
+        tracker.Apply(file, t0.AddSeconds(1));
+        var shown = tracker.CheckIdle(t0.AddSeconds(1) + Vendita.SaleTracker.EarlyQrWait, TimeSpan.FromSeconds(60));
+        var json = shown.Single(m => m.Type == "receipt.digital").ToJson();   // prima: InvalidDataException, e l'Agent si fermava
+        Assert.NotNull(json["copy"]);
+    }
+
     [Theory]
     [InlineData("S6Y-PAY--00000000-0000-4000-8000-000000000035")]
     [InlineData(Link54)]

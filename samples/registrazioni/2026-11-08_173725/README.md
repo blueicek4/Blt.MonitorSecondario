@@ -8,9 +8,9 @@ con quello che è successo in cassa, quindi le versioni contano più dei passi.
 
 **Anonimizzata**: le righe dell'intestazione (nome del locale, indirizzo, comune, partita IVA e codice fiscale) sono
 sostituite con testo della stessa lunghezza (`BAR ESEMPIO`, `VIALE DELLE PROVE, 23`, `00000 COMUNE DI PROVA … XX`).
-**I QR non sono quelli veri**: i due di Satispay (#35, #38) e i due dello scontrino digitale (#54, #58) sono rifatti con
-la stessa geometria (PNG RGBA 197×197, versione 8, livello Q, 49 moduli da 4 pixel, niente quiet zone) e un contenuto
-finto ma della stessa forma: `S6Y-PAY--00000000-0000-4000-8000-0000000000NN` e il link dello scontrino digitale con il
+**I QR non sono quelli veri**: i due di Satispay (#35, #38) e i due dello scontrino digitale (#54, #58) sono rifatti
+come li fa la cassa (PNG RGBA 197×197 con i blocchi sRGB, gAMA e pHYs e le righe senza filtro; QR versione 8, livello L,
+maschera 2, 49 moduli da 4 pixel, niente quiet zone) con un contenuto finto ma della stessa forma: `S6Y-PAY--00000000-0000-4000-8000-0000000000NN` e il link dello scontrino digitale con il
 token `00000000-0000-4000-8000-0000000000NN` (NN = numero della versione). Lo stesso token finto è nel testo di #55 e
 #59 e in `eventi.jsonl`; `sha256`, `byte` e `qr.lunghezza` sono ricalcolati sui file sostituiti. In `contesto` c'è il
 modello XML del monitor usato quel giorno, com'era.

@@ -181,7 +181,17 @@ public sealed partial class AgentEngine(
                 lock (_gate)
                 {
                     foreach (var point in _points)
-                        Publish(point, point.Tracker.CheckIdle(Now, CloseAfter(current, point.Id)));
+                    {
+                        // Un messaggio che non si riesce a preparare per una cassa non deve fermare l'Agent (e le altre casse).
+                        try
+                        {
+                            Publish(point, point.Tracker.CheckIdle(Now, CloseAfter(current, point.Id)));
+                        }
+                        catch (Exception ex) when (ex is not OperationCanceledException)
+                        {
+                            log.LogError(ex, "Controllo periodico della cassa {Name} non riuscito", point.Name);
+                        }
+                    }
                 }
                 var elapsed = Stopwatch.GetElapsedTime(_startedTicks);
                 if (lastBeat == null || elapsed - lastBeat >= HeartbeatEvery)

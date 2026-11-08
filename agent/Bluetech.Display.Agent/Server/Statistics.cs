@@ -135,19 +135,29 @@ public sealed class Statistics
                     case PayQr:
                         Today(cashPoint).QrPagamento++;
                         break;
-                    case ReceiptQr:
-                        Today(cashPoint).ScontriniDigitali++;
+                    case ReceiptQr qr:
+                        CountReceipt(cashPoint, qr.Url != null ? "link:" + qr.Url : null);
                         break;
-                    case ReceiptDigital { Receipt.Id: var id }:
-                        // Lo stesso scontrino rimandato con il conto (il PAGATO arrivato dopo il suo QR) si conta una volta.
-                        if (_counted.GetValueOrDefault(cashPoint) != id)
-                            Today(cashPoint).ScontriniDigitali++;
-                        _counted[cashPoint] = id;
+                    case ReceiptDigital { Receipt: var receipt }:
+                        CountReceipt(cashPoint, receipt.Url != null ? "link:" + receipt.Url : "id:" + receipt.Id);
                         break;
                 }
                 previous = message;
             }
         }
+    }
+
+    /// <summary>
+    /// Lo stesso scontrino digitale rimandato (con il conto, dopo il PAGATO arrivato tardi) si conta una volta: per il suo
+    /// link, o per l'id quando il link non si conosce. Chiamato con il lock preso.
+    /// </summary>
+    void CountReceipt(string cashPoint, string? key)
+    {
+        if (key != null && _counted.GetValueOrDefault(cashPoint) == key)
+            return;
+        Today(cashPoint).ScontriniDigitali++;
+        if (key != null)
+            _counted[cashPoint] = key;
     }
 
     public void PaperCopy(string cashPoint, string? deviceId, bool printed)
