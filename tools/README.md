@@ -57,6 +57,16 @@ quelle operazioni non mandano niente al monitor.
 Il registratore legge solo `Scontrino.txt`: niente foto dello schermo e niente traffico di rete. La cassa automatica
 si guarda a parte, in un secondo momento.
 
+**Altri file della cartella (dalla 1.2).** Quando nella cartella di `Scontrino.txt` un altro file viene creato,
+modificato o rinominato (per esempio `ScontrinoDigitale.txt`, che Passepartout crea qualche secondo prima del QR dello
+scontrino digitale), il registratore aspetta che smetta di cambiare e ne salva una copia in `altri\` come
+`0001_ScontrinoDigitale.txt`, `0002_…`, solo se il contenuto è diverso dall'ultima copia di quel file. Ogni copia ha una
+riga `altro-file` in `eventi.jsonl` (byte, sha256, codifica) e il riepilogo dice quante copie per file. Gli originali
+vengono soltanto letti, senza negare a nessuno lettura, scrittura o eliminazione: non vengono mai tolti, spostati o
+rinominati, nemmeno con `/consuma`, che vale solo per `Scontrino.txt`. Si copiano solo i file direttamente nella
+cartella (non le sottocartelle né `Registrazioni`), fino a 1 MB ciascuno e al massimo 500 copie e 50 MB per
+registrazione; un file più grande o un limite raggiunto lasciano una riga nell'indice con il motivo.
+
 **Il Display Agent.** Se sul PC gira il Bluetech Display Agent, il registratore lo dice all'avvio: toglie anche lui
 `Scontrino.txt` appena letto, e le versioni le prenderebbe lui. Fermalo mentre registri (da amministratore
 `sc.exe stop BluetechDisplayAgent`, alla fine `sc.exe start BluetechDisplayAgent`; in PowerShell scrivi proprio
@@ -132,7 +142,8 @@ identico conto (stesso contenuto, data del file cambiata).
 | `0001_hh-mm-ss.fff.txt`… | Ogni versione diversa del file, identica byte per byte all'originale |
 | `0006_qrcode.png` | L'immagine del QR, se Passepartout la manda in Base64 |
 | `letture-instabili\` | Contenuti letti mentre il file veniva scritto (raccontano come scrive Passepartout) |
-| `eventi.jsonl` | Una riga per evento: versioni (codifica, righe aggiunte/tolte, righe in comune col conto precedente, totale, dimensione, data di modifica e di creazione del file, flusso), riscritture identiche, letture instabili, file eliminato/creato, note, avvisi, `/consuma`, inizio e fine dei flussi, passi |
+| `altri\` | Copie degli altri file cambiati nella cartella (es. `ScontrinoDigitale.txt`), una per ogni contenuto nuovo (dalla 1.2) |
+| `eventi.jsonl` | Una riga per evento: versioni (codifica, righe aggiunte/tolte, righe in comune col conto precedente, totale, dimensione, data di modifica e di creazione del file, flusso), riscritture identiche, letture instabili, file eliminato/creato, note, avvisi, `/consuma`, inizio e fine dei flussi, passi, copie degli altri file |
 | `sessione.txt` | Versione di Windows, schermi e risoluzioni, WebView2 installato o no, vecchio monitor aperto |
 | `riepilogo.txt` | Conteggi finali, file tolti, tempo minimo tra due scritture (con e senza `/consuma`) |
 | `contesto\` | Copia di `XMLMonitorCliente.xml` e `MonitorCliente.exe.config` se sono nella stessa cartella o in quella del vecchio monitor aperto |

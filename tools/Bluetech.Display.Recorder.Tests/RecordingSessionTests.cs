@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -687,5 +688,186 @@ public sealed class RecordingSessionTests : IDisposable
         session.AddNote("secondo articolo");
         session.Stop();
         Assert.False(_log.Contains("Attenzione"));
+    }
+
+    // Altri file della cartella (ScontrinoDigitale.txt, 08/11): copiati in altri\, mai toccati.
+
+    string OtherFile(string name) => Path.Combine(Path.GetDirectoryName(_target), name);
+
+    static List<string> OtherCopies(RecordingSession session)
+    {
+        var folder = Path.Combine(session.SessionFolder, "altri");
+        return Directory.Exists(folder) ? Directory.GetFiles(folder).OrderBy(f => f, StringComparer.Ordinal).ToList() : new List<string>();
+    }
+
+    static List<string> OtherFileLines(RecordingSession session) =>
+        IndexLines(session).Where(l => l.Contains("\"tipo\":\"altro-file\"")).ToList();
+
+    static List<string> OtherCopyLines(RecordingSession session) =>
+        OtherFileLines(session).Where(l => l.Contains("\"copia\":\"")).ToList();
+
+    static string Summary(RecordingSession session) => File.ReadAllText(Path.Combine(session.SessionFolder, "riepilogo.txt"));
+
+    static string ShortHash(byte[] bytes)
+    {
+        using var sha = SHA256.Create();
+        return string.Concat(sha.ComputeHash(bytes).Select(b => b.ToString("x2"))).Substring(0, 16);
+    }
+
+    [Fact]
+    public void Another_file_written_in_the_folder_is_copied_and_left_untouched_even_in_consume_mode()
+    {
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        Assert.True(session.SetConsumeMode(true));
+        // Una sottocartella e il suo contenuto non si copiano.
+        var subfolder = OtherFile("Sottocartella");
+        Directory.CreateDirectory(subfolder);
+        File.WriteAllText(Path.Combine(subfolder, "dentro.txt"), "non va copiato");
+
+        var digital = OtherFile("ScontrinoDigitale.txt");
+        var content = Encoding.ASCII.GetBytes("SCONTRINO DIGITALE\r\nhttps://esempio.invalid/d/0001\r\n");
+        File.WriteAllBytes(digital, content);
+        var written = File.GetLastWriteTimeUtc(digital);
+        WaitUntil(() => OtherCopyLines(session).Count == 1, "copia di ScontrinoDigitale.txt");
+
+        // Scontrino.txt in modalità consumo viene tolto dopo la lettura, l'altro file no.
+        Write(Receipt(" CAFFE 1,00"));
+        WaitUntil(() => session.Versions == 1 && !File.Exists(_target), "versione registrata e tolta");
+        session.Stop();
+
+        Assert.Equal(content, File.ReadAllBytes(digital));
+        Assert.Equal(written, File.GetLastWriteTimeUtc(digital));
+        var copy = Path.Combine(session.SessionFolder, "altri", "0001_ScontrinoDigitale.txt");
+        Assert.Equal(new[] { copy }, OtherCopies(session));
+        Assert.Equal(content, File.ReadAllBytes(copy));
+
+        var line = OtherFileLines(session).Single();
+        Assert.Contains("\"nome\":\"ScontrinoDigitale.txt\"", line);
+        Assert.Contains("\"copia\":\"altri/0001_ScontrinoDigitale.txt\"", line);
+        Assert.Contains($"\"byte\":{content.Length},", line);
+        Assert.Contains($"\"sha256\":\"{ShortHash(content)}\"", line);
+        Assert.Contains("\"codifica\":\"ASCII\",\"fineRiga\":\"CRLF\",\"righeFile\":2,", line);
+        Assert.True(_log.Contains("cartella: copiato ScontrinoDigitale.txt"));
+        Assert.Contains("Copie di altri file: ScontrinoDigitale.txt 1", Summary(session));
+    }
+
+    [Fact]
+    public void Another_file_is_copied_again_only_when_its_content_changes()
+    {
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        var digital = OtherFile("ScontrinoDigitale.txt");
+        var first = Encoding.ASCII.GetBytes("PRIMO\r\n");
+        File.WriteAllBytes(digital, first);
+        WaitUntil(() => OtherCopies(session).Count == 1, "prima copia");
+
+        // Eliminato e ricreato identico (come alle 18:09 dell'08/11): nessuna copia nuova.
+        File.Delete(digital);
+        File.WriteAllBytes(digital, first);
+        Thread.Sleep(600);   // oltre la pausa prima della copia: la riscrittura identica è già stata letta
+        var second = Encoding.UTF8.GetBytes("SECONDO, è diverso\r\n");
+        File.WriteAllBytes(digital, second);
+        WaitUntil(() => OtherCopies(session).Count == 2, "seconda copia");
+        session.Stop();
+
+        var copies = OtherCopies(session);
+        Assert.Equal(2, copies.Count);
+        Assert.Equal(first, File.ReadAllBytes(copies[0]));
+        Assert.Equal(second, File.ReadAllBytes(copies[1]));
+        Assert.EndsWith("0002_ScontrinoDigitale.txt", copies[1]);
+        var lines = OtherCopyLines(session);
+        Assert.Equal(2, lines.Count);
+        Assert.Contains("\"codifica\":\"UTF-8 senza BOM\"", lines[1]);
+        Assert.Contains("Copie di altri file: ScontrinoDigitale.txt 2", Summary(session));
+    }
+
+    [Fact]
+    public void Another_file_over_the_size_limit_is_not_copied()
+    {
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        var big = OtherFile("Grande.log");
+        const int size = 1024 * 1024 + 1;
+        File.WriteAllBytes(big, new byte[size]);
+        WaitUntil(() => OtherFileLines(session).Any(l => l.Contains("\"motivo\":\"troppo grande\"")), "file troppo grande");
+        session.Stop();
+
+        Assert.Empty(OtherCopies(session));
+        Assert.Equal(size, new FileInfo(big).Length);
+        var line = OtherFileLines(session).Single();   // una riga sola, anche con più notifiche
+        Assert.Contains("\"copia\":null", line);
+        Assert.Contains($"\"byte\":{size},\"limiteByte\":{1024 * 1024}", line);
+        Assert.True(_log.Contains("Grande.log non copiato, troppo grande"));
+        Assert.Contains("Altri file non copiati: Grande.log (troppo grande)", Summary(session));
+    }
+
+    [Fact]
+    public void Copies_of_other_files_stop_at_the_session_limit()
+    {
+        using var session = new RecordingSession(_target, _output, _log) { MaxOtherCopies = 2 };
+        session.Start();
+        for (var i = 1; i <= 3; i++)
+        {
+            File.WriteAllText(OtherFile($"Altro{i}.txt"), "contenuto " + i);
+            var expected = i;
+            WaitUntil(() => OtherFileLines(session).Count == expected, "riga " + expected);
+        }
+        // Dopo il limite non si copia più niente: la notifica arriva, la copia no.
+        File.WriteAllText(OtherFile("Altro4.txt"), "contenuto 4");
+        WaitUntil(() => IndexLines(session).Any(l => l.Contains("\"tipo\":\"cartella\"") && l.Contains("\"nome\":\"Altro4.txt\"")), "notifica di Altro4.txt");
+        session.Stop();
+
+        Assert.Equal(2, OtherCopies(session).Count);
+        var lines = OtherFileLines(session);
+        Assert.Equal(3, lines.Count);
+        Assert.Contains("\"nome\":\"Altro3.txt\",\"copia\":null,\"motivo\":\"limite di 2 copie raggiunto: niente più copie di altri file\"", lines[2]);
+        Assert.True(_log.Contains("limite di 2 copie raggiunto"));
+        Assert.Contains("Copie di altri file interrotte: limite di 2 copie raggiunto", Summary(session));
+    }
+
+    [Fact]
+    public void Another_file_gone_before_the_copy_leaves_one_index_line()
+    {
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        var temp = OtherFile("Passeggero.tmp");
+        File.WriteAllText(temp, "dura poco");
+        File.Delete(temp);
+        WaitUntil(() => OtherFileLines(session).Count > 0, "riga dell'altro file");
+        session.Stop();
+
+        Assert.Empty(OtherCopies(session));
+        Assert.Contains("\"motivo\":\"sparito prima della copia\"", OtherFileLines(session).Single());
+        Assert.False(_log.Contains("copiato Passeggero.tmp"));
+    }
+
+    [Fact]
+    public void A_copy_still_waiting_at_stop_ends_up_in_the_zip_and_nothing_is_written_after()
+    {
+        using var session = new RecordingSession(_target, _output, _log);
+        session.Start();
+        var digital = OtherFile("ScontrinoDigitale.txt");
+        var content = Encoding.ASCII.GetBytes("QR DELLO SCONTRINO DIGITALE\r\n");
+        File.WriteAllBytes(digital, content);
+        WaitUntil(() => IndexLines(session).Any(l => l.Contains("\"tipo\":\"cartella\"") && l.Contains("\"nome\":\"ScontrinoDigitale.txt\"")), "notifica della cartella");
+        session.Stop();   // di solito prima della pausa di 300 ms: la copia in attesa si fa subito
+
+        using (var zip = ZipFile.OpenRead(session.ZipPath))
+        {
+            var entry = zip.Entries.Single(e => e.FullName.Replace('\\', '/').EndsWith("/altri/0001_ScontrinoDigitale.txt"));
+            using var stream = entry.Open();
+            using var memory = new MemoryStream();
+            stream.CopyTo(memory);
+            Assert.Equal(content, memory.ToArray());
+        }
+        Assert.Contains("Copie di altri file: ScontrinoDigitale.txt 1", Summary(session));
+
+        // Dopo Stop niente più copie né righe nell'indice, anche se il file cambia ancora.
+        var lines = IndexLines(session).Count;
+        File.WriteAllBytes(digital, Encoding.ASCII.GetBytes("DOPO LA FINE\r\n"));
+        Thread.Sleep(500);
+        Assert.Equal(lines, IndexLines(session).Count);
+        Assert.Single(OtherCopies(session));
     }
 }

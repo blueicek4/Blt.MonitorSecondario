@@ -15,7 +15,7 @@
     <AssemblyName>BluetechRecorder</AssemblyName>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
-    <Version>1.1.1</Version>
+    <Version>1.2.0</Version>
     <Company>Bluetech</Company>
     <Product>Bluetech Display Recorder</Product>
     <Description>Registra ogni versione del file Scontrino.txt scritto da Passepartout Menu.</Description>

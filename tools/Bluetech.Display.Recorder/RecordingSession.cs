@@ -20,8 +20,9 @@ public interface IRecorderLog
 /// <summary>
 /// Registra ogni versione del file di scambio così com'è (byte per byte), con un indice eventi.jsonl.
 /// Il file viene aperto solo in lettura e con condivisione completa, per non ostacolare Passepartout né il vecchio monitor.
+/// Gli altri file che cambiano nella stessa cartella vengono copiati a parte (vedi RecordingSession.OtherFiles.cs).
 /// </summary>
-public sealed class RecordingSession : IDisposable
+public sealed partial class RecordingSession : IDisposable
 {
     const int PollMilliseconds = 250;
     const int ReadAttempts = 200;           // ~2 s di tentativi se il file è bloccato
@@ -286,6 +287,7 @@ public sealed class RecordingSession : IDisposable
 
         _worker = new Thread(WorkerLoop) { IsBackground = true, Name = "Registratore" };
         _worker.Start();
+        StartOtherCopies();
 
         _triggers.Add("avvio");
         _watcher.EnableRaisingEvents = true;
@@ -433,7 +435,9 @@ public sealed class RecordingSession : IDisposable
         _watcher.Dispose();
         _poll.Dispose();
         _triggers.CompleteAdding();
+        FlushOtherCopies();
         _worker.Join(TimeSpan.FromSeconds(3));
+        CloseOtherCopies();
 
         var summary = BuildSummary();
         lock (_sync)
@@ -509,6 +513,10 @@ public sealed class RecordingSession : IDisposable
             if (first)
                 LogFolderEvent("modificato", e.Name, null);
         }
+
+        // Contenuto nuovo: se ne salva una copia in altri\ appena la scrittura è finita (l'originale resta com'è).
+        if (e.ChangeType is WatcherChangeTypes.Created or WatcherChangeTypes.Changed)
+            ScheduleOtherCopy(e.Name, EventName(e.ChangeType));
     }
 
     void OnRenamed(object sender, RenamedEventArgs e)
@@ -518,6 +526,8 @@ public sealed class RecordingSession : IDisposable
         LogFolderEvent("rinominato", e.Name, e.OldName);
         if (IsTarget(e.Name) || IsTarget(e.OldName))
             Trigger("rinominato");
+        if (!IsTarget(e.Name))
+            ScheduleOtherCopy(e.Name, "rinominato");
     }
 
     void OnWatcherError(object sender, ErrorEventArgs e)
@@ -591,7 +601,7 @@ public sealed class RecordingSession : IDisposable
 
     void Snapshot(string sources)
     {
-        var read = ReadStable();
+        var read = ReadStable(TargetPath, waitForWriter: true);
         _observedMeta = read.Meta;
         if (read.Missing)
         {
@@ -822,39 +832,40 @@ public sealed class RecordingSession : IDisposable
     /// Lettura che non impedisce a nessuno di scrivere. È "stabile" se:
     /// - dimensione e data del file non cambiano durante la lettura né nei 30 ms successivi, e i byte letti coincidono
     ///   con la dimensione;
-    /// - su Windows, nessuno ha più il file aperto in scrittura (è la condizione in cui il vecchio monitor riesce a leggerlo).
+    /// - su Windows, nessuno ha più il file aperto in scrittura (è la condizione in cui il vecchio monitor riesce a leggerlo);
+    ///   solo con <paramref name="waitForWriter"/>, perché per saperlo il file si apre per un istante negando la scrittura.
     /// Così un file preso a metà scrittura (troncato o incompleto) non viene scambiato per un conto vero.
     /// </summary>
-    ReadResult ReadStable()
+    ReadResult ReadStable(string path, bool waitForWriter)
     {
         var result = new ReadResult();
         for (var round = 0; round < StabilityRounds; round++)
         {
-            var before = FileMeta.Read(TargetPath);
-            var bytes = ReadShared(out var retries, out var missing);
+            var before = FileMeta.Read(path);
+            var bytes = ReadShared(path, out var retries, out var missing);
             result.Retries += retries;
             if (missing)
             {
                 result.Missing = true;
-                result.Meta = FileMeta.Read(TargetPath);
+                result.Meta = FileMeta.Read(path);
                 return result;
             }
             if (bytes == null)
             {
                 result.Locked = true;
-                result.Meta = FileMeta.Read(TargetPath);
+                result.Meta = FileMeta.Read(path);
                 return result;
             }
 
-            var after = FileMeta.Read(TargetPath);
+            var after = FileMeta.Read(path);
             result.Bytes = bytes;
             result.Meta = after;
             Thread.Sleep(StabilityDelayMilliseconds);
             if (!before.Equals(after) || !after.Exists || bytes.LongLength != after.Length)
                 continue;   // il file è cambiato mentre lo leggevamo: si rilegge
-            if (!FileMeta.Read(TargetPath).Equals(after))
+            if (!FileMeta.Read(path).Equals(after))
                 return result;   // contenuto già superato: la prossima notifica registrerà il nuovo
-            if (WriterActive())
+            if (waitForWriter && WriterActive(path))
             {
                 result.WriterWaitMs += StabilityDelayMilliseconds + WriterWaitMilliseconds;
                 Thread.Sleep(WriterWaitMilliseconds);
@@ -862,7 +873,7 @@ public sealed class RecordingSession : IDisposable
             }
             // Lo scrittore può aver finito proprio tra il controllo dei metadati e quello qui sopra (su Windows le attese
             // finiscono allo stesso scatto del timer, ogni 15,6 ms): a file chiuso il contenuto deve essere ancora quello letto.
-            var again = ReadShared(out retries, out _);
+            var again = ReadShared(path, out retries, out _);
             result.Retries += retries;
             if (again == null || !again.SequenceEqual(bytes))
                 continue;
@@ -876,13 +887,13 @@ public sealed class RecordingSession : IDisposable
     /// Su Windows: qualcuno ha il file aperto in scrittura? Lo si scopre aprendolo per un istante negando la scrittura,
     /// come fa il vecchio monitor a ogni lettura (lui però lo tiene aperto per tutta la lettura).
     /// </summary>
-    bool WriterActive()
+    static bool WriterActive(string path)
     {
         if (Environment.OSVersion.Platform != PlatformID.Win32NT)
             return false;
         try
         {
-            using (new FileStream(TargetPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 1))
+            using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 1))
                 return false;
         }
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException or UnauthorizedAccessException)
@@ -1060,7 +1071,7 @@ public sealed class RecordingSession : IDisposable
     }
 
     /// <summary>Lettura con condivisione totale (lettura, scrittura, eliminazione) e ritentativi se il file è bloccato.</summary>
-    byte[] ReadShared(out int retries, out bool missing)
+    static byte[] ReadShared(string path, out int retries, out bool missing)
     {
         retries = 0;
         missing = false;
@@ -1068,7 +1079,7 @@ public sealed class RecordingSession : IDisposable
         {
             try
             {
-                using var stream = new FileStream(TargetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.None);
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.None);
                 using var memory = new MemoryStream();
                 stream.CopyTo(memory);
                 return memory.ToArray();
@@ -1200,6 +1211,7 @@ public sealed class RecordingSession : IDisposable
         {
             foreach (var pair in _otherFileChanges.OrderBy(p => p.Key))
                 sb.AppendLine($"  Altro file modificato nella cartella: {pair.Key} ({pair.Value} {(pair.Value == 1 ? "notifica" : "notifiche")})");
+            AppendOtherCopiesLocked(sb);
         }
         sb.AppendLine($"  Note: {_notes}");
         sb.AppendLine($"  Codifiche viste: {(_encodings.Count == 0 ? "-" : string.Join(", ", _encodings))}");
