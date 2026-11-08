@@ -86,6 +86,10 @@ public sealed class RecordingSession : IDisposable
     int _activityAtLastNote = -1;
     int _activityAtConsumeChange;
     IReadOnlyList<string> _oldMonitors = new string[0];
+    IReadOnlyList<string> _displayAgents = new string[0];
+    readonly List<string> _summaryExtras = new();
+    // Il flusso di pagamento in corso (0 = nessuno): finisce in ogni versione e nota dell'indice.
+    volatile int _flow;
     bool _started;
     bool _stopping;     // Stop() chiamato: niente nuove notifiche e note, ma la coda viene smaltita
     bool _stopped;      // indice chiuso
@@ -115,6 +119,49 @@ public sealed class RecordingSession : IDisposable
 
     /// <summary>Vecchi monitor aperti all'avvio della sessione (percorsi degli exe).</summary>
     public IReadOnlyList<string> OldMonitors => _oldMonitors;
+
+    /// <summary>Trova il Bluetech Display Agent aperto (sostituibile nei test).</summary>
+    public Func<IReadOnlyList<string>> FindDisplayAgents { get; set; } = DisplayAgentProcess.Running;
+
+    /// <summary>Display Agent aperti all'avvio: toglie lo stesso file, e le versioni le prenderebbe lui.</summary>
+    public IReadOnlyList<string> DisplayAgents => _displayAgents;
+
+    /// <summary>Il flusso di pagamento in corso (PaymentFlow.Number), 0 = nessuno.</summary>
+    public int CurrentFlow
+    {
+        get => _flow;
+        set => _flow = value;
+    }
+
+    /// <summary>Dopo ogni versione nuova (il suo numero), fuori dal thread che legge il file.</summary>
+    public event Action<int> VersionRecorded;
+
+    /// <summary>Una riga dell'indice già con tipo, ora, millisecondi dall'inizio e flusso in corso.</summary>
+    public JsonObject NewEvent(string type)
+    {
+        var entry = new JsonObject { { "tipo", type }, { "ora", Now() }, { "ms", _clock.ElapsedMilliseconds } };
+        var flow = _flow;
+        if (flow > 0)
+            entry.Add("flusso", flow);
+        return entry;
+    }
+
+    /// <summary>Scrive una riga nell'indice (flussi, passi, foto, cattura di rete); niente a sessione chiusa.</summary>
+    public void WriteEvent(JsonObject entry)
+    {
+        lock (_sync)
+        {
+            if (_started && !_stopped)
+                WriteIndexLocked(entry);
+        }
+    }
+
+    /// <summary>Una riga in più per riepilogo.txt (il percorso dei flussi, le foto, la cattura di rete).</summary>
+    public void AddSummary(string line)
+    {
+        lock (_sync)
+            _summaryExtras.Add(line);
+    }
 
     /// <summary>
     /// Attiva o disattiva la modalità consumo; se il file c'è già, viene registrato (se nuovo) e tolto subito.
@@ -192,6 +239,14 @@ public sealed class RecordingSession : IDisposable
             _started = true;
         }
         _oldMonitors = SafeFindOldMonitors();
+        try
+        {
+            _displayAgents = FindDisplayAgents?.Invoke() ?? new string[0];
+        }
+        catch (Exception)
+        {
+            _displayAgents = new string[0];
+        }
 
         var stamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss", CultureInfo.InvariantCulture);
         SessionFolder = Path.Combine(OutputRoot, stamp);
@@ -217,6 +272,7 @@ public sealed class RecordingSession : IDisposable
             { "creazioneFile", existing.Exists ? FileTime(existing.CreationUtc) : null },
             { "ultimaModificaFile", existing.Exists ? FileTime(existing.LastWriteUtc) : null },
             { "vecchioMonitor", _oldMonitors },
+            { "displayAgent", _displayAgents },
         });
 
         _watcher = new FileSystemWatcher(Folder)
@@ -259,7 +315,7 @@ public sealed class RecordingSession : IDisposable
                 { "ms", _clock.ElapsedMilliseconds },
                 { "dopoVersione", _seq },
                 { "testo", text },
-            });
+            }.WithFlow(_flow));
         }
         _log.Line($"{Clock()}  NOTA   {text}", ConsoleColor.Yellow);
         if (stalled)
@@ -408,7 +464,8 @@ public sealed class RecordingSession : IDisposable
             var temp = zip + ".tmp";
             if (File.Exists(temp))
                 File.Delete(temp);
-            ZipFile.CreateFromDirectory(SessionFolder, temp, CompressionLevel.Optimal, includeBaseDirectory: true);
+            // Fastest: le foto JPEG e le catture non si comprimono comunque, e alla chiusura della finestra il tempo è poco.
+            ZipFile.CreateFromDirectory(SessionFolder, temp, CompressionLevel.Fastest, includeBaseDirectory: true);
             if (File.Exists(zip))
                 File.Delete(zip);
             File.Move(temp, zip);
@@ -873,7 +930,7 @@ public sealed class RecordingSession : IDisposable
             { "origine", sources },
             { "tentativiLettura", retries },
             { "attesaScritturaMs", writerWaitMs },
-        };
+        }.WithFlow(_flow);
 
         var console = new List<OutputLine>();
         var header = $"{Clock(time)}  #{seq:0000}  ";
@@ -921,6 +978,9 @@ public sealed class RecordingSession : IDisposable
             _log.Line(line.Text, line.Color);
         if (newEncoding)
             _log.Line($"         codifica {analysis.Encoding}, fine riga {analysis.LineEndings}", ConsoleColor.DarkGray);
+        var recorded = VersionRecorded;
+        if (recorded != null)
+            ThreadPool.QueueUserWorkItem(_ => recorded(seq));
         return true;
     }
 
@@ -1118,6 +1178,7 @@ public sealed class RecordingSession : IDisposable
         sb.AppendLine("Inizio: " + Timestamps.Iso(DateTimeOffset.Now));
         sb.AppendLine("File registrato: " + TargetPath);
         sb.AppendLine("Vecchio monitor aperto: " + (_oldMonitors.Count == 0 ? "no" : string.Join(", ", _oldMonitors)));
+        sb.AppendLine("Display Agent aperto: " + (_displayAgents.Count == 0 ? "no" : string.Join(", ", _displayAgents)));
         if (!string.IsNullOrEmpty(machineInfo))
         {
             sb.AppendLine();
@@ -1149,6 +1210,11 @@ public sealed class RecordingSession : IDisposable
         }
         sb.AppendLine($"  Note: {_notes}");
         sb.AppendLine($"  Codifiche viste: {(_encodings.Count == 0 ? "-" : string.Join(", ", _encodings))}");
+        lock (_sync)
+        {
+            foreach (var line in _summaryExtras)
+                sb.AppendLine("  " + line);
+        }
         return sb.ToString();
     }
 

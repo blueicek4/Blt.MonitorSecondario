@@ -17,13 +17,16 @@ public static class OldMonitor
     public const string ExeName = ProcessName + ".exe";
 
     /// <summary>Un elemento per processo: il percorso completo dell'exe, oppure solo il nome se Windows non lo dà.</summary>
-    public static IReadOnlyList<string> Running()
+    public static IReadOnlyList<string> Running() => Paths(ProcessName);
+
+    /// <summary>I processi aperti con quel nome: il percorso completo dell'exe, oppure solo il nome se Windows non lo dà.</summary>
+    internal static IReadOnlyList<string> Paths(string processName)
     {
         var found = new List<string>();
         Process[] processes;
         try
         {
-            processes = Process.GetProcessesByName(ProcessName);
+            processes = Process.GetProcessesByName(processName);
         }
         catch (Exception)
         {
@@ -34,7 +37,7 @@ public static class OldMonitor
             using (process)
             {
                 var path = ImagePath(process);
-                found.Add(string.IsNullOrEmpty(path) ? ExeName : path);
+                found.Add(string.IsNullOrEmpty(path) ? processName + ".exe" : path);
             }
         }
         return found;
@@ -96,4 +99,16 @@ public static class OldMonitor
 
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern bool CloseHandle(IntPtr handle);
+}
+
+/// <summary>
+/// Il Bluetech Display Agent aperto su questo PC (come programma o come servizio). Legge lo stesso Scontrino.txt e lo
+/// toglie appena letto: mentre si registra va fermato, o le versioni le prende lui.
+/// </summary>
+public static class DisplayAgentProcess
+{
+    public const string ProcessName = "BluetechDisplayAgent";
+    public const string ServiceName = "BluetechDisplayAgent";
+
+    public static IReadOnlyList<string> Running() => OldMonitor.Paths(ProcessName);
 }

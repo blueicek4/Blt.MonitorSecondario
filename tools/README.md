@@ -34,6 +34,56 @@ scriverlo lo apre per un istante come fa il vecchio monitor a ogni lettura.
 Se la cartella non è scrivibile, le registrazioni vanno sul Desktop in `Registrazioni Monitor`.
 La selezione del testo col mouse nella finestra è disattivata: in Windows bloccherebbe la console.
 
+## I sei flussi di pagamento (dalla 1.1)
+
+All'avvio il registratore mostra sei flussi da registrare uno alla volta. Si scrive il numero e Invio, e lui dice
+**un passo alla volta** cosa fare in cassa; fatto il passo, Invio. Ogni passo finisce nell'indice con l'ora, e ogni
+versione del file porta il numero del flusso: la registrazione si legge da sola.
+
+| # | Flusso | Cosa vogliamo vedere |
+|---|---|---|
+| 1 | Pagamento normale in contanti | il conto, il `PAGATO` e il resto senza dispositivi |
+| 2 | Pagamento con transazione POS | cosa arriva al monitor mentre il POS lavora (riuscita e rifiutata) |
+| 3 | Documento con attivazione Glory | cosa mostra la cassa durante il pagamento con la cassa automatica (con resto, e annullato a metà) |
+| 4 | Documento con Satispay | il QR, il pagamento riuscito e quello annullato o scaduto |
+| 5 | Documento con scontrino digitale | il QR dello scontrino digitale dopo il pagamento |
+| 6 | Annullo scontrino | il documento di annullo e cosa resta a video |
+
+Comandi durante un flusso: **Invio** = passo fatto, `/salta` = passo che non si può fare, `/ok` = chiudi il flusso
+prima. `/flussi` rimostra l'elenco con quelli fatti, `/aiuto` i comandi. Le note libere funzionano come prima, e
+durante un flusso portano il suo numero. Un flusso senza nessuna versione nuova è un risultato anche lui: vuol dire che
+quelle operazioni non mandano niente al monitor.
+
+**Foto dello schermo della cassa.** Durante un flusso il registratore fotografa lo schermo (tutti i monitor) una volta
+al secondo, **solo se qualcosa è cambiato**, e a ogni versione del file: così si vede cosa mostra Passepartout (la
+finestra della cassa automatica, del POS, di Satispay) accanto a quello che scrive per il monitor. La finestra del
+registratore non conta come cambiamento. Finiscono in `foto\` come JPEG (al massimo 2000 foto o 800 MB); `/foto`
+le accende e le spegne a mano, `--senza-foto` le esclude del tutto. Le foto mostrano tutto quello che c'è sullo
+schermo: usa articoli di prova e chiudi quello che non deve finire nella registrazione.
+
+**Cattura di rete verso il Glory** (facoltativa). Per vedere cosa si dicono Passepartout e la cassa automatica durante
+il pagamento:
+
+```bat
+BluetechRecorder.exe --glory 192.168.1.50
+```
+
+(oppure `/glory 192.168.1.50` durante la registrazione). Usa `pktmon`, che è già in Windows dalla 10 1809: niente da
+installare. Serve il registratore **avviato come amministratore** (tasto destro › Esegui come amministratore). È solo
+ascolto: alla cassa automatica non si manda niente. Registra il traffico tra questo PC e quell'indirizzo per tutta la
+sessione e alla fine lo mette nello zip come `rete-glory.pcapng` (si apre con Wireshark) e `rete-glory.etl`
+(l'originale; su Windows 10 1809-1909 c'è solo questo, si converte su un Windows più recente con `pktmon etl2pcap`).
+Se pktmon sta già registrando qualcos'altro il registratore non lo tocca. Se il registratore viene chiuso male, la
+cattura può restare accesa: da amministratore `pktmon stop`.
+
+Attenzione: il traffico con il Glory viaggia in chiaro e può contenere l'utente e la password della macchina se è
+attivo il controllo utente. Lo zip va mandato solo a Bluetech, non in chiaro su canali pubblici.
+
+**Il Display Agent.** Se sul PC gira il Bluetech Display Agent, il registratore lo dice all'avvio: toglie anche lui
+`Scontrino.txt` appena letto, e le versioni le prenderebbe lui. Fermalo mentre registri (da amministratore
+`sc stop BluetechDisplayAgent`, alla fine `sc start BluetechDisplayAgent`); intanto il monitor del cliente non si
+aggiorna.
+
 ## Se non arrivano versioni nuove
 
 Cosa sappiamo dalle prove sul campo (stesso PC):
@@ -103,10 +153,12 @@ identico conto (stesso contenuto, data del file cambiata).
 | `0001_hh-mm-ss.fff.txt`… | Ogni versione diversa del file, identica byte per byte all'originale |
 | `0006_qrcode.png` | L'immagine del QR, se Passepartout la manda in Base64 |
 | `letture-instabili\` | Contenuti letti mentre il file veniva scritto (raccontano come scrive Passepartout) |
-| `eventi.jsonl` | Una riga per evento: versioni (codifica, righe aggiunte/tolte, righe in comune col conto precedente, totale, dimensione, data di modifica e di creazione del file), riscritture identiche, letture instabili, file eliminato/creato, note, avvisi, `/consuma` |
+| `eventi.jsonl` | Una riga per evento: versioni (codifica, righe aggiunte/tolte, righe in comune col conto precedente, totale, dimensione, data di modifica e di creazione del file, flusso), riscritture identiche, letture instabili, file eliminato/creato, note, avvisi, `/consuma`, inizio e fine dei flussi, passi, foto, cattura di rete |
 | `sessione.txt` | Versione di Windows, schermi e risoluzioni, WebView2 installato o no, vecchio monitor aperto |
 | `riepilogo.txt` | Conteggi finali, file tolti, tempo minimo tra due scritture (con e senza `/consuma`) |
 | `contesto\` | Copia di `XMLMonitorCliente.xml` e `MonitorCliente.exe.config` se sono nella stessa cartella o in quella del vecchio monitor aperto |
+| `foto\` | Le foto dello schermo durante i flussi (dalla 1.1), con una riga `foto` nell'indice per ognuna |
+| `rete-glory.pcapng`, `rete-glory.etl` | Con `--glory`: il traffico tra il PC e la cassa automatica |
 
 Attenzione: le registrazioni contengono gli scontrini. Per le prove usa articoli di test e, per le fatture,
 un cliente fittizio.

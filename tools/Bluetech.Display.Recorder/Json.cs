@@ -12,6 +12,21 @@ public sealed class JsonObject : IEnumerable<KeyValuePair<string, object>>
 
     public void Add(string key, object value) => _items.Add(new KeyValuePair<string, object>(key, value));
 
+    /// <summary>Il flusso di pagamento in corso, se c'è (0 = nessuno).</summary>
+    public JsonObject WithFlow(int flow)
+    {
+        if (flow > 0)
+            Add("flusso", flow);
+        return this;
+    }
+
+    /// <summary>Come Add, per costruire una riga in una sola espressione.</summary>
+    public JsonObject With(string key, object value)
+    {
+        Add(key, value);
+        return this;
+    }
+
     public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => _items.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

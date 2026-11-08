@@ -15,17 +15,22 @@
     <AssemblyName>BluetechRecorder</AssemblyName>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Company>Bluetech</Company>
     <Product>Bluetech Display Recorder</Product>
     <Description>Registra ogni versione del file Scontrino.txt scritto da Passepartout Menu.</Description>
     <Copyright>Bluetech</Copyright>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Bluetech.Display.Recorder.Tests" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 
