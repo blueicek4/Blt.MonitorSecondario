@@ -4,8 +4,9 @@
 (function () {
   "use strict";
   var KEY = "bluetech.monitor.installazione";
+  // L'app Android di Bluetech (android/) è già a schermo intero: niente invito, come per il Player Windows.
   var installed = matchMedia("(display-mode: fullscreen)").matches || matchMedia("(display-mode: standalone)").matches
-    || navigator.standalone === true;
+    || navigator.standalone === true || /BluetechDisplayAndroid\//.test(navigator.userAgent);
   var ios = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   var android = /Android/i.test(navigator.userAgent);
   var banner = null;

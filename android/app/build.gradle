@@ -1,0 +1,52 @@
+plugins {
+    id "com.android.application"
+}
+
+// La firma: con il keystore nei segreti della CI (sempre lo stesso, così gli aggiornamenti si installano sopra);
+// senza, la chiave di debug, buona per le prove ma diversa a ogni build.
+def keystore = System.getenv("ANDROID_KEYSTORE_FILE")
+
+android {
+    namespace "it.bluetech.display"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "it.bluetech.display"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        release {
+            if (keystore) {
+                storeFile file(keystore)
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig keystore ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}

@@ -1,0 +1,4 @@
+// Bluetech Display per Android: il monitor cliente a schermo intero su un tablet, come il Player su Windows.
+plugins {
+    id "com.android.application" version "8.5.2" apply false
+}
