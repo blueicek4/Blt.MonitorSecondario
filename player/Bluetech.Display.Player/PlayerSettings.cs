@@ -39,6 +39,13 @@ public sealed class PlayerSettings
     public bool TopMost { get; set; } = true;
     public bool HideCursor { get; set; } = true;
     public bool PreventSleep { get; set; } = true;
+
+    /// <summary>
+    /// A schermo intero, se un tocco sul monitor cliente porta in primo piano il Player, il primo piano torna subito alla
+    /// finestra di prima (Passepartout): la tastiera e il lettore di codici a barre restano alla cassa. Si spegne solo
+    /// a mano nel file di configurazione, se in un locale desse problemi.
+    /// </summary>
+    public bool KeepCashFocus { get; set; } = true;
     public int ZoomPercent { get; set; } = 100;
 
     /// <summary>Ricarica periodica della pagina in minuti, 0 = mai.</summary>

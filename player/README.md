@@ -58,6 +58,21 @@ Ogni accesso alla configurazione e la chiusura chiedono il codice. Dopo 5 codici
 
 - **A schermo intero non prende mai il focus**: la tastiera resta a Passepartout anche quando il player si apre o si
   riposiziona.
+- **Monitor touch**: un tocco del cliente (il pulsante "Voglio la copia di carta") non deve togliere la tastiera alla
+  cassa. Un clic sulla finestra non la attiva; e se il browser che c'è dentro si prende comunque il primo piano, il
+  player lo restituisce subito alla finestra di prima, Passepartout (nel log: "Il monitor cliente aveva preso il primo
+  piano…"). Si può spegnere solo a mano, con `<KeepCashFocus>false</KeepCashFocus>` in `player.config.xml`.
+
+## Monitor touch: due cose da fare all'installazione
+
+1. **Il tocco sullo schermo giusto.** Windows deve sapere che il touch è quello del monitor cliente, altrimenti il tocco
+   finisce sullo schermo della cassa: Pannello di controllo › **Impostazioni Tablet PC** › Configura › Input tocco, poi
+   si tocca il monitor cliente quando lo chiede.
+2. **La prova del focus**, una volta, prima di lasciare il locale: Passepartout aperto con il cursore in un campo (la
+   ricerca di un articolo, per esempio), sul monitor cliente uno scontrino digitale con il pulsante; si tocca il
+   pulsante e **subito dopo si scrive qualcosa sulla tastiera della cassa** e si passa un codice a barre. Devono
+   arrivare a Passepartout. Se arrivano al monitor cliente, il log del player dice se la protezione è intervenuta:
+   mandalo a Bluetech.
 - **Non copre mai la cassa**: se il monitor cliente è scollegato il player si nasconde e ricompare quando torna
   (in alternativa, dalla configurazione: finestra sullo schermo principale).
 - Si riposiziona da solo quando cambiano monitor, risoluzione o scala e al risveglio dallo standby.

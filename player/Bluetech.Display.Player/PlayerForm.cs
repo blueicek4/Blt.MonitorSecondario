@@ -40,6 +40,7 @@ sealed class PlayerForm : Form
     bool _browserReady;
     bool _noActivate;
     bool _taskbarButton;
+    readonly FocusGuard _focusGuard;
     bool _windowed;
     FormWindowState _lastState;
     bool _allowClose;
@@ -51,6 +52,7 @@ sealed class PlayerForm : Form
         _forceWindowed = forceWindowed;
         _noActivate = settings.FullScreen && !forceWindowed;
         _taskbarButton = !_noActivate;
+        _focusGuard = new FocusGuard(this) { Enabled = _noActivate && settings.KeepCashFocus };
 
         Text = "Bluetech Display Player";
         Icon = AppIcon.Get();
@@ -227,6 +229,7 @@ sealed class PlayerForm : Form
             _displayChangeTimer.Dispose();
             _restartTimer.Dispose();
             _saveWindowTimer.Dispose();
+            _focusGuard.Dispose();
         }
         base.Dispose(disposing);
     }
@@ -263,9 +266,21 @@ sealed class PlayerForm : Form
         Navigate();
     }
 
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        _focusGuard.Start();
+    }
+
     protected override void WndProc(ref Message m)
     {
         const int WM_DPICHANGED = 0x02E0;
+        // A schermo intero un clic o un tocco, anche sul browser che c'è dentro, non attiva la finestra (docs/03 §7.2).
+        if (m.Msg == NativeMethods.WM_MOUSEACTIVATE && _noActivate)
+        {
+            m.Result = (IntPtr)NativeMethods.MA_NOACTIVATE;
+            return;
+        }
         base.WndProc(ref m);
         // Su monitor con scala diversa Windows ridimensiona la finestra: la riportiamo esattamente sullo schermo.
         if (m.Msg == WM_DPICHANGED && FormBorderStyle == FormBorderStyle.None)
@@ -351,6 +366,7 @@ sealed class PlayerForm : Form
     void SetNoActivate(bool enabled)
     {
         _noActivate = enabled;
+        _focusGuard.Enabled = enabled && _settings.KeepCashFocus;
         if (!IsHandleCreated)
             return;
         var style = NativeMethods.GetWindowLong(Handle, NativeMethods.GWL_EXSTYLE);

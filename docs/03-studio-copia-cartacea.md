@@ -254,6 +254,13 @@ proviamo.**
 4. Windows deve sapere che il touch è quello del monitor cliente ("Impostazioni Tablet PC" → "Configura"),
    altrimenti il tocco finisce sullo schermo della cassa. Va nelle istruzioni di installazione.
 
+**Fatto (08/11), da provare sul monitor vero**: il Player risponde `MA_NOACTIVATE` a `WM_MOUSEACTIVATE` (anche per i
+clic che salgono dalle finestre del browser) e ha il **ripristino immediato** del punto 3: guarda i cambi di primo piano
+(`EVENT_SYSTEM_FOREGROUND`, senza entrare negli altri processi) e, se il primo piano passa al Player a schermo intero, lo
+restituisce subito alla finestra di prima. Si spegne con `KeepCashFocus=false`. La prova del punto 1, con la tastiera
+e il lettore di codici a barre subito dopo il tocco, è nel README del Player; se il ripristino non bastasse (tasti persi
+in quell'istante), resta la modalità visuale di WebView2.
+
 Senza touch la funzione resta utile **senza pulsante**: scontrino a video, QR e la scritta "Vuoi la copia di carta?
 Chiedila alla cassa".
 
