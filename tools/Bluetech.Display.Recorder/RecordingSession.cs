@@ -133,9 +133,6 @@ public sealed class RecordingSession : IDisposable
         set => _flow = value;
     }
 
-    /// <summary>Dopo ogni versione nuova (il suo numero), fuori dal thread che legge il file.</summary>
-    public event Action<int> VersionRecorded;
-
     /// <summary>Una riga dell'indice già con tipo, ora, millisecondi dall'inizio e flusso in corso.</summary>
     public JsonObject NewEvent(string type)
     {
@@ -464,8 +461,7 @@ public sealed class RecordingSession : IDisposable
             var temp = zip + ".tmp";
             if (File.Exists(temp))
                 File.Delete(temp);
-            // Fastest: le foto JPEG e le catture non si comprimono comunque, e alla chiusura della finestra il tempo è poco.
-            ZipFile.CreateFromDirectory(SessionFolder, temp, CompressionLevel.Fastest, includeBaseDirectory: true);
+            ZipFile.CreateFromDirectory(SessionFolder, temp, CompressionLevel.Optimal, includeBaseDirectory: true);
             if (File.Exists(zip))
                 File.Delete(zip);
             File.Move(temp, zip);
@@ -978,9 +974,6 @@ public sealed class RecordingSession : IDisposable
             _log.Line(line.Text, line.Color);
         if (newEncoding)
             _log.Line($"         codifica {analysis.Encoding}, fine riga {analysis.LineEndings}", ConsoleColor.DarkGray);
-        var recorded = VersionRecorded;
-        if (recorded != null)
-            ThreadPool.QueueUserWorkItem(_ => recorded(seq));
         return true;
     }
 

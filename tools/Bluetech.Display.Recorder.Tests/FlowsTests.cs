@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -8,14 +7,14 @@ using Xunit;
 
 namespace Bluetech.Display.Recorder.Tests;
 
-/// <summary>Il percorso dei flussi di pagamento e le foto dello schermo, con una fotocamera finta.</summary>
-public sealed class FlowsAndPhotosTests : IDisposable
+/// <summary>Il percorso dei flussi di pagamento e quello che lascia nell'indice.</summary>
+public sealed class FlowsTests : IDisposable
 {
     readonly string _root = Path.Combine(Path.GetTempPath(), "bt-recorder-flussi-" + Guid.NewGuid().ToString("N"));
     readonly string _target;
     readonly TestLog _log = new();
 
-    public FlowsAndPhotosTests()
+    public FlowsTests()
     {
         _target = Path.Combine(_root, "MonitorSecondario", "Scontrino.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(_target));
@@ -41,8 +40,6 @@ public sealed class FlowsAndPhotosTests : IDisposable
         Assert.Equal(6, PaymentFlow.All.Count);
         Assert.Equal(new[] { 1, 2, 3, 4, 5, 6 }, PaymentFlow.All.Select(f => f.Number));
         Assert.Contains("Glory", PaymentFlow.Find(3).Name);
-        Assert.True(PaymentFlow.Find(3).Glory);
-        Assert.Single(PaymentFlow.All, f => f.Glory);
         Assert.Contains("Satispay", PaymentFlow.Find(4).Name);
         Assert.Contains("digitale", PaymentFlow.Find(5).Name);
         Assert.Contains("Annullo", PaymentFlow.Find(6).Name);
@@ -113,95 +110,6 @@ public sealed class FlowsAndPhotosTests : IDisposable
         session.Stop();
         Assert.Contains(Index(session), l => l.Contains("\"tipo\":\"inizio\"") && l.Contains("BluetechDisplayAgent.exe"));
         Assert.Contains("Display Agent aperto: C:\\Bluetech\\Agent\\BluetechDisplayAgent.exe", File.ReadAllText(Path.Combine(session.SessionFolder, "sessione.txt")));
-    }
-
-    /// <summary>Fotocamera finta: ogni foto è quella che il test ha messo in coda (o null se lo schermo non si legge).</summary>
-    sealed class FakeCamera : IScreenCamera
-    {
-        public readonly Queue<ScreenShot> Next = new();
-        public int Taken;
-
-        public ScreenShot Take()
-        {
-            Taken++;
-            return Next.Count > 0 ? Next.Dequeue() : null;
-        }
-
-        public static ScreenShot Shot(byte cell, int size = 100) => new()
-        {
-            Jpeg = Enumerable.Repeat((byte)0xFF, size).ToArray(),
-            Fingerprint = Enumerable.Repeat(cell, 96 * 54).ToArray(),
-            Width = 1920,
-            Height = 1080,
-        };
-    }
-
-    [Fact]
-    public void Photos_are_saved_only_when_the_screen_changes_and_a_version_points_to_the_last_one()
-    {
-        using var session = NewSession();
-        session.Start();
-        var camera = new FakeCamera();
-        var recorder = new ScreenRecorder(camera, session, _log, Timeout.Infinite);   // le foto le comanda il test
-        Assert.True(recorder.SetOn(true));
-        camera.Next.Enqueue(FakeCamera.Shot(10));
-        recorder.Capture("prova", onlyIfChanged: true);
-        camera.Next.Enqueue(FakeCamera.Shot(12));   // sotto la soglia: uguale
-        recorder.Capture("ogni secondo", onlyIfChanged: true);
-        camera.Next.Enqueue(FakeCamera.Shot(12));
-        recorder.Capture("versione #0001", onlyIfChanged: false);
-        camera.Next.Enqueue(FakeCamera.Shot(40));   // cambiata
-        recorder.Capture("ogni secondo", onlyIfChanged: true);
-        recorder.Stop();
-        session.Stop();
-
-        Assert.Equal(2, recorder.Count);
-        Assert.Equal(2, Directory.GetFiles(Path.Combine(session.SessionFolder, "foto"), "*.jpg").Length);
-        var index = Index(session);
-        Assert.Contains(index, l => l.Contains("\"tipo\":\"foto\"") && l.Contains("versione #0001") && l.Contains("\"schermoUguale\":true") && l.Contains("0001_"));
-        Assert.Equal(2, index.Count(l => l.Contains("\"tipo\":\"foto\"") && l.Contains("\"byte\":100")));
-    }
-
-    [Fact]
-    public void A_screen_that_cannot_be_read_turns_the_photos_off_with_the_reason()
-    {
-        using var session = NewSession();
-        session.Start();
-        var recorder = new ScreenRecorder(new FakeCamera(), session, _log, Timeout.Infinite);
-        recorder.SetOn(true);
-        for (var i = 0; i < 3; i++)
-            recorder.Capture("ogni secondo", onlyIfChanged: true);   // tre volte di fila lo schermo non si legge
-        Assert.False(recorder.On);
-        Assert.False(recorder.SetOn(true));
-        Assert.Contains("non si legge", recorder.DisabledReason);
-        recorder.Stop();
-        session.Stop();
-        Assert.Contains(Index(session), l => l.Contains("\"tipo\":\"foto-schermo\"") && l.Contains("non si legge"));
-    }
-
-    [Fact]
-    public void Without_a_camera_photos_say_why_and_stay_off()
-    {
-        using var session = NewSession();
-        session.Start();
-        var recorder = new ScreenRecorder(null, session, _log);
-        Assert.False(recorder.SetOn(true));
-        Assert.Contains("Windows", recorder.DisabledReason);
-        recorder.Stop();
-        session.Stop();
-    }
-
-    [Fact]
-    public void One_changed_cell_is_a_change()
-    {
-        var a = new byte[96 * 54];
-        var b = (byte[])a.Clone();
-        Assert.False(ScreenRecorder.Differs(a, b));
-        b[1234] = ScreenRecorder.ChangeThreshold - 1;
-        Assert.False(ScreenRecorder.Differs(a, b));
-        b[1234] = ScreenRecorder.ChangeThreshold;
-        Assert.True(ScreenRecorder.Differs(a, b));
-        Assert.True(ScreenRecorder.Differs(a, null));
     }
 
     static void WaitUntil(Func<bool> condition)

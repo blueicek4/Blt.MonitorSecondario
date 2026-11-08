@@ -16,30 +16,22 @@ static class Program
     const string SkipCommand = "/salta";
     const string EndFlowCommand = "/ok";
     const string FlowsCommand = "/flussi";
-    const string PhotoCommand = "/foto";
-    const string GloryCommand = "/glory";
     const string HelpCommand = "/aiuto";
 
     static RecordingSession _session;
-    static ScreenRecorder _photos;
-    static GloryCapture _glory;
     static readonly FlowGuide _guide = new();
     static readonly object _flowSync = new();
-    static bool _autoPhotos;        // accese dal flusso: si spengono quando il flusso finisce
-    static bool _photosAllowed = true;
     static int _versionsAtFlowStart;
-    static int _photosAtFlowStart;
-    static bool _extrasStopped;
+    static bool _flowsClosed;
     static int _finished;
 
     /// <summary>
-    /// BluetechRecorder.exe [file o cartella] [--out cartella] [--senza-consumo] [--senza-foto] [--glory IP]
+    /// BluetechRecorder.exe [file o cartella] [--out cartella] [--senza-consumo]
     /// Il file viene tolto subito dopo ogni lettura, come farà il nuovo monitor (prova A/B/A del 20/10):
     /// --senza-consumo (o /consuma durante la registrazione) lo lascia dov'è, solo per le prove di diagnosi.
     /// Senza argomenti registra C:\MonitorSecondario\Scontrino.txt.
     /// Si può anche trascinare il file Scontrino.txt sull'eseguibile.
-    /// I flussi di pagamento (1-6) guidano le prove una alla volta, con le foto dello schermo della cassa; --glory
-    /// registra anche il traffico di rete tra questo PC e la cassa automatica (serve l'amministratore).
+    /// I flussi di pagamento (1-6) guidano le prove una alla volta: ogni versione del file porta il numero del flusso.
     /// </summary>
     static int Main(string[] args)
     {
@@ -48,7 +40,7 @@ static class Program
         Console.OutputEncoding = new UTF8Encoding(false);
         Console.Title = "Bluetech Recorder";
 
-        string target = null, output = null, gloryAddress = null;
+        string target = null, output = null;
         var consume = true;
         for (var i = 0; i < args.Length; i++)
         {
@@ -58,10 +50,6 @@ static class Program
                 consume = false;
             else if (string.Equals(args[i], "--consuma", StringComparison.OrdinalIgnoreCase))
                 consume = true;   // il default; accettato per chi lo usava già
-            else if (string.Equals(args[i], "--senza-foto", StringComparison.OrdinalIgnoreCase))
-                _photosAllowed = false;
-            else if (string.Equals(args[i], "--glory", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-                gloryAddress = args[++i].Trim();
             else
                 target ??= CleanPath(args[i]);
         }
@@ -131,12 +119,6 @@ static class Program
         DescribeOldMonitors(log, _session);
         DescribeDisplayAgents(log, _session);
 
-        _photos = new ScreenRecorder(_photosAllowed ? ScreenCamera.Create() : null, _session, log);
-        _session.VersionRecorded += seq => _photos.Shoot($"versione #{seq:0000}");
-        _glory = new GloryCapture(_session, log);
-        if (gloryAddress != null)
-            _glory.Start(gloryAddress);
-
         log.Line("");
         PrintFlows(log, withHelp: true);
         log.Line("Fuori dai flussi: scrivi una nota e premi Invio per segnare cosa stai facendo in cassa", ConsoleColor.Yellow);
@@ -195,20 +177,6 @@ static class Program
                 PrintHelp(log);
                 continue;
             }
-            if (string.Equals(line, PhotoCommand, StringComparison.OrdinalIgnoreCase))
-            {
-                TogglePhotos(log);
-                continue;
-            }
-            if (line.StartsWith(GloryCommand, StringComparison.OrdinalIgnoreCase))
-            {
-                var address = line.Substring(GloryCommand.Length).Trim();
-                if (address.Length == 0)
-                    log.Line($"Scrivi {GloryCommand} seguito dall'indirizzo della cassa automatica, es. {GloryCommand} 192.168.1.50", ConsoleColor.DarkYellow);
-                else
-                    _glory.Start(address);
-                continue;
-            }
             if (string.Equals(line, ConsumeCommand, StringComparison.OrdinalIgnoreCase))
             {
                 _session.SetConsumeMode(!_session.ConsumeMode);
@@ -230,7 +198,7 @@ static class Program
     /// <summary>Chiusura unica, qualunque sia la strada (comando, Ctrl+C, chiusura della finestra).</summary>
     static void Finish(ConsoleLog log)
     {
-        StopExtras(log);
+        CloseFlows(log);
         _session.Stop();
         if (Interlocked.Exchange(ref _finished, 1) == 1)
             return;
@@ -251,27 +219,21 @@ static class Program
     }
 
     /// <summary>
-    /// Prima della sessione: il flusso in corso finisce come interrotto, le foto si fermano, la cattura di rete si
-    /// ferma e si converte. Tutto finisce nella cartella prima dello zip. Una volta sola, anche da più thread.
+    /// Prima della sessione: il flusso in corso finisce come interrotto e il riepilogo dei flussi entra nella
+    /// cartella prima dello zip. Una volta sola; chi arriva insieme (Ctrl+C e chiusura della finestra) aspetta
+    /// sul lock che il primo abbia finito, così la sessione non si chiude prima.
     /// </summary>
-    static void StopExtras(ConsoleLog log)
+    static void CloseFlows(ConsoleLog log)
     {
         lock (_flowSync)
         {
-            if (_extrasStopped || _session == null)
+            if (_flowsClosed || _session == null)
                 return;
-            _extrasStopped = true;
+            _flowsClosed = true;
             if (_guide.Current != null)
                 CloseFlow(log, complete: false);
+            _session.AddSummary("Flussi: " + _guide.Progress());
         }
-        _glory?.Halt();     // prima di tutto: una cattura dimenticata resterebbe accesa
-        _photos?.Stop();
-        _glory?.Convert();
-        _session.AddSummary("Flussi: " + _guide.Progress());
-        if (_photos != null)
-            _session.AddSummary($"Foto dello schermo: {_photos.Count} ({_photos.Bytes / 1024 / 1024} MB){(_photos.DisabledReason != null ? " — " + _photos.DisabledReason : "")}");
-        if (_glory != null && _glory.Summary != null)
-            _session.AddSummary("Cattura di rete verso la cassa automatica: " + _glory.Summary);
     }
 
     static void PrintFlows(ConsoleLog log, bool withHelp)
@@ -287,8 +249,7 @@ static class Program
     static void PrintHelp(ConsoleLog log)
     {
         log.Line($"Durante un flusso: Invio quando hai fatto il passo, {SkipCommand} se non si può fare, {EndFlowCommand} per chiuderlo prima.", ConsoleColor.Cyan);
-        log.Line($"{PhotoCommand} accende e spegne le foto dello schermo, {FlowsCommand} rimostra l'elenco, {GloryCommand} IP registra il traffico", ConsoleColor.Cyan);
-        log.Line("con la cassa automatica (da amministratore), /fine chiude la registrazione e prepara lo zip.", ConsoleColor.Cyan);
+        log.Line($"{FlowsCommand} rimostra l'elenco, {StopCommand} chiude la registrazione e prepara lo zip.", ConsoleColor.Cyan);
         log.Line("");
     }
 
@@ -296,33 +257,18 @@ static class Program
     {
         lock (_flowSync)
         {
-            if (_extrasStopped)
+            if (_flowsClosed)
                 return;
             if (_guide.Current != null)
                 CloseFlow(log, complete: false);
             _guide.Begin(flow);
             _session.CurrentFlow = flow.Number;
             _versionsAtFlowStart = _session.Versions;
-            _photosAtFlowStart = _photos.Count;
             _session.WriteEvent(_session.NewEvent("flusso").With("azione", "inizio").With("numero", flow.Number).With("nome", flow.Name));
 
             log.Line("");
             log.Line($"── Flusso {flow.Number} · {flow.Name} ──", ConsoleColor.Green);
             log.Line($"   Serve a vedere {flow.Why}.", ConsoleColor.DarkGray);
-            if (!_photos.On && _photosAllowed)
-            {
-                _autoPhotos = _photos.SetOn(true);
-                log.Line(_autoPhotos
-                    ? "   Foto dello schermo accese: una al secondo, solo se cambia qualcosa, e una a ogni versione."
-                    : "   Foto dello schermo non disponibili: " + (_photos.DisabledReason ?? "?") + ".", ConsoleColor.DarkGray);
-            }
-            if (flow.Glory)
-            {
-                log.Line(_glory.Running
-                    ? $"   Cattura di rete verso la cassa automatica ({_glory.Address}) attiva."
-                    : $"   Per registrare anche cosa si dicono la cassa e il Glory: {GloryCommand} seguito dall'indirizzo del Glory (da amministratore).",
-                    _glory.Running ? ConsoleColor.DarkGray : ConsoleColor.Yellow);
-            }
             ShowStep(log);
         }
     }
@@ -340,7 +286,7 @@ static class Program
         lock (_flowSync)
         {
             var flow = _guide.Current;
-            if (flow == null || _extrasStopped)
+            if (flow == null || _flowsClosed)
             {
                 if (skipped)
                     log.Line("Nessun flusso in corso: scrivi un numero da 1 a 6 per cominciarne uno.", ConsoleColor.DarkYellow);
@@ -376,41 +322,15 @@ static class Program
         var flow = _guide.End(out var finished);
         complete &= finished;
         var versions = _session.Versions - _versionsAtFlowStart;
-        var photos = _photos.Count - _photosAtFlowStart;
         _session.WriteEvent(_session.NewEvent("flusso").With("azione", complete ? "fine" : "interrotto").With("numero", flow.Number)
-            .With("versioni", versions).With("foto", photos));
+            .With("versioni", versions));
         _session.CurrentFlow = 0;
-        if (_autoPhotos)
-        {
-            _photos.SetOn(false);
-            _autoPhotos = false;
-        }
-        log.Line($"   Flusso {flow.Number} {(complete ? "completato" : "interrotto")}: {versions} {(versions == 1 ? "versione" : "versioni")} del file, {photos} foto.",
+        log.Line($"   Flusso {flow.Number} {(complete ? "completato" : "interrotto")}: {versions} {(versions == 1 ? "versione" : "versioni")} del file.",
             complete ? ConsoleColor.Green : ConsoleColor.DarkYellow);
         if (versions == 0)
             log.Line("   Nessuna versione nuova: se in cassa hai fatto i passi, Passepartout non ha scritto niente per il monitor (è un risultato anche questo).", ConsoleColor.DarkGray);
         log.Line("   Fatti: " + _guide.Progress() + ". Scrivi il numero del prossimo, o /fine.", ConsoleColor.Cyan);
         log.Line("");
-    }
-
-    static void TogglePhotos(ConsoleLog log)
-    {
-        if (!_photosAllowed)
-        {
-            log.Line("Foto dello schermo spente all'avvio (--senza-foto).", ConsoleColor.DarkYellow);
-            return;
-        }
-        lock (_flowSync)
-        {
-            var on = !_photos.On;
-            if (!_photos.SetOn(on))
-            {
-                log.Line("Foto dello schermo non disponibili: " + (_photos.DisabledReason ?? "?") + ".", ConsoleColor.DarkYellow);
-                return;
-            }
-            _autoPhotos = false;   // scelta a mano: resta com'è anche quando il flusso finisce
-            log.Line(on ? "Foto dello schermo accese." : "Foto dello schermo spente.", ConsoleColor.Cyan);
-        }
     }
 
     /// <summary>Il Display Agent toglie lo stesso file: le versioni le prenderebbe lui.</summary>
@@ -420,7 +340,7 @@ static class Program
             return;
         log.Line($"Attenzione: il Bluetech Display Agent è aperto ({string.Join(", ", session.DisplayAgents)}).", ConsoleColor.Magenta);
         log.Line("Toglie anche lui Scontrino.txt appena letto: se legge questo file, le versioni le prende lui e qui non arrivano.", ConsoleColor.Magenta);
-        log.Line($"Fermalo mentre registri. Da amministratore: sc stop {DisplayAgentProcess.ServiceName}  (alla fine: sc start {DisplayAgentProcess.ServiceName}).", ConsoleColor.Magenta);
+        log.Line($"Fermalo mentre registri. Da amministratore: sc.exe stop {DisplayAgentProcess.ServiceName}  (alla fine: sc.exe start {DisplayAgentProcess.ServiceName}).", ConsoleColor.Magenta);
         log.Line("Se gira come programma e non come servizio, chiudilo. Intanto il monitor del cliente non si aggiorna.", ConsoleColor.Magenta);
     }
 

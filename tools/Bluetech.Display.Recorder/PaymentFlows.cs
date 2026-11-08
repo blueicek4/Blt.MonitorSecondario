@@ -10,12 +10,11 @@ namespace Bluetech.Display.Recorder;
 /// </summary>
 public sealed class PaymentFlow
 {
-    public PaymentFlow(int number, string name, string why, bool glory, params string[] steps)
+    public PaymentFlow(int number, string name, string why, params string[] steps)
     {
         Number = number;
         Name = name;
         Why = why;
-        Glory = glory;
         Steps = steps;
     }
 
@@ -23,41 +22,39 @@ public sealed class PaymentFlow
     public string Name { get; }
     /// <summary>Cosa vogliamo scoprire con questo flusso, in una riga.</summary>
     public string Why { get; }
-    /// <summary>Il flusso della cassa automatica: è quello in cui serve di più la cattura di rete.</summary>
-    public bool Glory { get; }
     public IReadOnlyList<string> Steps { get; }
 
     public static readonly IReadOnlyList<PaymentFlow> All = new[]
     {
-        new PaymentFlow(1, "Pagamento normale in contanti", "il conto, il PAGATO e il resto senza dispositivi", false,
+        new PaymentFlow(1, "Pagamento normale in contanti", "il conto, il PAGATO e il resto senza dispositivi",
             "Batti 3 articoli, uno dei quali due volte.",
             "Se lo usate, fai il conto (preconto).",
             "Incassa in contanti dando il resto (es. 50,00 su 23,50).",
             "Aspetta 10 secondi senza toccare niente."),
-        new PaymentFlow(2, "Pagamento con transazione POS", "cosa arriva al monitor mentre il POS lavora", false,
+        new PaymentFlow(2, "Pagamento con transazione POS", "cosa arriva al monitor mentre il POS lavora",
             "Batti 2 articoli.",
             "Paga con carta sul POS collegato e aspetta l'esito.",
             "Se puoi, un secondo conto con la transazione rifiutata o annullata sul POS.",
             "Aspetta 10 secondi senza toccare niente."),
-        new PaymentFlow(3, "Documento con attivazione Glory", "cosa mostra la cassa durante il pagamento con la cassa automatica", true,
+        new PaymentFlow(3, "Documento con attivazione Glory", "se Passepartout scrive qualcosa per il monitor mentre la cassa automatica incassa",
             "Batti 2 articoli con un totale non tondo (es. 23,50).",
             "Avvia il pagamento con la cassa automatica.",
             "Inserisci il contante un pezzo alla volta: prima meno del totale, poi il resto, così che dia il resto.",
             "Ritira il resto e aspetta che la cassa chiuda il documento.",
             "Un secondo conto: avvia il pagamento con la cassa automatica e annullalo a metà inserimento.",
             "Aspetta 10 secondi senza toccare niente."),
-        new PaymentFlow(4, "Documento con Satispay", "il QR a video, il pagamento riuscito e quello che non va a buon fine", false,
+        new PaymentFlow(4, "Documento con Satispay", "il QR a video, il pagamento riuscito e quello che non va a buon fine",
             "Batti 2 articoli.",
             "Scegli Satispay: deve comparire il QR.",
             "Paga dall'app Satispay e aspetta la conferma.",
             "Un secondo conto con Satispay: annullalo o lascia scadere il QR.",
             "Aspetta 10 secondi senza toccare niente."),
-        new PaymentFlow(5, "Documento con scontrino digitale", "il QR dello scontrino digitale dopo il pagamento", false,
+        new PaymentFlow(5, "Documento con scontrino digitale", "il QR dello scontrino digitale dopo il pagamento",
             "Batti 2 articoli.",
             "Paga (contanti o carta) con lo scontrino digitale attivo.",
             "Aspetta il QR dello scontrino digitale e lascialo a video.",
             "Aspetta 30 secondi senza toccare niente."),
-        new PaymentFlow(6, "Annullo scontrino", "il documento di annullo e cosa resta a video", false,
+        new PaymentFlow(6, "Annullo scontrino", "il documento di annullo e cosa resta a video",
             "Batti 2 articoli e chiudi lo scontrino con un pagamento.",
             "Fai l'annullo dello scontrino appena emesso (documento di annullo).",
             "Aspetta 10 secondi senza toccare niente."),
