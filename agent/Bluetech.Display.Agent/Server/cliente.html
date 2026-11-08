@@ -390,8 +390,11 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 :root[data-layout='palmare'] #thanks .qrcard { flex-direction: column; text-align: center; }
 
 /* Lo scontrino digitale (SPEC §2.7): tre blocchi sui sei posti (3 colonne × 2 righe). Le colonne vuote spariscono. */
-#receipt { display: flex; align-items: center; justify-content: center;
+#receipt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--receipt-gap) * 0.32);
   padding: calc(var(--pad-y) + var(--head-h) + 16px) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); }
+/* Con lo scontrino digitale non c'è il Grazie a parte: il saluto sta sopra lo scontrino (deciso con il locale, 08/11). */
+#receipt .rthanks { margin: 0; flex-shrink: 0; font-family: var(--font-display); font-size: calc(var(--t-thanks) * 0.56); font-weight: 700; line-height: 1;
+  letter-spacing: -0.035em; text-align: center; animation: bt-rise 520ms var(--e-out) both; }
 #receipt .grid { display: flex; align-items: stretch; justify-content: center; gap: var(--receipt-gap); max-width: 100%; max-height: 100%; min-height: 0; }
 #receipt .col { display: flex; flex-direction: column; justify-content: center; gap: calc(var(--receipt-gap) * 0.3); min-height: 0; }
 #receipt .col.pair { justify-content: space-between; }
@@ -400,10 +403,11 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 #receipt .col:nth-child(3) > * { animation-delay: 280ms; }
 :root[data-layout='portrait'] #receipt .grid { flex-direction: column; align-items: center; width: 100%; }
 :root[data-layout='portrait'] #receipt .col { flex-direction: row; align-items: center; justify-content: center; }
-:root[data-layout='palmare'] #receipt { align-items: flex-start; overflow-y: auto; padding-top: calc(var(--pad-y) + var(--head-h)); }
+:root[data-layout='palmare'] #receipt { align-items: stretch; justify-content: flex-start; gap: 22px; overflow-y: auto; padding-top: calc(var(--pad-y) + var(--head-h)); }
+:root[data-layout='palmare'] #receipt .rthanks { font-size: calc(var(--t-thanks) * 0.7); }
 :root[data-layout='palmare'] #receipt .grid { flex-direction: column; align-items: stretch; width: 100%; gap: 14px; }
 .rblock-qr { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
-.rblock-qr h2 { margin: 0; font-family: var(--font-display); font-size: calc(var(--t-hint) * 1.35); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
+.rblock-qr h2 { margin: 0; font-family: var(--font-display); font-size: calc(var(--t-hint) * 0.9); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
 .rblock-qr .sub { color: var(--c-muted); font-size: calc(var(--t-hint) * 0.6); margin-top: -6px; }
 .rblock-qr .demo { font-size: calc(var(--t-label) * 0.85); letter-spacing: 0.16em; text-transform: uppercase; color: var(--c-accent); border: 1px solid currentColor; border-radius: 999px; padding: 3px 12px; }
 .rblock-qr .qrbox { border-radius: calc(var(--radius) * 2.4); }
@@ -611,7 +615,7 @@ html.nocursor, html.nocursor * { cursor: none !important; }
     <div class="flash"></div>
   </section>
 
-  <section id="receipt" class="screen" aria-label="Scontrino digitale"><div class="grid" id="receiptgrid"></div></section>
+  <section id="receipt" class="screen" aria-label="Scontrino digitale"><h1 class="rthanks" id="receiptthanks">Grazie e arrivederci</h1><div class="grid" id="receiptgrid"></div></section>
 
   <div class="powered" aria-label="powered by Bluetech">
     <span class="by">powered by</span>
@@ -834,6 +838,7 @@ function applyTexts() {
   welcome.append(el("div", "text", texts.benvenuto || (logo || id.nomeLocale ? "" : "Benvenuti")));
   $("receipttitle").textContent = texts.titoloConto || "Il tuo conto";
   $("thankstext").textContent = texts.grazie || "Grazie e arrivederci";
+  $("receiptthanks").textContent = texts.grazie || "Grazie e arrivederci";
   const ticker = document.querySelector(".ticker");
   const track = ticker.querySelector(".track");
   track.replaceChildren();
@@ -1250,6 +1255,8 @@ const state = { phase: "idle", lines: [], total: 0, cover: 0, bill: false, payme
 const voidTimes = new Map();
 let thanksTimer = 0;
 let receiptTimer = 0;
+// Il PAGATO con lo scontrino digitale subito dietro: niente Grazie a parte, si aspetta lo scontrino (al massimo 1,5 s).
+let receiptWaitTimer = 0;
 let messageTimer = 0;
 let thanksStartedAt = 0;
 let firstSync = true;
@@ -1258,6 +1265,7 @@ let everSynced = false;
 function clearSale(phase) {
   clearTimeout(thanksTimer);
   clearTimeout(receiptTimer);
+  clearTimeout(receiptWaitTimer);
   resetRows();
   state.phase = phase; state.lines = []; state.total = 0; state.cover = 0; state.payment = null; state.paid = null;
   state.bill = false; state.receiptQr = null; state.receipt = null;
@@ -1280,11 +1288,14 @@ function startThanks() {
   thanksFor(thanksDuration());
 }
 
-/** Lo scontrino digitale arriva dopo il Grazie: la celebrazione finisce prima (MOTION, "Grazie → reclame → scontrino"). */
+/**
+ * Lo scontrino digitale va a video subito, con il saluto del Grazie sopra: il cliente deve inquadrare il QR, e il Grazie
+ * a parte prima dello scontrino non gli dava niente (deciso con il locale, 08/11; il design prevedeva Grazie → scontrino).
+ * Se il Grazie era già partito (il QR arrivato dopo il PAGATO), lo scontrino lo sostituisce.
+ */
 function showReceipt() {
   clearTimeout(receiptTimer);
-  const wait = state.phase === "thanks" ? 2400 - (Date.now() - thanksStartedAt) : 0;
-  if (wait > 0) { receiptTimer = setTimeout(() => { if (state.receipt) { state.phase = "receipt"; clearTimeout(thanksTimer); render(); } }, wait); return; }
+  clearTimeout(receiptWaitTimer);
   clearTimeout(thanksTimer);
   state.phase = "receipt";
 }
@@ -1326,7 +1337,14 @@ function apply(m) {
     case "sale.total": state.total = m.total; state.cover = m.cover || 0; state.bill = !!m.bill; break;
     case "sale.close":
       if (!m.paid) { if (state.receipt) { state.phase = "receipt"; state.lines = []; } else clearSale("idle"); break; }
-      state.phase = "thanks"; state.payment = null; state.paid = m.paid;
+      state.payment = null; state.paid = m.paid;
+      if (m.receipt) {
+        // L'Agent dice che lo scontrino digitale arriva subito dietro: niente Grazie in mezzo. Se non arrivasse, il Grazie.
+        clearTimeout(receiptWaitTimer);
+        receiptWaitTimer = setTimeout(() => { if (state.phase !== "receipt" && state.paid) { state.phase = "thanks"; startThanks(); render(); } }, 1500);
+        break;
+      }
+      state.phase = "thanks";
       startThanks();
       break;
     case "pay.qr": state.phase = "payment"; state.payment = { png: m.png, amount: m.amount, caption: m.caption }; break;
@@ -1847,7 +1865,8 @@ function renderReceipt() {
   const overflows = () => {
     const screen = $("receipt");
     const paper = grid.querySelector(".paper");
-    return grid.scrollWidth > screen.clientWidth - 2 * cssNumber("--pad-x") + 1 || grid.scrollHeight > screen.clientHeight - 20
+    const title = $("receiptthanks").offsetHeight + (parseFloat(getComputedStyle(screen).rowGap) || 0);
+    return grid.scrollWidth > screen.clientWidth - 2 * cssNumber("--pad-x") + 1 || grid.scrollHeight > screen.clientHeight - 20 - title
       || (paper && layoutName() !== "palmare" && paper.scrollHeight > paper.clientHeight + 1);
   };
   // Quando manca spazio: la carta va in due colonne, poi raggruppa le righe minori; poi cade la reclame, poi la carta.

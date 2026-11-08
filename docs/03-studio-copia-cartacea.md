@@ -156,10 +156,10 @@ arriva anche in fondo allo scontrino pagato. L'ordine vero (08/11, due volte su 
 aperta, poi 0,3 s dopo lo scontrino con `PAGATO`**, il contrario di quello che ci aspettavamo dal vecchio monitor 6.0.
 Quindi l'Agent:
 
-- tiene da parte il QR arrivato a vendita aperta e lo manda a video con lo scontrino pagato che lo segue entro 3 s,
-  dopo il Grazie; se i due link si conoscono tutti e due, devono essere lo stesso;
+- tiene da parte il QR arrivato a vendita aperta e lo manda a video con lo scontrino pagato che lo segue entro 3 s;
+  se i due link si conoscono tutti e due, devono essere lo stesso;
 - se il `PAGATO` non arriva entro 3 s, mostra il **solo QR** sopra la vendita, che resta aperta; se il `PAGATO` arriva
-  più tardi con lo stesso link, il Grazie e poi lo stesso scontrino con il conto;
+  più tardi con lo stesso link, lo stesso scontrino con il conto;
 - un QR che arriva a vendita chiusa (l'ordine del vecchio monitor 6.0) si abbina all'ultimo conto pagato se è entro
   30 s, nel frattempo non è partita un'altra vendita e il link (quando c'è) è lo stesso;
 - se arriva solo il link, il QR lo fa l'Agent dal link ricostruito.
@@ -271,7 +271,10 @@ Chiedila alla cassa".
 
 ## 8. La schermata
 
-Nuovo stato del display, **Il tuo scontrino** (`receipt`), dopo Grazie.
+Nuovo stato del display, **Il tuo scontrino** (`receipt`). All'inizio veniva dopo il Grazie; dall'08/11, su richiesta
+del locale, lo sostituisce: il saluto ("Grazie e arrivederci", la scritta Grazie di Aspetto) sta sopra lo scontrino,
+che va a video subito, e "Il tuo scontrino" diventa l'etichetta del QR. L'Agent avvisa il display nel `sale.close`
+(`receipt: true`) per non far lampeggiare il Grazie.
 
 | Formato | Disposizione |
 |---|---|

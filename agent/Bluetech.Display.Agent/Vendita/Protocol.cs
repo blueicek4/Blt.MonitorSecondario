@@ -62,10 +62,19 @@ public sealed record SaleTotal(long Total, int Cover, bool Bill = false) : CashI
 public sealed record SaleClose(Cassa.Payment? Paid) : CashIn
 {
     public override string Type => "sale.close";
+
+    /// <summary>
+    /// Estensione: lo scontrino digitale di questo conto arriva subito dietro (<c>receipt.digital</c>). Il display va
+    /// dritto allo scontrino, con il saluto sopra, senza il Grazie a parte.
+    /// </summary>
+    public bool ReceiptFollows { get; init; }
+
     protected override void Fill(JsonObject json)
     {
         if (Paid == null)
             return;
+        if (ReceiptFollows)
+            json["receipt"] = true;
         var paid = new JsonObject { ["method"] = Paid.Method, ["amount"] = Paid.Amount };
         if (Paid.Change.HasValue)
             paid["change"] = Paid.Change.Value;

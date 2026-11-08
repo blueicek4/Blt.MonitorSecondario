@@ -416,7 +416,8 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
 
         if (receipt.Payment != null)
         {
-            messages.Add(new SaleClose(receipt.Payment));
+            var close = new SaleClose(receipt.Payment);
+            messages.Add(close);
             Reset();
             _lastBillTotal = 0;
             _lastPaid = (receipt, now, wallNow);
@@ -433,6 +434,9 @@ public sealed class SaleTracker(DigitalReceiptSettings? digital = null)
                     : ShowReceipt(QrImage.FromText(url), null, url, _lastPaid, now, wallNow));
             else if (_digital.DemoQr != null && _digital.Show)
                 _demoPending = _lastPaid;
+            // Lo scontrino digitale subito dietro: il display ci va dritto, senza il Grazie a parte.
+            if (messages.OfType<ReceiptDigital>().Any())
+                messages[messages.IndexOf(close)] = close with { ReceiptFollows = true };
         }
         return messages;
     }

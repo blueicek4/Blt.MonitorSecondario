@@ -273,12 +273,16 @@ in [`docs/03`](../docs/03-studio-copia-cartacea.md).
   scontrino pagato toglie le due righe del QR e, se è il link dello scontrino digitale di Passepartout, lo ricostruisce
   com'era. Il vecchio monitor 6.0 usava invece `QRCODESD`: vale ancora.
 - **Abbinamento del QR al conto.** Il QR arrivato a vendita aperta aspetta lo scontrino pagato che lo segue (fino a
-  3 s) e va a video con lui, dopo il Grazie; se i due link si conoscono tutti e due devono essere lo stesso. Un QR che
+  3 s) e va a video con lui; se i due link si conoscono tutti e due devono essere lo stesso. Un QR che
   arriva a vendita chiusa si abbina all'ultimo conto con `PAGATO` della stessa cassa se è entro 30 s, non è partita
   un'altra vendita e il link è lo stesso. Se il `PAGATO` non arriva entro 3 s va a video il solo QR, sopra la vendita,
-  che resta aperta: se il `PAGATO` arriva dopo con lo stesso link, il Grazie e poi lo stesso scontrino con il conto; se
+  che resta aperta: se il `PAGATO` arriva dopo con lo stesso link, lo stesso scontrino con il conto; se
   la cassa invece cambia ancora la vendita, lo scontrino si toglie. Così non si stampa mai il QR di un cliente con le
   righe di un altro.
+- **Niente Grazie a parte** (deciso con il locale, 08/11): con lo scontrino digitale il saluto ("Grazie e arrivederci",
+  la scritta Grazie di Aspetto) sta sopra lo scontrino, che va a video subito. L'Agent lo dice al display nel
+  `sale.close` (`receipt: true`), così il Grazie non lampeggia nemmeno per un attimo; se lo scontrino poi non arriva,
+  dopo 1,5 s il display mostra il Grazie come sempre. Senza scontrino digitale il Grazie resta quello di prima.
 - **Solo il link**: se la cassa scrive il link in fondo allo scontrino pagato ma non l'immagine, il QR lo fa l'Agent
   dal link ricostruito. Se arrivano tutti e due vale l'immagine della cassa, una volta sola. Qualunque altro QR stampato
   in fondo allo scontrino (recensioni, promozioni) non è uno scontrino digitale: si toglie e basta.
@@ -339,7 +343,8 @@ Le regole vengono dalle [registrazioni](../samples/registrazioni) (30 e 48 colon
 - `sale.line` con un id già ricevuto **aggiorna** quella riga;
 - `{ "t": "hb" }` ogni 3 s. Con una cassa a file il silenzio è normale: senza battito il display mostrerebbe
   "connessione assente" dopo 8 s;
-- `sale.close` può portare `paid`, per mostrare metodo e resto nello stato "Grazie";
+- `sale.close` può portare `paid`, per mostrare metodo e resto nello stato "Grazie", e `receipt: true` quando segue
+  lo scontrino digitale: il display salta il Grazie e aspetta lo scontrino (1,5 s al massimo);
 - `sale.total.bill` (e `bill` in `sync`): la cassa mostra il conto e non la battuta. Serve per l'opzione "prezzi solo
   sul conto" (`ShowPricesDuringOrder=false` del vecchio monitor 6.0);
 - `pay.qr.caption`, se la cassa la scrive;

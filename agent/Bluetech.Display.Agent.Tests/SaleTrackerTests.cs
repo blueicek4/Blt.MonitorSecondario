@@ -561,6 +561,28 @@ public class SaleTrackerTests
     }
 
     [Fact]
+    public void The_payment_says_when_the_digital_receipt_follows_so_the_display_skips_the_thanks()
+    {
+        var tracker = new SaleTracker(Digital);
+        tracker.Apply(Nov8Version("0053"), T0);
+        tracker.Apply(Nov8Version("0054"), T0.AddSeconds(14));
+        var close = Assert.IsType<SaleClose>(tracker.Apply(Nov8Version("0055"), T0.AddSeconds(14.3)).First(m => m.Type == "sale.close"));
+        Assert.True(close.ReceiptFollows);
+        Assert.True((bool)close.ToJson()["receipt"]!);
+
+        // Senza scontrino digitale dietro (o con il solo QR nel Grazie) il Grazie resta.
+        var plain = new SaleTracker(Digital);
+        plain.Apply(Nov8Version("0049"), T0);
+        var paid = Assert.IsType<SaleClose>(plain.Apply(Nov8Version("0050"), T0.AddSeconds(12)).Last());
+        Assert.False(paid.ReceiptFollows);
+        Assert.Null(paid.ToJson()["receipt"]);
+        var screenOff = new SaleTracker();
+        screenOff.Apply(Nov8Version("0053"), T0);
+        screenOff.Apply(Nov8Version("0054"), T0.AddSeconds(14));
+        Assert.False(screenOff.Apply(Nov8Version("0055"), T0.AddSeconds(14.3)).OfType<SaleClose>().Single().ReceiptFollows);
+    }
+
+    [Fact]
     public void Without_the_digital_receipt_screen_the_early_qr_goes_into_the_thanks()
     {
         var tracker = new SaleTracker();
