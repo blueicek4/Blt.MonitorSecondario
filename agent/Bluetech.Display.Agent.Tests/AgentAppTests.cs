@@ -865,6 +865,72 @@ public sealed class AgentAppTests
     }
 
     [Fact]
+    public async Task The_digital_receipt_of_8_november_prints_a_copy_whose_qr_is_the_real_link()
+    {
+        // La sequenza vera (anonimizzata): conto, QR a vendita aperta, 0,3 s dopo lo scontrino pagato con il link
+        // storpiato in fondo. Il palmare con la stampante chiede la copia: sul foglio il conto pagato e il QR con il link.
+        var printer = new TcpListener(IPAddress.Loopback, 0);
+        printer.Start();
+        try
+        {
+            await using var agent = await TestAgent.Start(s =>
+            {
+                Brand(s).Vendita.ScontrinoDigitale.Attivo = true;
+                Brand(s).Vendita.ScontrinoDigitale.CopiaCarta = true;
+                s.Stampanti.Add(new PrinterConfig { Id = "banco", Nome = "Banco", Indirizzo = $"127.0.0.1:{((IPEndPoint)printer.LocalEndpoint).Port}" });
+            });
+            var counter = await agent.Pair("Palmare", printer: "banco");
+            using var socket = await agent.Connect(counter);
+            await Receive(socket, Type("sync"));
+
+            foreach (var (version, pause) in new[] { ("0052", 0), ("0053", 0), ("0054", 0), ("0055", 300) })
+            {
+                while (File.Exists(agent.CashFile()))
+                    await Task.Delay(20);   // l'Agent lo toglie appena letto
+                await Task.Delay(pause);
+                await Write(agent.CashFile(), Samples.Version("2026-11-08_173725", version));
+            }
+            var closed = await Receive(socket, Type("sale.close"));
+            Assert.Equal("CONTANTI", (string)closed["paid"]!["method"]!);   // prima il PAGATO si perdeva
+            var digital = await Receive(socket, Type("receipt.digital"));
+            Assert.Equal(10, (long)digital["receipt"]!["total"]!);
+            Assert.Equal("BAR ESEMPIO", (string)digital["receipt"]!["header"]![0]!);
+            Assert.True((bool)digital["paperCopy"]!);
+
+            var printed = ReceiveAll(printer);
+            await Send(socket, new JsonObject { ["t"] = "receipt.paper", ["id"] = (string)digital["id"]! });
+            Assert.Equal("requested", (string)(await Receive(socket, m => (string)m["t"]! == "receipt.paper.status" && (string)m["state"]! != "printing"))["state"]!);
+            var bytes = await printed;
+            var text = Encoding.Latin1.GetString(bytes);
+            Assert.Contains("BAR ESEMPIO", text);
+            Assert.Contains("CONTANTI", text);
+            Assert.Equal(
+                "https://scontrinodigitalecloud.passepartout.cloud/v1/download?token=00000000-0000-4000-8000-000000000054",
+                PrintedQr(bytes));
+        }
+        finally
+        {
+            printer.Stop();
+        }
+    }
+
+    /// <summary>Il QR stampato: l'immagine raster ESC/POS (GS v 0) riletta come QR.</summary>
+    static string? PrintedQr(byte[] escPos)
+    {
+        var at = escPos.AsSpan().IndexOf([(byte)0x1D, (byte)0x76, (byte)0x30]);
+        Assert.True(at >= 0, "nessuna immagine nella copia");
+        int widthBytes = escPos[at + 4] | escPos[at + 5] << 8, height = escPos[at + 6] | escPos[at + 7] << 8;
+        var width = widthBytes * 8;
+        var dark = new bool[width * height];
+        for (var y = 0; y < height; y++)
+        for (var x = 0; x < width; x++)
+            dark[y * width + x] = (escPos[at + 8 + y * widthBytes + x / 8] & (0x80 >> (x % 8))) != 0;
+        var grid = Cassa.QrImage.Modules(new Cassa.QrImage.Bitmap(width, height, dark));
+        Assert.NotNull(grid);
+        return Cassa.QrImage.ReadModules(grid!.Dark, grid.Size);
+    }
+
+    [Fact]
     public async Task The_owner_renames_a_screen_but_its_cash_point_and_printer_are_the_technicians()
     {
         await using var agent = await TestAgent.Start(s =>
