@@ -495,6 +495,11 @@ public sealed partial class RecordingSession : IDisposable
         if (IsOwnOutput(e.Name))
             return;
 
+        // Contenuto nuovo: se ne salva una copia in altri\ appena la scrittura è finita (l'originale resta com'è). Prima
+        // della riga nell'indice: chi la vede (e chiude la registrazione) trova la copia già in coda, e lo zip la contiene.
+        if (e.ChangeType is WatcherChangeTypes.Created or WatcherChangeTypes.Changed)
+            ScheduleOtherCopy(e.Name, EventName(e.ChangeType));
+
         // Altri file della cartella: creazioni ed eliminazioni sempre, modifiche solo la prima volta per nome
         // (se Passepartout scrive con un altro nome, si vede subito).
         if (e.ChangeType is WatcherChangeTypes.Created or WatcherChangeTypes.Deleted)
@@ -513,21 +518,17 @@ public sealed partial class RecordingSession : IDisposable
             if (first)
                 LogFolderEvent("modificato", e.Name, null);
         }
-
-        // Contenuto nuovo: se ne salva una copia in altri\ appena la scrittura è finita (l'originale resta com'è).
-        if (e.ChangeType is WatcherChangeTypes.Created or WatcherChangeTypes.Changed)
-            ScheduleOtherCopy(e.Name, EventName(e.ChangeType));
     }
 
     void OnRenamed(object sender, RenamedEventArgs e)
     {
         if (IsOwnOutput(e.Name) || IsOwnOutput(e.OldName))
             return;
+        if (!IsTarget(e.Name))
+            ScheduleOtherCopy(e.Name, "rinominato");   // prima della riga nell'indice, come sopra
         LogFolderEvent("rinominato", e.Name, e.OldName);
         if (IsTarget(e.Name) || IsTarget(e.OldName))
             Trigger("rinominato");
-        if (!IsTarget(e.Name))
-            ScheduleOtherCopy(e.Name, "rinominato");
     }
 
     void OnWatcherError(object sender, ErrorEventArgs e)
