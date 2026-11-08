@@ -138,6 +138,21 @@ public sealed class AppearanceTests
     }
 
     [Fact]
+    public void A_file_without_the_receipt_widths_gets_those_of_the_design_and_does_not_stop_the_agent()
+    {
+        var settings = WithCash();
+        var receipt = settings.Marchi[0].Vendita.ScontrinoDigitale;
+        receipt.ColonneDue = null!;   // un file di prima, o scritto a mano: "ColonneDue": null
+        receipt.ColonneTre = [10, 10];
+        settings.Repair();
+        Assert.Equal(("13 11", "9 8 7"), (string.Join(' ', receipt.ColonneDue), string.Join(' ', receipt.ColonneTre)));
+        Assert.Null(settings.Validate());
+        receipt.ColonneDue = [16, 8];   // quelle giuste restano
+        settings.Repair();
+        Assert.Equal("16 8", string.Join(' ', receipt.ColonneDue));
+    }
+
+    [Fact]
     public void Ten_themes_five_dark_five_light_with_their_twins()
     {
         Assert.Equal(10, Palettes.Themes.Count);
@@ -279,6 +294,29 @@ public sealed class AppearanceTests
         receipt.Blocchi = [new() { Tipo = "qr", Attivo = false, Colonna = 2, Riga = "piena" }];
         Assert.Contains("accendi almeno un blocco", settings.Validate());
         receipt.Blocchi = [new() { Tipo = "qr", Attivo = true, Colonna = 2, Riga = "alto" }, new() { Tipo = "reclame", Attivo = true, Colonna = 2, Riga = "basso" }];
+        // Le colonne dello scontrino su 24, come il conto; i QR in percentuale; cornice e ingrandimento.
+        receipt.ColonneDue = [12, 10];
+        Assert.Contains("Scontrino digitale: con due colonne le larghezze fanno 24 in tutto (ora 22)", settings.Validate());
+        receipt.ColonneDue = [20, 4];
+        Assert.Contains("con due colonne ogni colonna va da 6 a 18 su 24", settings.Validate());
+        receipt.ColonneDue = [14, 10];
+        receipt.ColonneTre = [12, 12];
+        Assert.Contains("con tre colonne servono 3 larghezze", settings.Validate());
+        receipt.ColonneTre = [10, 10, 4];
+        Assert.Contains("con tre colonne ogni colonna va da 5 a 14 su 24", settings.Validate());
+        receipt.ColonneTre = [10, 8, 6];
+        receipt.DimensioneQr = 200;
+        Assert.Contains("Scontrino digitale: il QR va dal 60 al 150%.", settings.Validate());
+        receipt.DimensioneQr = 140;
+        brand.Schermo.DimensioneQrPagamento = 50;
+        Assert.Contains("Il locale: il QR di Satispay va dal 60 al 150%.", settings.Validate());
+        brand.Schermo.DimensioneQrPagamento = 120;
+        brand.Schermo.Cornice = 110;
+        Assert.Contains("Il locale: la cornice va da 0 a 100%.", settings.Validate());
+        brand.Schermo.Cornice = 0;
+        brand.Schermo.Ingrandimento = 90;
+        Assert.Contains("Il locale: l'ingrandimento va dal 100 al 150%.", settings.Validate());
+        brand.Schermo.Ingrandimento = 125;
 
         settings.Installazione.Media.Add(Video('b', "forno.mp4"));
         settings.Installazione.Loghi.Satispay = settings.Installazione.Media[0].Id;
@@ -462,6 +500,9 @@ public sealed class AppearanceTests
         Assert.False((bool)receipt["attivo"]!);
         Assert.Equal(["carta", "qr", "reclame"], receipt["blocchi"]!.AsArray().Select(b => (string)b!["tipo"]!));
         Assert.Equal(45, (int)receipt["secondi"]!);
+        Assert.Equal(("13 11", "9 8 7", 100), (string.Join(' ', receipt["colonneDue"]!.AsArray().Select(w => (int)w!)), string.Join(' ', receipt["colonneTre"]!.AsArray().Select(w => (int)w!)),
+            (int)receipt["dimensioneQr"]!));   // le misure del disegno
+        Assert.Equal((100, 100, 100), ((int)screen["dimensioneQrPagamento"]!, (int)screen["cornice"]!, (int)screen["ingrandimento"]!));
         Assert.Empty(defaults["showcase"]!.AsObject());
         Assert.Empty(defaults["marks"]!.AsObject());   // senza i loghi dei kit: il marchio di serie, la scritta di Satispay
         Assert.Null(defaults["ticker"]);
@@ -547,8 +588,13 @@ public sealed class AppearanceTests
         // Lo schermo: le sue eccezioni sopra quelle del marchio, e la copia di carta solo con la stampante.
         brand.Vendita.ScontrinoDigitale.CopiaCarta = true;
         config = ScreenConfig.Build(settings, "cassa1", DateTime.Now, Qr);
-        var ipad = ScreenConfig.ForScreen(config, new ScreenOverride { Disposizione = "wide", Attrazione = "troppo", ColonneConto = 30 }, canPrint: false)["screen"]!;
+        var ipad = ScreenConfig.ForScreen(config, new ScreenOverride
+        {
+            Disposizione = "wide", Attrazione = "troppo", ColonneConto = 30, Cornice = 20, Ingrandimento = 130, DimensioneQrPagamento = 140, DimensioneQrScontrino = 300,
+        }, canPrint: false)["screen"]!;
         Assert.Equal(("wide", "troppo", 17), ((string)ipad["disposizione"]!, (string)ipad["attrazione"]!, (int)ipad["colonneConto"]!));
+        Assert.Equal((20, 130, 140, 150), ((int)ipad["cornice"]!, (int)ipad["ingrandimento"]!, (int)ipad["dimensioneQrPagamento"]!, (int)ipad["receipt"]!["dimensioneQr"]!));
+        Assert.Equal((100, 100), ((int)config["screen"]!["cornice"]!, (int)config["screen"]!["receipt"]!["dimensioneQr"]!));   // quello del locale resta
         Assert.False((bool)ipad["receipt"]!["copiaCarta"]!);
         Assert.True((bool)ScreenConfig.ForScreen(config, null, canPrint: true)["screen"]!["receipt"]!["copiaCarta"]!);
         Assert.Null(config["screen"]!["disposizione"]);   // il cfg della cassa resta com'era

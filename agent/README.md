@@ -128,9 +128,9 @@ piatto, scelto per la sua cassa, il giorno e l'ora.
 |---|---|
 | `Versione` | 3. Un file della versione 2 (o della prima) si porta alla 3 da solo all'avvio: quello di prima resta come `impostazioni.v2.bak` e il log dice riga per riga cosa è stato spostato (l'aspetto nel primo marchio, i dispositivi negli schermi con la disposizione come eccezione, casse, giorni e orari di ogni set in una regola con il nome del set, due regole uguali in una sola, i set nelle vetrine) |
 | `Installazione` | `Rete` (`Porta` 5080, `ApertoInRete`, `Https`: valgono dal riavvio; una porta già usata viene rifiutata), `BackOfficeDallaRete`, `Accessi` (un hash PBKDF2 per ruolo, `titolare` e `tecnico`: le password non ci sono, né in chiaro né cifrate), `Demo`, `Loghi` e `Media` (i loghi dei kit ufficiali di Bluetech e di Satispay) |
-| `Marchi` | Uno per locale: un'installazione può servire il bar e il ristorante dello stesso edificio. `Identita` (nome, sottotitolo, loghi), `Aspetto` (tema, giorno e notte, colori, caratteri, angoli, vetro, firma, sfondo), `Schermo` (animazioni, attrazione, larghezza del conto, colonna accanto, QR del pagamento, prezzi solo sul conto, righe compatte), `Scritte`, `Vendita` (chiusura del conto, scontrino digitale con i sei posti) e `Contenuti` (`Media`, `Promozioni`, `Regole`, `Vetrine`) |
+| `Marchi` | Uno per locale: un'installazione può servire il bar e il ristorante dello stesso edificio. `Identita` (nome, sottotitolo, loghi), `Aspetto` (tema, giorno e notte, colori, caratteri, angoli, vetro, firma, sfondo), `Schermo` (animazioni, attrazione, larghezza del conto, colonna accanto, QR del pagamento e la sua dimensione, prezzi solo sul conto, righe compatte, cornice, ingrandimento), `Scritte`, `Vendita` (chiusura del conto, scontrino digitale con i sei posti, le larghezze delle colonne e la dimensione del QR) e `Contenuti` (`Media`, `Promozioni`, `Regole`, `Vetrine`) |
 | `Casse` | `Id`, `Nome`, `Marchio`, `FileCassa` (un `.txt`, fuori dalle cartelle dell'Agent: l'Agent lo cancella dopo averlo letto, quindi il back office rifiuta anche un file che c'è già e non sembra quello del monitor, e l'Agent non tocca mai un file di oltre 256 KB) e le scritte solo sue (`Override.Scritte`) |
-| `Schermi` | `Id`, `Nome`, `Cassa`, `Stampante`, `AutorizzatoIl`, l'hash del token (il token vero lo ha solo lo schermo, in un cookie) e le eccezioni dello schermo (`Override`: disposizione `wide`, `narrow`, `portrait`, `palmare`; animazioni, attrazione, larghezza e allineamento del conto) |
+| `Schermi` | `Id`, `Nome`, `Cassa`, `Stampante`, `AutorizzatoIl`, l'hash del token (il token vero lo ha solo lo schermo, in un cookie) e le eccezioni dello schermo (`Override`: disposizione `wide`, `narrow`, `portrait`, `palmare`; animazioni, attrazione, larghezza e allineamento del conto, cornice, ingrandimento, dimensione dei due QR) |
 | `Stampanti` | `Id`, `Nome`, `Collegamento` (`rete`, `windows`, `prova`), `Indirizzo`, `LarghezzaMm`, `Colonne`, `TabellaCaratteri`, `QrPuntiPerModulo`, `Taglio`, `TestoRitiro`, `TimeoutSecondi` |
 
 **Password dimenticata**: da amministratore sul PC dell'Agent scrivi quella nuova in `dati\nuova-password.txt` (o
@@ -161,7 +161,7 @@ Sei sezioni per il titolare, più una che il titolare **non vede** (SPEC §20 de
   il totale) e cosa va in onda in ogni posto, con le miniature; gli schermi collegati, le ultime copie di carta, gli
   schermi che chiedono il codice. Accanto, la cassa dal vivo.
 - **Il locale**: nome e loghi, il tema fra i dieci, i colori con il controllo del contrasto, caratteri e forma, lo
-  sfondo, quanto il monitor si fa notare, il conto, le scritte (del locale e di ogni cassa: un campo vuoto segue il
+  sfondo, quanto il monitor si fa notare, le misure dello schermo, il conto, le scritte (del locale e di ogni cassa: un campo vuoto segue il
   locale, "riporta al valore del locale" toglie l'eccezione), la vendita e lo scontrino digitale. Si salva con il
   pulsante, dopo aver visto l'anteprima: la barra in basso dice quante modifiche ci sono e su quali schermi andranno.
 - **Vetrine**: la settimana in onda (per posto e per cassa, calcolata con la stessa scelta che fanno gli schermi),
@@ -172,6 +172,14 @@ Sei sezioni per il titolare, più una che il titolare **non vede** (SPEC §20 de
   dal pannello nel browser (lo schermo non sfoca mai). Le promozioni nei modelli A-D, con l'anteprima nei tre posti.
 - **Schermi**: l'abbinamento con il codice, lo stato dal vivo e le eccezioni di ogni schermo. Il titolare le vede e le
   cambia; il tecnico in più assegna la cassa e la stampante.
+- **Misure dello schermo** (Il locale, e per ogni schermo in Schermi): sui monitor piccoli (10"–12") tutto sembrava
+  piccolo per i margini del disegno. **Cornice** (0–100%, 100 = il disegno) stringe i margini e lo spazio tra le
+  colonne; **Ingrandimento** (100–150%) fa tutto più grande insieme: lo schermo usa la tela del suo formato più piccola
+  e la scala di più, quindi testi, conto, scontrino, QR e reclame crescono nelle stesse proporzioni (sul conto ci stanno
+  meno righe). Su un 10" a 1280×800, per esempio, cornice 20% e ingrandimento 125%. Il QR di Satispay e quello dello
+  scontrino digitale hanno ognuno la sua **dimensione** (60–150% della misura del disegno per quel formato, a moduli
+  interi): se non ci sta (la colonna accanto al conto, la colonna dello scontrino, lo schermo) lo schermo la riduce
+  da solo.
 - **Statistiche**: per giorno e per cassa vendite, conti pagati, incasso visto (righe `PAGATO` meno il resto), conti
   chiusi senza `PAGATO`, QR di pagamento, scontrini digitali, copie di carta (con la percentuale), copie non stampate.
   Sono quello che ha visto il monitor, non i dati fiscali.
@@ -256,8 +264,13 @@ in [`docs/03`](../docs/03-studio-copia-cartacea.md).
 - Si accende in **Il locale › Vendita e scontrino digitale** ("Mostra lo scontrino digitale" e "Copia di carta"); il
   pulsante compare solo sugli schermi touch con una stampante (in Schermi), sugli altri "Preferisci la copia di carta?
   Chiedila alla cassa". Lo scontrino si compone su **sei posti** (tre colonne, due righe): la carta, il QR e la reclame
-  del Grazie, dove si vuole; le colonne vuote spariscono, e dove non c'è spazio la carta va in due colonne, poi le righe
-  minori si raggruppano, poi cade la reclame. Sul palmare in fila, il QR per primo.
+  del Grazie, dove si vuole; le colonne vuote spariscono. Sui formati orizzontali le colonne hanno le **larghezze del
+  locale su 24**, come il conto: una coppia per quando ne restano due (13 + 11 di serie) e una terna per tre
+  (9 + 8 + 7); nel back office si clicca la cella dove deve finire una colonna. La carta segue la sua colonna, testo
+  compreso (da 0,8 a 1,5 volte la misura del disegno). Dove non c'è spazio la carta rimpicciolisce, poi va in due
+  colonne di righe (se la colonna è larga abbastanza), poi le righe minori si raggruppano, poi cade la reclame, poi la
+  carta tiene le prime 12 e poi le prime 8 righe ("Altri N articoli", il totale c'è sempre). In verticale e sul
+  palmare i blocchi stanno in fila (sul palmare il QR per primo e la carta scorre).
 - **Stampanti**: `rete` (stampante comande in rete, indirizzo e porta, 9100 se manca), `windows` (nome della coda di
   stampa, installata per tutti gli utenti) o `prova` (niente stampante: la copia finisce in `log\copie` come testo e
   come comandi ESC/POS). La stampante deve essere **termica** (su quelle ad aghi il QR non si legge) e stare dove il

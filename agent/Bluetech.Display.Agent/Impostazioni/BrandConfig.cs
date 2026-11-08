@@ -103,6 +103,20 @@ public sealed class BrandScreen
     /// <summary>"beside" (accanto al conto, che si stringe) o "fullscreen". In verticale e sul palmare sempre a tutto schermo.</summary>
     public string QrPagamento { get; set; } = "beside";
     /// <summary>
+    /// Il QR di Satispay, in percentuale della misura del design per quel formato: 60–150. Lo schermo lo rimpicciolisce
+    /// se non ci sta, e ne tiene i moduli interi.
+    /// </summary>
+    public int DimensioneQrPagamento { get; set; } = 100;
+    /// <summary>
+    /// I margini attorno ai contenuti e lo spazio tra le colonne, in percentuale di quelli del design: 0–100. Sui 10"
+    /// conviene stringerli; a 0 i contenuti arrivano quasi al bordo.
+    /// </summary>
+    public int Cornice { get; set; } = 100;
+    /// <summary>Tutto lo schermo più grande insieme (testi, scontrino, QR, reclame): 100–150%. Per i monitor piccoli.</summary>
+    public int Ingrandimento { get; set; } = 100;
+
+    public const int MinFrame = 0, MaxFrame = 100, MinZoom = 100, MaxZoom = 150;
+    /// <summary>
     /// Importi e totale solo quando la cassa mostra il conto (preconto, scontrino), non durante la battuta: come
     /// ShowPricesDuringOrder=false del vecchio monitor 6.0. I ruoli si invertono (SPEC §2.2.1).
     /// </summary>
@@ -136,7 +150,7 @@ public sealed class BrandSale
 /// <summary>Lo scontrino digitale a video e la copia di carta su richiesta (SPEC §2.7).</summary>
 public sealed class DigitalReceiptConfig
 {
-    /// <summary>Con il QR dello scontrino digitale ("QRCODESD"), dopo il Grazie, lo stato scontrino: carta, QR, reclame.</summary>
+    /// <summary>Con il QR dello scontrino digitale, lo stato scontrino al posto del Grazie: il saluto sopra, poi carta, QR, reclame.</summary>
     public bool Attivo { get; set; }
     /// <summary>Quanto resta a video, se non parte prima un'altra vendita.</summary>
     public int Secondi { get; set; } = 45;
@@ -146,6 +160,19 @@ public sealed class DigitalReceiptConfig
     public string Dicitura { get; set; } = "Inquadra il QR per scaricare il documento commerciale. Copia di cortesia.";
     /// <summary>I tre blocchi sui sei posti (3 colonne × 2 righe). Default: carta in colonna 1, QR in colonna 2, reclame spenta.</summary>
     public List<ReceiptBlock> Blocchi { get; set; } = ReceiptBlock.Defaults();
+    /// <summary>
+    /// Le larghezze su 24 quando a video restano due colonne (da sinistra): ognuna 6–18, insieme 24. Come il conto, solo
+    /// sui formati orizzontali; in verticale e sul palmare i blocchi stanno in fila.
+    /// </summary>
+    public List<int> ColonneDue { get; set; } = [.. DefaultTwo];
+    /// <summary>Le larghezze su 24 con tre colonne: ognuna 5–14, insieme 24.</summary>
+    public List<int> ColonneTre { get; set; } = [.. DefaultThree];
+    /// <summary>Il QR dello scontrino digitale, in percentuale della misura del design: 60–150 (sta sempre nella sua colonna).</summary>
+    public int DimensioneQr { get; set; } = 100;
+
+    public static readonly int[] DefaultTwo = [13, 11];
+    public static readonly int[] DefaultThree = [9, 8, 7];
+    public const int MinTwo = 6, MaxTwo = 18, MinThree = 5, MaxThree = 14, MinQr = 60, MaxQr = 150;
 }
 
 /// <summary>

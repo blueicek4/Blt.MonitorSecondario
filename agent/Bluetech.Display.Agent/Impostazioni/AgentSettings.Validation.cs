@@ -112,6 +112,14 @@ public sealed partial class AgentSettings
                     yield return $"{screen.Nome}: la larghezza del conto va da 9 a 17 colonne su 24.";
                 if (o.ColonnaAllineamento != null && !BrandScreen.Alignments.Contains(o.ColonnaAllineamento))
                     yield return $"{screen.Nome}: la colonna accanto al conto sta in alto, al centro o in basso.";
+                if (o.DimensioneQrPagamento is < DigitalReceiptConfig.MinQr or > DigitalReceiptConfig.MaxQr)
+                    yield return $"{screen.Nome}: il QR di Satispay va dal 60 al 150%.";
+                if (o.DimensioneQrScontrino is < DigitalReceiptConfig.MinQr or > DigitalReceiptConfig.MaxQr)
+                    yield return $"{screen.Nome}: il QR dello scontrino digitale va dal 60 al 150%.";
+                if (o.Cornice is < BrandScreen.MinFrame or > BrandScreen.MaxFrame)
+                    yield return $"{screen.Nome}: la cornice va da 0 a 100%.";
+                if (o.Ingrandimento is < BrandScreen.MinZoom or > BrandScreen.MaxZoom)
+                    yield return $"{screen.Nome}: l'ingrandimento va dal 100 al 150%.";
             }
         }
     }
@@ -189,6 +197,12 @@ public sealed partial class AgentSettings
             yield return "Il locale: la colonna accanto al conto sta in alto, al centro o in basso.";
         if (!BrandScreen.QrLayouts.Contains(screen.QrPagamento))
             yield return "Il locale: il QR del pagamento sta accanto al conto o a tutto schermo.";
+        if (screen.DimensioneQrPagamento is < DigitalReceiptConfig.MinQr or > DigitalReceiptConfig.MaxQr)
+            yield return "Il locale: il QR di Satispay va dal 60 al 150%.";
+        if (screen.Cornice is < BrandScreen.MinFrame or > BrandScreen.MaxFrame)
+            yield return "Il locale: la cornice va da 0 a 100%.";
+        if (screen.Ingrandimento is < BrandScreen.MinZoom or > BrandScreen.MaxZoom)
+            yield return "Il locale: l'ingrandimento va dal 100 al 150%.";
 
         var texts = brand.Scritte;
         foreach (var problem in TextProblems(texts.Benvenuto, texts.Scorrevole, texts.TitoloConto, texts.Grazie))
@@ -206,6 +220,12 @@ public sealed partial class AgentSettings
             yield return "Scontrino digitale: la dicitura della copia è troppo lunga (al massimo 200 caratteri).";
         if (ReceiptProblem(receipt.Blocchi) is { } layout)
             yield return $"Scontrino digitale: {layout}";
+        if (WidthProblem(receipt.ColonneDue, 2, DigitalReceiptConfig.MinTwo, DigitalReceiptConfig.MaxTwo) is { } two)
+            yield return $"Scontrino digitale: {two}";
+        if (WidthProblem(receipt.ColonneTre, 3, DigitalReceiptConfig.MinThree, DigitalReceiptConfig.MaxThree) is { } three)
+            yield return $"Scontrino digitale: {three}";
+        if (receipt.DimensioneQr is < DigitalReceiptConfig.MinQr or > DigitalReceiptConfig.MaxQr)
+            yield return "Scontrino digitale: il QR va dal 60 al 150%.";
 
         foreach (var problem in ContentProblems(brand))
             yield return problem;
@@ -227,6 +247,19 @@ public sealed partial class AgentSettings
             if (rows.Count > 2 || (rows.Count == 2 && !(rows.Contains("alto") && rows.Contains("basso"))))
                 return $"nella colonna {column.Key} due blocchi stanno solo uno in alto e uno in basso.";
         }
+        return null;
+    }
+
+    /// <summary>Le larghezze delle colonne dello scontrino su 24, come il conto. Null se vanno.</summary>
+    public static string? WidthProblem(List<int>? widths, int count, int min, int max)
+    {
+        var name = count == 2 ? "con due colonne" : "con tre colonne";
+        if (widths == null || widths.Count != count)
+            return $"{name} servono {count} larghezze.";
+        if (widths.Any(w => w < min || w > max))
+            return $"{name} ogni colonna va da {min} a {max} su 24.";
+        if (widths.Sum() != 24)
+            return $"{name} le larghezze fanno 24 in tutto (ora {widths.Sum()}).";
         return null;
     }
 

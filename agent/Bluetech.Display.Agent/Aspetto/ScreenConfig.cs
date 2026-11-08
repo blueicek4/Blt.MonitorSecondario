@@ -91,6 +91,9 @@ public static class ScreenConfig
         screen["colonneContoPagamento"] = Math.Clamp(behaviour.ColonneContoPagamento, 8, 14);
         screen["colonnaAllineamento"] = behaviour.ColonnaAllineamento;
         screen["qrPagamento"] = behaviour.QrPagamento;
+        screen["dimensioneQrPagamento"] = QrSize(behaviour.DimensioneQrPagamento);
+        screen["cornice"] = Math.Clamp(behaviour.Cornice, BrandScreen.MinFrame, BrandScreen.MaxFrame);
+        screen["ingrandimento"] = Math.Clamp(behaviour.Ingrandimento, BrandScreen.MinZoom, BrandScreen.MaxZoom);
         screen["prezziSoloSulConto"] = behaviour.PrezziSoloSulConto;
         screen["righeCompatte"] = behaviour.RigheCompatte;
         screen["showLastItemPhoto"] = false;   // il file della cassa non ha le foto degli articoli
@@ -116,6 +119,9 @@ public static class ScreenConfig
             ["secondi"] = Math.Clamp(receipt.Secondi, 10, 600),
             ["copiaCarta"] = receipt.CopiaCarta || s.Installazione.Demo,   // lo schermo lo spegne se non ha una stampante
             ["dicitura"] = receipt.Dicitura.Trim(),
+            ["colonneDue"] = Widths(receipt.ColonneDue, DigitalReceiptConfig.DefaultTwo, DigitalReceiptConfig.MinTwo, DigitalReceiptConfig.MaxTwo),
+            ["colonneTre"] = Widths(receipt.ColonneTre, DigitalReceiptConfig.DefaultThree, DigitalReceiptConfig.MinThree, DigitalReceiptConfig.MaxThree),
+            ["dimensioneQr"] = QrSize(receipt.DimensioneQr),
         };
 
         // Una promozione o un'immagine che compare in più posti si scrive una volta per posto: i posti sono tre.
@@ -177,9 +183,9 @@ public static class ScreenConfig
     }
 
     /// <summary>
-    /// Il cfg per uno schermo: le sue eccezioni (disposizione, animazioni, attrazione, larghezza e allineamento del conto)
-    /// sopra quelle del marchio, e il pulsante della copia di carta solo se ha una stampante. Lo schermo non sa da quale
-    /// livello viene un valore.
+    /// Il cfg per uno schermo: le sue eccezioni (disposizione, animazioni, attrazione, larghezza e allineamento del conto,
+    /// dimensione dei due QR, cornice, ingrandimento) sopra quelle del marchio, e il pulsante della copia di carta solo se
+    /// ha una stampante. Lo schermo non sa da quale livello viene un valore.
     /// </summary>
     public static JsonObject ForScreen(JsonObject config, ScreenOverride? screenOverride, bool canPrint)
     {
@@ -198,11 +204,25 @@ public static class ScreenConfig
                 screen["colonneConto"] = Math.Clamp(columns, 9, 17);
             if (o.ColonnaAllineamento != null)
                 screen["colonnaAllineamento"] = o.ColonnaAllineamento;
+            if (o.DimensioneQrPagamento is { } payQr)
+                screen["dimensioneQrPagamento"] = QrSize(payQr);
+            if (o.DimensioneQrScontrino is { } receiptQr && screen["receipt"] is JsonObject digital)
+                digital["dimensioneQr"] = QrSize(receiptQr);
+            if (o.Cornice is { } frame)
+                screen["cornice"] = Math.Clamp(frame, BrandScreen.MinFrame, BrandScreen.MaxFrame);
+            if (o.Ingrandimento is { } zoom)
+                screen["ingrandimento"] = Math.Clamp(zoom, BrandScreen.MinZoom, BrandScreen.MaxZoom);
         }
         if (!canPrint && screen["receipt"] is JsonObject receipt)
             receipt["copiaCarta"] = false;
         return copy;
     }
+
+    static int QrSize(int percent) => Math.Clamp(percent, DigitalReceiptConfig.MinQr, DigitalReceiptConfig.MaxQr);
+
+    /// <summary>Le larghezze delle colonne dello scontrino su 24; se non vanno (non dovrebbe: le controlla il salvataggio), quelle del design.</summary>
+    static JsonArray Widths(List<int>? widths, int[] defaults, int min, int max) =>
+        new((AgentSettings.WidthProblem(widths, defaults.Length, min, max) == null ? widths! : [.. defaults]).Select(w => (JsonNode)w).ToArray());
 
     /// <summary>Un elemento di una vetrina come lo vuole lo schermo (ShowcaseItem): tutto quello che serve per disegnarlo.</summary>
     static JsonObject Item(BrandConfig brand, Showcases.Entry entry, Func<string, string?> qrPng)

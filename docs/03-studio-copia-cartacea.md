@@ -276,6 +276,11 @@ del locale, lo sostituisce: il saluto ("Grazie e arrivederci", la scritta Grazie
 che va a video subito, e "Il tuo scontrino" diventa l'etichetta del QR. L'Agent avvisa il display nel `sale.close`
 (`receipt: true`) per non far lampeggiare il Grazie.
 
+Le misure (08/11, richiesta del locale per i monitor da 10"): sui formati orizzontali le colonne dello scontrino hanno
+le larghezze del locale su 24, come il conto (13 + 11 con due colonne, 9 + 8 + 7 con tre); la carta segue la sua
+colonna, testo compreso; il QR ha la sua dimensione in percentuale (60–150%), e lo schermo intero ha cornice e
+ingrandimento (agent/README, "Misure dello schermo"). La tabella sotto è lo studio iniziale.
+
 | Formato | Disposizione |
 |---|---|
 | 16:9 orizzontale | Lo scontrino a sinistra, come sulla carta con il QR piccolo in fondo (circa 40% della larghezza, fondo carta); a destra il QR grande e sotto il pulsante |

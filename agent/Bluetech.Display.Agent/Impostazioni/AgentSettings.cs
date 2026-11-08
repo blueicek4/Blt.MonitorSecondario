@@ -303,9 +303,18 @@ public sealed class ScreenOverride
     public string? Attrazione { get; set; }
     public int? ColonneConto { get; set; }
     public string? ColonnaAllineamento { get; set; }
+    /// <summary>Il QR di Satispay su questo schermo, in percentuale (60–150): dipende dal vetro, come la distanza del cliente.</summary>
+    public int? DimensioneQrPagamento { get; set; }
+    /// <summary>Il QR dello scontrino digitale su questo schermo, in percentuale (60–150).</summary>
+    public int? DimensioneQrScontrino { get; set; }
+    /// <summary>La cornice di questo schermo (0–100%): un 10" la vuole più stretta di un 24".</summary>
+    public int? Cornice { get; set; }
+    /// <summary>L'ingrandimento di questo schermo (100–150%).</summary>
+    public int? Ingrandimento { get; set; }
 
     [JsonIgnore]
-    public bool IsEmpty => Disposizione == null && Animazioni == null && Attrazione == null && ColonneConto == null && ColonnaAllineamento == null;
+    public bool IsEmpty => Disposizione == null && Animazioni == null && Attrazione == null && ColonneConto == null && ColonnaAllineamento == null
+        && DimensioneQrPagamento == null && DimensioneQrScontrino == null && Cornice == null && Ingrandimento == null;
 
     public static readonly string[] Layouts = ["wide", "narrow", "portrait", "palmare"];
 }

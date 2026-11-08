@@ -229,6 +229,10 @@ public static class BrandApi
                     Attrazione = Optional(o.Attrazione),
                     ColonneConto = o.ColonneConto,
                     ColonnaAllineamento = Optional(o.ColonnaAllineamento),
+                    DimensioneQrPagamento = o.DimensioneQrPagamento,
+                    DimensioneQrScontrino = o.DimensioneQrScontrino,
+                    Cornice = o.Cornice,
+                    Ingrandimento = o.Ingrandimento,
                 };
                 if (screen.Override is { IsEmpty: true })
                     screen.Override = null;

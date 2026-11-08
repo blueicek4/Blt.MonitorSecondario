@@ -38,6 +38,7 @@ p { margin: 0; }
 .row.top { align-items: flex-start; }
 .grow { flex: 1; min-width: 0; }
 .stack { display: flex; flex-direction: column; gap: 12px; }
+.stack.tight { gap: 4px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 @media (max-width: 760px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
@@ -61,7 +62,8 @@ textarea { min-height: 72px; resize: vertical; }
 input:focus, select:focus, textarea:focus, .btn:focus-visible, .seg button:focus-visible, .chips button:focus-visible { outline: 2px solid var(--primary-2); outline-offset: 1px; }
 input[type=number] { max-width: 120px; }
 input[type=range] { width: 100%; accent-color: var(--primary); }
-label.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+label.field, div.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+div.field > .seg:not(.big), div.field > .switch { align-self: flex-start; }
 label.field > span:first-child, .label { color: var(--muted); font-size: 13px; }
 .label .count { color: var(--faint); }
 .hint { color: var(--faint); font-size: 12.5px; }
@@ -202,6 +204,11 @@ label.field > span:first-child, .label { color: var(--muted); font-size: 13px; }
 .cols { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; height: 26px; cursor: pointer; }
 .cols i { border-radius: 3px; background: rgba(61,220,151,0.30); border: 1px solid rgba(61,220,151,0.45); }
 .cols i.on { background: rgba(61,133,245,0.55); border-color: rgba(61,133,245,0.85); }
+.cols i.c0 { background: rgba(237,235,228,0.75); border-color: rgba(237,235,228,0.95); }
+.cols i.c1 { background: rgba(61,133,245,0.55); border-color: rgba(61,133,245,0.85); }
+.cols i.c2 { background: rgba(61,220,151,0.40); border-color: rgba(61,220,151,0.70); }
+.colnames { display: flex; gap: 3px; font-size: 12px; color: var(--muted); }
+.colnames span { text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fontsample { font-size: 18px; padding: 6px 2px 0; }
 .slots { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 54px 54px; gap: 6px; padding: 8px; border-radius: 10px; background: #0A0E14; border: 1px solid var(--line); max-width: 360px; }
 .slots div { border-radius: 6px; display: grid; place-items: center; font-size: 12px; font-weight: 600; }
@@ -1179,7 +1186,7 @@ function renderLocale() {
   const L = S.locale;
   const keep = $("main").scrollTop;
   const blocks = [
-    blockIdentity(L), blockTheme(L), blockColors(L), blockShape(L), blockBackground(L), blockAttraction(L), blockBill(L), blockTexts(L), blockSale(L),
+    blockIdentity(L), blockTheme(L), blockColors(L), blockShape(L), blockBackground(L), blockAttraction(L), blockScreenSize(L), blockBill(L), blockTexts(L), blockSale(L),
   ];
   const bar = el("div", { id: "savebar", hidden: true },
     el("div", { class: "grow" }, el("i"), el("span", { id: "savebartext" })),
@@ -1392,6 +1399,53 @@ function columnsBar(value, min, max, onpick) {
     Array.from({ length: 24 }, (_, i) => el("i", { class: i < value ? "on" : "", onclick: () => onpick(Math.min(max, Math.max(min, i + 1))) })));
 }
 
+/** Una percentuale con il cursore: si vede il valore mentre si sposta, l'anteprima segue. */
+function percentRange(label, value, min, max, step, onchange, hint) {
+  const shown = el("b", {}, value + "%");
+  return el("div", { class: "field" }, el("span", { class: "label" }, label + " · ", shown),
+    el("input", { type: "range", min: String(min), max: String(max), step: String(step), value: String(value),
+      oninput: (e) => { shown.textContent = e.target.value + "%"; onchange(Number(e.target.value)); } }),
+    hint ? el("span", { class: "hint" }, hint) : null);
+}
+
+/** Le colonne dello scontrino sulle 24, come il conto: si clicca la cella dove deve finire una colonna (la più vicina). */
+function splitBar(widths, min, max, names, onchange) {
+  const ends = [];
+  widths.slice(0, -1).reduce((sum, w) => { ends.push(sum + w); return sum + w; }, 0);
+  const owner = (i) => { let sum = 0; for (const [c, w] of widths.entries()) { sum += w; if (i < sum) return c; } return widths.length - 1; };
+  const pick = (end) => {
+    let d = 0;
+    ends.forEach((e, j) => { if (Math.abs(e - end) < Math.abs(ends[d] - end)) d = j; });
+    const before = d === 0 ? 0 : ends[d - 1], after = d === ends.length - 1 ? 24 : ends[d + 1];
+    const next = ends.slice();
+    next[d] = Math.min(Math.max(end, before + min, after - max), after - min, before + max);
+    const result = next.concat([24]).map((e, j) => e - (j === 0 ? 0 : next[j - 1]));
+    if (result.some((w, j) => w !== widths[j])) onchange(result);
+  };
+  return el("div", { class: "stack tight" },
+    el("div", { class: "cols", role: "group", "aria-label": "Larghezze delle colonne su 24" },
+      Array.from({ length: 24 }, (_, i) => el("i", { class: "c" + owner(i), title: names[owner(i)] || "", onclick: () => pick(i + 1) }))),
+    el("div", { class: "colnames" }, widths.map((w, j) => el("span", { style: { flex: String(w) } }, (names[j] || "Colonna " + (j + 1)) + " · " + w))));
+}
+
+/** I nomi delle colonne dello scontrino che restano a video ("Carta", "QR + Reclame"…), da sinistra. */
+function receiptColumnNames(blocks, withoutAd) {
+  const on = blocks.filter((b) => b.Attivo && !(withoutAd && b.Tipo === "reclame"));
+  const name = (type) => { const word = BLOCK_NAMES[type].replace(/^(La|Il) /, ""); return word.charAt(0).toUpperCase() + word.slice(1); };
+  return [1, 2, 3].map((c) => on.filter((b) => b.Colonna === c).map((b) => name(b.Tipo)).join(" + ")).filter(Boolean);
+}
+
+function blockScreenSize(L) {
+  const sc = L.Schermo;
+  return block("Misure dello schermo", null,
+    el("p", { class: "hint" }, "Per i monitor piccoli (10\"–12\"): meno cornice e più ingrandimento, e conto, scontrino, QR e reclame occupano molto più schermo. Valgono per tutto il locale; in Schermi ogni schermo può avere le sue."),
+    el("div", { class: "grid2" },
+      percentRange("Cornice", sc.Cornice, 0, 100, 10, (v) => { sc.Cornice = v; localeChanged(); },
+        "I margini attorno ai contenuti e lo spazio tra le colonne. 100% è il disegno; a 0 i contenuti arrivano quasi al bordo."),
+      percentRange("Ingrandimento", sc.Ingrandimento, 100, 150, 5, (v) => { sc.Ingrandimento = v; localeChanged(); },
+        "Tutto più grande insieme: testi, scontrino, QR, reclame. Sul conto ci stanno meno righe.")));
+}
+
 function blockBill(L) {
   const sc = L.Schermo;
   return block("Il conto", null,
@@ -1403,6 +1457,8 @@ function blockBill(L) {
       el("div", { class: "field" }, el("span", { class: "label" }, "La colonna accanto al conto sta"), seg(ALIGN, sc.ColonnaAllineamento, (v) => { sc.ColonnaAllineamento = v; localeChanged(true); })),
       el("div", { class: "field" }, el("span", { class: "label" }, "Il QR di Satispay"), seg([["beside", "Accanto al conto"], ["fullscreen", "A tutto schermo"]], sc.QrPagamento, (v) => { sc.QrPagamento = v; localeChanged(true); }),
         el("span", { class: "hint" }, "In verticale e sul palmare è sempre a tutto schermo."))),
+    percentRange("Dimensione del QR di Satispay", sc.DimensioneQrPagamento, 60, 150, 10, (v) => { sc.DimensioneQrPagamento = v; localeChanged(); },
+      "100% è la misura del disegno per quel formato. Se non ci sta, lo schermo lo rimpicciolisce da solo."),
     toggle("Prezzi solo sul conto", sc.PrezziSoloSulConto, (v) => { sc.PrezziSoloSulConto = v; localeChanged(true); }),
     el("p", { class: "hint" }, "Mentre si ordina il monitor mostra solo cosa è stato battuto, con la vetrina in grande; i prezzi e il totale arrivano quando la cassa stampa il conto."),
     toggle("Righe compatte", sc.RigheCompatte, (v) => { sc.RigheCompatte = v; localeChanged(true); }),
@@ -1475,7 +1531,7 @@ function blockSale(L) {
       el("input", { type: "number", min: "0", max: "3600", value: String(sale.ChiusuraDopoSecondi), onchange: (e) => { sale.ChiusuraDopoSecondi = Number(e.target.value); localeChanged(); } }),
       el("span", { class: "hint" }, "Se la cassa non manda il pagamento, il monitor torna all'attesa dopo questo tempo senza righe nuove. Con il conto a video o il QR di Satispay almeno 3 minuti: mentre il cliente paga con il POS o la cassa automatica la cassa non scrive niente. 0 = mai.")),
     toggle("Mostra lo scontrino digitale", receipt.Attivo, (v) => { receipt.Attivo = v; localeChanged(true); }),
-    el("p", { class: "hint" }, "Quando la cassa manda il QR del documento commerciale, il monitor lo mostra dopo il Grazie, con la copia del conto. " + (S.config.demo ? "In modalità demo arriva un QR finto dopo ogni conto pagato." : "")),
+    el("p", { class: "hint" }, "Quando la cassa manda il QR del documento commerciale, il monitor mostra subito lo scontrino con il QR, con il saluto del Grazie sopra. " + (S.config.demo ? "In modalità demo arriva un QR finto dopo ogni conto pagato." : "")),
     receipt.Attivo ? el("div", { class: "stack" },
       el("div", { class: "grid2" },
         el("label", { class: "field" }, el("span", {}, "Resta a video (secondi)"), el("input", { type: "number", min: "5", max: "600", value: String(receipt.Secondi), onchange: (e) => { receipt.Secondi = Number(e.target.value); localeChanged(); } })),
@@ -1483,7 +1539,25 @@ function blockSale(L) {
           el("span", { class: "hint" }, "Il pulsante compare sugli schermi touch con una stampante assegnata (nella sezione Schermi)."))),
       counted("La dicitura sotto la copia", receipt.Dicitura, 200, (v) => { receipt.Dicitura = v; localeChanged(); }, true),
       el("div", { class: "field" }, el("span", { class: "label" }, "Come si compone: tre colonne, due righe"), el("div", { class: "row top" }, el("div", { class: "rblocks grow" }, rows), slots),
-        problem ? el("div", { class: "notice warn" }, problem) : el("span", { class: "hint" }, "Le colonne vuote spariscono e quello che resta sta al centro; dove non c'è spazio la reclame cade per prima."))) : null);
+        problem ? el("div", { class: "notice warn" }, problem) : el("span", { class: "hint" }, "Le colonne vuote spariscono e quello che resta sta al centro; dove non c'è spazio la reclame cade per prima.")),
+      receiptWidthFields(receipt, blocks),
+      percentRange("Dimensione del QR", receipt.DimensioneQr, 60, 150, 10, (v) => { receipt.DimensioneQr = v; localeChanged(); },
+        "100% è la misura del disegno per quel formato; non esce mai dalla sua colonna.")) : null);
+}
+
+/** Le larghezze delle colonne dello scontrino su 24, per due e per tre colonne a video. */
+function receiptWidthFields(receipt, blocks) {
+  const all = receiptColumnNames(blocks, false);
+  const two = all.length === 2 ? all : all.length === 3 && receiptColumnNames(blocks, true).length === 2 ? receiptColumnNames(blocks, true) : [];
+  if (all.length < 2) return el("p", { class: "hint" }, "Con una colonna sola il blocco sta al centro, nella sua misura.");
+  receipt.ColonneDue = Array.isArray(receipt.ColonneDue) && receipt.ColonneDue.length === 2 ? receipt.ColonneDue : [13, 11];
+  receipt.ColonneTre = Array.isArray(receipt.ColonneTre) && receipt.ColonneTre.length === 3 ? receipt.ColonneTre : [9, 8, 7];
+  return el("div", { class: "field" }, el("span", { class: "label" }, "Larghezza delle colonne, su 24"),
+    two.length ? [el("span", { class: "hint" }, all.length === 3 ? "Con due colonne (sul 4:3, o quando la reclame non ha niente da mostrare)" : "Con due colonne"),
+      splitBar(receipt.ColonneDue, 6, 18, two, (w) => { receipt.ColonneDue = w; localeChanged(true); })] : null,
+    all.length === 3 ? [el("span", { class: "hint" }, "Con tre colonne"),
+      splitBar(receipt.ColonneTre, 5, 14, all, (w) => { receipt.ColonneTre = w; localeChanged(true); })] : null,
+    el("span", { class: "hint" }, "Come il conto: si clicca la cella dove deve finire una colonna. La carta segue la sua colonna, testo compreso; in verticale e sul palmare i blocchi stanno in fila e prendono tutta la larghezza."));
 }
 
 async function saveLocale() {
@@ -2119,6 +2193,10 @@ function screenSummary(o) {
   if (o.Animazioni) parts.push("animazioni " + (MOTION.find(([k]) => k === o.Animazioni) || [, o.Animazioni])[1].toLowerCase());
   if (o.ColonneConto) parts.push("conto " + o.ColonneConto + "/24");
   if (o.ColonnaAllineamento) parts.push("colonna " + (ALIGN.find(([k]) => k === o.ColonnaAllineamento) || [, ""])[1].toLowerCase());
+  if (o.Cornice !== null && o.Cornice !== undefined) parts.push("cornice " + o.Cornice + "%");
+  if (o.Ingrandimento) parts.push("ingrandimento " + o.Ingrandimento + "%");
+  if (o.DimensioneQrPagamento) parts.push("QR Satispay " + o.DimensioneQrPagamento + "%");
+  if (o.DimensioneQrScontrino) parts.push("QR scontrino " + o.DimensioneQrScontrino + "%");
   return parts.join(" · ") || "nessuna eccezione";
 }
 
@@ -2213,7 +2291,8 @@ async function reloadConfigKeepingDrafts() {
 function overrideRow(label, key, options, inherited, help) {
   const o = S.screenDraft.Override;
   const value = o[key];
-  const select = el("select", { onchange: (e) => { const v = e.target.value; o[key] = v === "" ? null : key === "ColonneConto" ? Number(v) : v; saveScreen(); } },
+  const numeric = ["ColonneConto", "Cornice", "Ingrandimento", "DimensioneQrPagamento", "DimensioneQrScontrino"].includes(key);
+  const select = el("select", { onchange: (e) => { const v = e.target.value; o[key] = v === "" ? null : numeric ? Number(v) : v; saveScreen(); } },
     el("option", { value: "" }, "Dal locale (" + inherited + ")"), options.map(([k, l]) => el("option", { value: String(k), selected: String(k) === String(value) }, l)));
   return el("div", { class: "o" }, el("div", { class: "l" }, el("b", {}, label),
     value !== null && value !== undefined && value !== ""
@@ -2241,7 +2320,12 @@ function screenPanel(s, st) {
       overrideRow("Animazioni", "Animazioni", MOTION, word(MOTION, b.Animazioni)),
       overrideRow("Quanto si fa notare", "Attrazione", ATTRACTION.map(([k, l]) => [k, l]), word(ATTRACTION, b.Attrazione)),
       overrideRow("La colonna accanto al conto", "ColonnaAllineamento", ALIGN, word(ALIGN, b.ColonnaAllineamento).toLowerCase()),
-      overrideRow("Larghezza del conto", "ColonneConto", Array.from({ length: 9 }, (_, i) => [9 + i, (9 + i) + " / 24"]), b.ColonneConto + " / 24")),
+      overrideRow("Larghezza del conto", "ColonneConto", Array.from({ length: 9 }, (_, i) => [9 + i, (9 + i) + " / 24"]), b.ColonneConto + " / 24"),
+      overrideRow("Cornice", "Cornice", Array.from({ length: 11 }, (_, i) => [i * 10, i * 10 + "%"]), b.Cornice + "%", "i margini; sui 10\" conviene stringerli"),
+      overrideRow("Ingrandimento", "Ingrandimento", Array.from({ length: 11 }, (_, i) => [100 + i * 5, 100 + i * 5 + "%"]), b.Ingrandimento + "%", "tutto più grande insieme"),
+      overrideRow("QR di Satispay", "DimensioneQrPagamento", Array.from({ length: 10 }, (_, i) => [60 + i * 10, 60 + i * 10 + "%"]), b.DimensioneQrPagamento + "%"),
+      overrideRow("QR dello scontrino digitale", "DimensioneQrScontrino", Array.from({ length: 10 }, (_, i) => [60 + i * 10, 60 + i * 10 + "%"]),
+        brand().Vendita.ScontrinoDigitale.DimensioneQr + "%")),
     el("p", { class: "hint" }, "Ultimo accesso " + when(st.ultimoAccesso) + (st.copieCartacee ? " · " + plural(st.copieCartacee, "copia di carta", "copie di carta") : "") + " · abbinato il " + new Date(s.AutorizzatoIl).toLocaleDateString("it-IT") + "."),
     el("div", { class: "row" }, el("span", { class: "grow" }), el("button", { class: "btn small danger", type: "button", onclick: () => revokeScreen(s) }, "Revoca lo schermo")));
 }

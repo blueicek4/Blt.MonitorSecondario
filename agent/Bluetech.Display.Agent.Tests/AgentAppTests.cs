@@ -582,6 +582,7 @@ public sealed class AgentAppTests
         Assert.True((bool)brand["Vendita"]!["ScontrinoDigitale"]!["Attivo"]!);
         Assert.Equal("Copia di cortesia", (string)brand["Vendita"]!["ScontrinoDigitale"]!["Dicitura"]!);
         Assert.Equal(3, brand["Vendita"]!["ScontrinoDigitale"]!["Blocchi"]!.AsArray().Count);   // senza blocchi, quelli di serie
+        Assert.Equal([13, 11], brand["Vendita"]!["ScontrinoDigitale"]!["ColonneDue"]!.AsArray().Select(w => (int)w!));   // e le larghezze del disegno
 
         options["Rete"]!["Porta"] = 0;
         Assert.Equal(HttpStatusCode.BadRequest, (await agent.Admin.PutAsync("/api/bo/installazione", JsonContent.Create(options))).StatusCode);
@@ -738,11 +739,12 @@ public sealed class AgentAppTests
         var update = await agent.Admin.PutAsJsonAsync("/api/bo/schermi/" + device.Id, new
         {
             Nome = "iPad Pro", Cassa = "cassa1", Stampante = "",
-            Override = new { Disposizione = "wide", Attrazione = "troppo", ColonneConto = 12, ColonnaAllineamento = "centro" },
+            Override = new { Disposizione = "wide", Attrazione = "troppo", ColonneConto = 12, ColonnaAllineamento = "centro", Cornice = 0, Ingrandimento = 125, DimensioneQrScontrino = 130 },
         });
         Assert.Equal(HttpStatusCode.OK, update.StatusCode);
         var screen = (await Receive(socket, Type("cfg")))["screen"]!;   // subito, sullo stesso collegamento
         Assert.Equal(("wide", "troppo", 12, "centro"), ((string)screen["disposizione"]!, (string)screen["attrazione"]!, (int)screen["colonneConto"]!, (string)screen["colonnaAllineamento"]!));
+        Assert.Equal((0, 125, 100, 130), ((int)screen["cornice"]!, (int)screen["ingrandimento"]!, (int)screen["dimensioneQrPagamento"]!, (int)screen["receipt"]!["dimensioneQr"]!));
         await Write(agent.CashFile(), Coffee);
         Assert.Equal("Caffè", (string)(await Receive(socket, Type("sale.line")))["line"]!["desc"]!);   // lo schermo non è stato staccato
         Assert.Equal("Caffè", (string)(await Receive(otherSocket, Type("sale.line")))["line"]!["desc"]!);   // l'altro non ha ricevuto le eccezioni
@@ -750,6 +752,8 @@ public sealed class AgentAppTests
         var refused = await agent.Admin.PutAsJsonAsync("/api/bo/schermi/" + device.Id, new { Nome = "iPad Pro", Cassa = "cassa1", Override = new { Disposizione = "obliqua" } });
         Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
         Assert.Contains("la disposizione è automatica, larga, stretta, verticale o palmare", (string)(await Json(refused))["errore"]!);
+        refused = await agent.Admin.PutAsJsonAsync("/api/bo/schermi/" + device.Id, new { Nome = "iPad Pro", Cassa = "cassa1", Override = new { Ingrandimento = 200 } });
+        Assert.Contains("l'ingrandimento va dal 100 al 150%", (string)(await Json(refused))["errore"]!);
         var settings = JsonNode.Parse(await agent.Admin.GetStringAsync("/api/bo/config"))!;
         Assert.Equal("wide", (string)settings["Schermi"]![0]!["Override"]!["Disposizione"]!);
         Assert.Null(settings["Schermi"]![1]!["Override"]);   // senza eccezioni: tutto dal locale

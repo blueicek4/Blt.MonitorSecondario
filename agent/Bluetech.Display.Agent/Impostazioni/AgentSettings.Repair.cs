@@ -97,6 +97,11 @@ public sealed partial class AgentSettings
         receipt.Blocchi = (receipt.Blocchi ?? []).Where(b => b != null && ReceiptBlock.Types.Contains(b.Tipo)).GroupBy(b => b.Tipo).Select(g => g.First()).ToList();
         foreach (var missing in ReceiptBlock.Defaults().Where(d => receipt.Blocchi.All(b => b.Tipo != d.Tipo)))
             receipt.Blocchi.Add(new ReceiptBlock { Tipo = missing.Tipo, Attivo = false, Colonna = missing.Colonna, Riga = missing.Riga });
+        // Un file di prima delle larghezze (o scritto a mano male): le larghezze del design, senza fermare l'Agent.
+        if (WidthProblem(receipt.ColonneDue, 2, DigitalReceiptConfig.MinTwo, DigitalReceiptConfig.MaxTwo) != null)
+            receipt.ColonneDue = [.. DigitalReceiptConfig.DefaultTwo];
+        if (WidthProblem(receipt.ColonneTre, 3, DigitalReceiptConfig.MinThree, DigitalReceiptConfig.MaxThree) != null)
+            receipt.ColonneTre = [.. DigitalReceiptConfig.DefaultThree];
 
         foreach (var media in c.Media)
         {

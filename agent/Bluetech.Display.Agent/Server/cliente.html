@@ -20,7 +20,10 @@
   --d-void-fade: 240ms; --d-price-stagger: 40ms; --d-total-after: 300ms;
   --t-col-rotate: 12000ms; --t-slide-hold: 7000ms;
   --footer-h: 56px; --footer-word: 17px; --footer-mark: 24px;
-  --cols-conto: 16; --cols-pagamento: 10; --col-gutter: 40px;
+  --cols-conto: 16; --cols-pagamento: 10; --col-gutter0: 40px;
+  /* La cornice del locale o dello schermo (0–100%): i margini e lo spazio tra le colonne, sui 10" si stringono. */
+  --frame: 1; --pad-x: calc(var(--pad-x0) * var(--frame)); --pad-y: calc(var(--pad-y0) * var(--frame));
+  --col-gutter: calc(var(--col-gutter0) * var(--frame)); --receipt-gap: calc(var(--receipt-gap0) * var(--frame));
   --grow-conto: var(--cols-conto); --grow-side: calc(24 - var(--cols-conto)); --side-align: flex-end;
   --scrim-top: 0.46; --scrim-bottom: 0.72; --scrim-idle-mid: 0.20; --card-blur: 22px;
   --k-row: 1; --k-amount: 1; --k-total: 1;
@@ -55,54 +58,54 @@
    formato: lo schermo vero ingrandisce o riduce tutto insieme (#stage). */
 :root[data-format='1920x1080'] {
   --t-total: 150px; --t-pay: 150px; --t-row: 28px; --t-amount: 32px; --t-qty: 23px; --t-label: 17px; --t-msg: 104px; --t-note: 24px;
-  --pad-x: 64px; --pad-y: 56px; --head-h: 60px; --msg-h: 150px; --amount-col: 150px; --col-gutter: 40px;
+  --pad-x0: 64px; --pad-y0: 56px; --head-h: 60px; --msg-h: 150px; --amount-col: 150px; --col-gutter0: 40px;
   --t-thanks: 124px; --t-promo: 40px; --t-promo-text: 21px; --t-venue: 26px; --t-tagline: 14px; --t-ticker: 30px; --logo-h: 44px;
   --t-welcome: 60px; --t-hint: 40px; --t-slide: 84px; --t-slide-text: 30px; --slide-pad: 64px;
   --qr-beside: 488px; --qr-full: 404px; --qr-slide: 272px; --qr-thanks: 252px; --qr-col: 220px; --qr-receipt: 332px; --qr-receipt-half: 220px;
-  --receipt-paper-w: 580px; --receipt-qr-w: 440px; --receipt-gap: 110px; --t-paper: 19px;
+  --receipt-paper-w: 580px; --receipt-qr-w: 440px; --receipt-gap0: 110px; --t-paper: 19px;
 }
 :root[data-format='1366x768'] {
   --t-total: 120px; --t-pay: 120px; --t-row: 23px; --t-amount: 25px; --t-qty: 18px; --t-label: 14px; --t-msg: 80px; --t-note: 20px;
-  --pad-x: 44px; --pad-y: 36px; --head-h: 44px; --msg-h: 112px; --amount-col: 110px; --col-gutter: 28px;
+  --pad-x0: 44px; --pad-y0: 36px; --head-h: 44px; --msg-h: 112px; --amount-col: 110px; --col-gutter0: 28px;
   --t-thanks: 88px; --t-promo: 29px; --t-promo-text: 16px; --t-venue: 20px; --t-tagline: 11px; --t-ticker: 22px; --logo-h: 34px;
   --t-welcome: 44px; --t-hint: 29px; --t-slide: 60px; --t-slide-text: 22px; --slide-pad: 44px;
   --qr-beside: 360px; --qr-full: 300px; --qr-slide: 196px; --qr-thanks: 180px; --qr-col: 156px; --qr-receipt: 256px; --qr-receipt-half: 170px;
-  --receipt-paper-w: 460px; --receipt-qr-w: 340px; --receipt-gap: 72px; --t-paper: 15px;
+  --receipt-paper-w: 460px; --receipt-qr-w: 340px; --receipt-gap0: 72px; --t-paper: 15px;
 }
 :root[data-format='1280x800'] {
   --t-total: 124px; --t-pay: 124px; --t-row: 24px; --t-amount: 26px; --t-qty: 19px; --t-label: 15px; --t-msg: 84px; --t-note: 21px;
-  --pad-x: 44px; --pad-y: 36px; --head-h: 44px; --msg-h: 116px; --amount-col: 112px; --col-gutter: 28px;
+  --pad-x0: 44px; --pad-y0: 36px; --head-h: 44px; --msg-h: 116px; --amount-col: 112px; --col-gutter0: 28px;
   --t-thanks: 90px; --t-promo: 30px; --t-promo-text: 16px; --t-venue: 21px; --t-tagline: 11px; --t-ticker: 23px; --logo-h: 35px;
   --t-welcome: 45px; --t-hint: 30px; --t-slide: 62px; --t-slide-text: 23px; --slide-pad: 44px;
   --qr-beside: 360px; --qr-full: 310px; --qr-slide: 204px; --qr-thanks: 186px; --qr-col: 156px; --qr-receipt: 256px; --qr-receipt-half: 170px;
-  --receipt-paper-w: 460px; --receipt-qr-w: 340px; --receipt-gap: 72px; --t-paper: 15px;
+  --receipt-paper-w: 460px; --receipt-qr-w: 340px; --receipt-gap0: 72px; --t-paper: 15px;
 }
 :root[data-format='1024x768'] {
   --t-total: 104px; --t-pay: 86px; --t-row: 23px; --t-amount: 25px; --t-qty: 19px; --t-label: 15px; --t-msg: 70px; --t-note: 20px;
-  --pad-x: 40px; --pad-y: 34px; --head-h: 44px; --msg-h: 104px; --amount-col: 110px; --col-gutter: 20px;
+  --pad-x0: 40px; --pad-y0: 34px; --head-h: 44px; --msg-h: 104px; --amount-col: 110px; --col-gutter0: 20px;
   --footer-h: 40px; --footer-word: 15px; --footer-mark: 20px;
   --t-thanks: 68px; --t-promo: 25px; --t-promo-text: 15px; --t-venue: 20px; --t-tagline: 11px; --t-ticker: 20px; --logo-h: 34px;
   --t-welcome: 42px; --t-hint: 26px; --t-slide: 52px; --t-slide-text: 20px; --slide-pad: 40px;
   --qr-beside: 288px; --qr-full: 300px; --qr-slide: 190px; --qr-thanks: 180px; --qr-col: 0px; --qr-receipt: 220px; --qr-receipt-half: 150px;
-  --receipt-paper-w: 420px; --receipt-qr-w: 300px; --receipt-gap: 48px; --t-paper: 14px;
+  --receipt-paper-w: 420px; --receipt-qr-w: 300px; --receipt-gap0: 48px; --t-paper: 14px;
 }
 :root[data-format='1024x768'][data-compact-rows='true'] { --t-row: 30px; --t-amount: 32px; }
 :root[data-format='1080x1920'] {
   --t-total: 150px; --t-pay: 170px; --t-row: 32px; --t-amount: 34px; --t-qty: 24px; --t-label: 22px; --t-msg: 110px; --t-note: 28px;
-  --pad-x: 48px; --pad-y: 48px; --head-h: 64px; --msg-h: 160px; --amount-col: 170px; --col-gutter: 32px;
+  --pad-x0: 48px; --pad-y0: 48px; --head-h: 64px; --msg-h: 160px; --amount-col: 170px; --col-gutter0: 32px;
   --t-thanks: 112px; --t-promo: 46px; --t-promo-text: 26px; --t-venue: 30px; --t-tagline: 15px; --t-ticker: 30px; --logo-h: 50px;
   --t-welcome: 66px; --t-hint: 42px; --t-slide: 80px; --t-slide-text: 32px; --slide-pad: 48px;
   --qr-beside: 660px; --qr-full: 660px; --qr-slide: 340px; --qr-thanks: 320px; --qr-col: 0px; --qr-receipt: 440px; --qr-receipt-half: 300px;
-  --receipt-paper-w: 760px; --receipt-qr-w: 560px; --receipt-gap: 48px; --t-paper: 22px;
+  --receipt-paper-w: 760px; --receipt-qr-w: 560px; --receipt-gap0: 48px; --t-paper: 22px;
 }
 :root[data-format='390x844'] {
   --t-total: 96px; --t-pay: 72px; --t-row: 18px; --t-amount: 20px; --t-qty: 14px; --t-label: 13px; --t-msg: 34px; --t-note: 14px;
-  --pad-x: 20px; --pad-y: 20px; --head-h: 40px; --msg-h: 64px; --amount-col: 64px; --col-gutter: 12px;
+  --pad-x0: 20px; --pad-y0: 20px; --head-h: 40px; --msg-h: 64px; --amount-col: 64px; --col-gutter0: 12px;
   --footer-h: 30px; --footer-word: 11px; --footer-mark: 13px;
   --t-thanks: 46px; --t-promo: 20px; --t-promo-text: 14px; --t-venue: 18px; --t-tagline: 10px; --t-ticker: 16px; --logo-h: 30px;
   --t-welcome: 30px; --t-hint: 22px; --t-slide: 34px; --t-slide-text: 16px; --slide-pad: 20px;
   --qr-beside: 300px; --qr-full: 300px; --qr-slide: 180px; --qr-thanks: 200px; --qr-col: 0px; --qr-receipt: 200px; --qr-receipt-half: 200px;
-  --receipt-paper-w: 350px; --receipt-qr-w: 246px; --receipt-gap: 14px; --t-paper: 13px;
+  --receipt-paper-w: 350px; --receipt-qr-w: 246px; --receipt-gap0: 14px; --t-paper: 13px;
 }
 /* Pagamento con il QR accanto (SPEC §2.4): lo scontrino a colonneContoPagamento, la tipografia ridotta, il totale 92 px. */
 :root[data-phase='payment'][data-qr='beside'] { --grow-conto: var(--cols-pagamento); --grow-side: calc(24 - var(--cols-pagamento)); --k-row: 0.79; --k-amount: 0.75; --k-total: 0.61; }
@@ -338,10 +341,10 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 :root[data-motion='eco'] .qrbox .halo { display: none; }
 .satispay { display: none; height: calc(var(--t-hint) * 1.1); width: auto; max-width: 70%; object-fit: contain; }
 .satispay.on { display: block; }
-#pay { display: flex; align-items: center; justify-content: center; gap: 110px;
+#pay { display: flex; align-items: center; justify-content: center; gap: calc(110px * var(--frame));
   padding: calc(var(--pad-y) + var(--head-h)) var(--pad-x) calc(var(--pad-y) + var(--footer-h)); }
-:root[data-layout='narrow'] #pay { gap: 56px; }
-:root[data-layout='portrait'] #pay, :root[data-layout='palmare'] #pay { flex-direction: column; gap: 36px; text-align: center; }
+:root[data-layout='narrow'] #pay { gap: calc(56px * var(--frame)); }
+:root[data-layout='portrait'] #pay, :root[data-layout='palmare'] #pay { flex-direction: column; gap: calc(36px * var(--frame)); text-align: center; }
 #pay .left { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
 :root[data-layout='portrait'] #pay .left, :root[data-layout='palmare'] #pay .left { align-items: center; }
 #pay .amount { font-family: var(--font-display); font-size: var(--t-pay); font-weight: 700; line-height: 0.9; letter-spacing: -0.035em; white-space: nowrap; }
@@ -411,7 +414,7 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 .rblock-qr .sub { color: var(--c-muted); font-size: calc(var(--t-hint) * 0.6); margin-top: -6px; }
 .rblock-qr .demo { font-size: calc(var(--t-label) * 0.85); letter-spacing: 0.16em; text-transform: uppercase; color: var(--c-accent); border: 1px solid currentColor; border-radius: 999px; padding: 3px 12px; }
 .rblock-qr .qrbox { border-radius: calc(var(--radius) * 2.4); }
-.paperaction { min-height: 72px; width: 100%; max-width: var(--receipt-qr-w); display: flex; align-items: center; justify-content: center; text-align: center; box-sizing: border-box; }
+.paperaction { min-height: 72px; width: 100%; max-width: max(var(--receipt-qr-w), var(--qr-w, 0px)); display: flex; align-items: center; justify-content: center; text-align: center; box-sizing: border-box; }
 .paperaction .line { font-size: calc(var(--t-hint) * 0.52); color: var(--c-text); border: 1px solid var(--c-line); border-radius: calc(var(--radius) * 1.4); padding: 14px 22px;
   background: rgba(var(--c-text-rgb), 0.03); }
 .paperaction .line span { color: var(--c-muted); }
@@ -420,7 +423,9 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 .paperaction button svg { width: 1.2em; height: 1.2em; flex: none; }
 .paperaction button:disabled { cursor: default; background: var(--c-surface-solid); color: var(--c-text); border: 1px solid var(--c-line); }
 .paperaction button:not(:disabled):active { transform: scale(0.98); }
-.paper { background: #F7F5F0; color: #1B1F26; border-radius: 6px; padding: calc(var(--t-paper) * 1.6) calc(var(--t-paper) * 1.6); font: var(--t-paper) / 1.45 ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+/* --paper-k: la carta segue la larghezza della sua colonna (0,8–1,5 volte la misura del design), testo compreso. */
+.paper { --pf: calc(var(--t-paper) * var(--paper-k, 1)); background: #F7F5F0; color: #1B1F26; border-radius: 6px; padding: calc(var(--pf) * 1.6);
+  font: var(--pf) / 1.45 ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
   box-shadow: 0 10px 30px rgba(0,0,0,0.28); width: var(--receipt-paper-w); max-width: 100%; box-sizing: border-box; min-height: 0; max-height: 100%; overflow: hidden;
   display: flex; flex-direction: column; }
 .paper .center { text-align: center; }
@@ -428,7 +433,7 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 .paper .sep { border-top: 1px dashed #A7AEB8; margin: 10px 0; flex-shrink: 0; }
 .paper .items { min-height: 0; }
 .paper.two { width: calc(var(--receipt-paper-w) * 1.65); }
-.paper.two .items { column-count: 2; column-gap: calc(var(--t-paper) * 2); column-rule: 1px dashed #C7CCD3; }
+.paper.two .items { column-count: 2; column-gap: calc(var(--pf) * 2); column-rule: 1px dashed #C7CCD3; }
 .paper .pair { display: flex; gap: 12px; justify-content: space-between; break-inside: avoid; }
 .paper .pair span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .paper .pair span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -441,6 +446,14 @@ html.nocursor, html.nocursor * { cursor: none !important; }
 :root[data-layout='palmare'] #receipt .grid, :root[data-layout='palmare'] #receipt .col { max-height: none; flex-shrink: 0; }
 :root[data-layout='palmare'] #receipt .grid::after { content: ""; flex: 0 0 calc(var(--footer-h) + 8px); }   /* la carta finisce sopra la firma */
 .rblock-ad { width: calc(var(--receipt-qr-w) * 1.1); max-width: 100%; }
+/* Sui formati orizzontali le colonne hanno le larghezze del locale su 24 (Il locale › Vendita e scontrino digitale), come
+   il conto: la griglia prende tutta la larghezza, ogni blocco sta al centro della sua colonna. */
+#receipt .grid.prop { width: 100%; }
+#receipt .grid.prop .col { flex: var(--w) 1 0; align-items: center; }
+#receipt .grid.prop .paper { width: 100%; max-width: calc(var(--receipt-paper-w) * var(--paper-k, 1)); }
+#receipt .grid.prop .paper.two { width: 100%; max-width: calc(var(--receipt-paper-w) * 1.65 * var(--paper-k, 1)); }
+#receipt .grid.prop .rblock-qr { width: 100%; }
+#receipt .grid.prop .rblock-ad { width: 100%; max-width: calc(var(--receipt-qr-w) * 1.6); }
 :root[data-layout='narrow'] #receipt .grid { gap: calc(var(--receipt-gap) * 0.8); }
 
 /* L'attesa (SPEC §2.1): la vetrina dell'attesa a tutto schermo, i modelli A-D; a Sobrio il locale e il nastro. */
@@ -680,14 +693,18 @@ function forcedFormat(width) {
 }
 
 let stageScale = 1;
+/** L'ingrandimento del locale o dello schermo (100–150%): sui 10" tutto più grande insieme, testi, carta, QR e reclame. */
+const zoomLevel = () => clamp(Number(cfg && cfg.screen && cfg.screen.ingrandimento) || 100, 100, 150) / 100;
 function layout() {
   const width = window.innerWidth, height = window.innerHeight;
   const key = FORMATS[query.get("formato")] ? query.get("formato") : forcedFormat(width) || pickFormat(width, height);
   const format = FORMATS[key];
-  stageScale = width / format.width;
+  // La tela resta quella del formato, solo più piccola: le misure sono le stesse e lo schermo le ingrandisce.
+  const canvas = format.width / zoomLevel();
+  stageScale = width / canvas;
   root.dataset.format = key;
   root.dataset.layout = format.layout;
-  stage.style.width = format.width + "px";
+  stage.style.width = canvas + "px";
   stage.style.height = height / stageScale + "px";
   stage.style.transform = "scale(" + stageScale + ")";
   applyLook();
@@ -749,6 +766,8 @@ function applyLook() {
   const motion = effectiveMotion();
   root.dataset.motion = motion;
   root.dataset.compactRows = s.righeCompatte ? "true" : "false";
+  const frame = Number(s.cornice);
+  root.style.setProperty("--frame", String(Number.isFinite(frame) && s.cornice !== null && s.cornice !== undefined ? clamp(frame, 0, 100) / 100 : 1));
   let cols = clamp(Number(s.colonneConto) || 16, 9, 17);
   if (root.dataset.format === "1366x768" || root.dataset.format === "1280x800") cols = Math.min(cols, 16);   // la colonna deve reggere un QR
   root.style.setProperty("--cols-conto", String(cols));
@@ -1651,18 +1670,27 @@ function method(text) {
 }
 
 /** Il QR a un pixel per modulo, ingrandito di un multiplo intero con 4 moduli di margine bianco (SPEC §2.4). */
-function showQr(box, png, target) {
+/**
+ * Il QR a moduli interi, grande circa target (la misura del formato per la percentuale del locale). fits dice se ci sta
+ * (la colonna dello scontrino, la colonna accanto al conto, lo schermo): se no si scende di un pixel per modulo alla
+ * volta. Si misura subito, con 49 moduli finché l'immagine non è caricata, così chi impagina vede già la misura giusta.
+ */
+function showQr(box, png, target, fits) {
   const img = box.querySelector("img");
   if (typeof png !== "string" || !png.startsWith("data:image/")) { img.removeAttribute("src"); return; }
-  const size = () => {
-    const modules = img.naturalWidth || 49;
-    const scale = Math.max(1, Math.floor(target / modules));
-    img.style.width = img.style.height = modules * scale + "px";
-    box.style.padding = Math.max(4 * scale, 12) + "px";
+  const size = (modules) => {
+    let scale = Math.max(1, Math.floor(target / modules));
+    const apply = () => { img.style.width = img.style.height = modules * scale + "px"; box.style.padding = Math.max(4 * scale, 12) + "px"; };
+    apply();
+    while (fits && scale > 1 && !fits()) { scale--; apply(); }
+    if (box.parentElement) box.parentElement.style.setProperty("--qr-w", box.offsetWidth + "px");   // il pulsante della copia è largo come il QR
   };
-  if (img.getAttribute("src") !== png) { img.onload = size; img.src = png; }
-  if (img.complete) size();
+  if (img.getAttribute("src") !== png) { img.onload = () => size(img.naturalWidth || 49); img.src = png; }
+  size(img.complete && img.naturalWidth ? img.naturalWidth : 49);
 }
+
+/** La percentuale del locale (o dello schermo) per un QR: 60–150, 100 = la misura del design per il formato. */
+function qrPercent(value) { return clamp(Number(value) || 100, 60, 150) / 100; }
 
 // ---------------------------------------------------------------------------------------------------------------
 // Il Grazie e lo scontrino digitale.
@@ -1803,9 +1831,41 @@ function qrBlock(r, half) {
   box.append(el("img"));
   box.firstChild.alt = "QR per scaricare lo scontrino digitale";
   block.append(box);
-  showQr(box, r.png, cssNumber(half ? "--qr-receipt-half" : "--qr-receipt") || 300);
   block.append(paperAction(r));
   return block;
+}
+
+/**
+ * Quanto è alto quello che sta in una colonna dello scontrino, dalle altezze dei blocchi: scrollHeight conterebbe anche
+ * i 24 px dell'animazione d'ingresso (bt-rise) e scambierebbe un blocco che sale per uno che non ci sta.
+ */
+function stackHeight(box) {
+  const kids = [...box.children];
+  if (!kids.length) return 0;
+  const style = getComputedStyle(box);
+  if (style.display.includes("flex") && style.flexDirection.startsWith("row")) return Math.max(...kids.map((k) => k.offsetHeight));
+  return kids.reduce((sum, k) => sum + k.offsetHeight, 0) + (parseFloat(style.rowGap) || 0) * (kids.length - 1);
+}
+
+/** Il QR dello scontrino, a blocco già nella sua colonna: la percentuale del locale, mai più largo della colonna. */
+function sizeReceiptQr(block, png) {
+  const box = block.querySelector(".qrbox");
+  const base = cssNumber(block.classList.contains("half") ? "--qr-receipt-half" : "--qr-receipt") || 300;
+  showQr(box, png, base * qrPercent((screenCfg().receipt || {}).dimensioneQr), () => {
+    const col = box.closest(".col");
+    if (!col) return true;
+    // Largo quanto la colonna; e alto quanto basta perché titolo, QR e pulsante ci stiano (sul palmare si scorre).
+    return box.offsetWidth <= col.clientWidth + 1 && (layoutName() === "palmare" || stackHeight(col) <= col.clientHeight + 1);
+  });
+}
+
+/** Le larghezze su 24 delle colonne dello scontrino, per quante ne restano a video (Il locale › Vendita e scontrino digitale). */
+function receiptWidths(count) {
+  const conf = screenCfg().receipt || {};
+  const pick = (list, fallback) => Array.isArray(list) && list.length === count && list.every((w) => Number(w) > 0) ? list.map(Number) : fallback;
+  if (count === 2) return pick(conf.colonneDue, [13, 11]);
+  if (count === 3) return pick(conf.colonneTre, [9, 8, 7]);
+  return [24];
 }
 
 function paperBlock(r, two, limit) {
@@ -1849,31 +1909,61 @@ function renderReceipt() {
   const firstTime = !receiptKey.startsWith(JSON.stringify([r.id]).slice(0, -1));
   receiptKey = key;
   const grid = $("receiptgrid");
+  // Sui formati orizzontali le colonne hanno le larghezze del locale; in verticale e sul palmare i blocchi stanno in fila.
+  const proportional = layoutName() === "wide" || layoutName() === "narrow";
   const compose = (drop, paperMode) => {
     grid.replaceChildren();
-    for (const column of receiptColumns(drop)) {
+    const columns = receiptColumns(drop);
+    const widths = receiptWidths(columns.length);
+    grid.classList.toggle("prop", proportional && columns.length > 1);
+    for (const [i, column] of columns.entries()) {
       const col = el("div", "col" + (column.length > 1 ? " pair" : ""));
+      col.style.setProperty("--w", String(widths[i] || 1));
       for (const b of column) {
         if (b.tipo === "qr") col.append(qrBlock(r, b.riga !== "piena" && layoutName() !== "palmare"));
-        else if (b.tipo === "carta") col.append(paperBlock(r, paperMode === "two", paperMode === "two-limit" ? 48 : paperMode === "limit" ? 24 : 0));
+        else if (b.tipo === "carta") col.append(paperBlock(r, paperMode.startsWith("two"), paperMode === "two-limit" ? 48 : paperMode === "limit" ? 24 : paperMode.startsWith("limit-") ? Number(paperMode.slice(6)) : 0));
         else if (b.tipo === "reclame") { const ad = receiptAd(); if (ad) { const card = buildCard(ad, { loop: true, qrSize: cssNumber("--qr-receipt-half") || 200 }); card.classList.add("rblock-ad"); col.append(card); play(card); } }
       }
       grid.append(col);
     }
+    grid.querySelectorAll(".rblock-qr").forEach((block) => sizeReceiptQr(block, r.png));
     if (!firstTime) grid.querySelectorAll(".col > *").forEach((n) => { n.style.animation = "none"; });
   };
+  // La carta segue la sua colonna: il testo da 0,8 a 1,5 volte la misura del design, poi più piccolo finché ci sta in
+  // altezza. In due colonne di righe serve il doppio dello spazio: se la colonna non lo ha, quel tentativo si salta.
+  const fitPaper = (paperMode) => {
+    const paper = grid.querySelector(".paper");
+    if (!paper || !grid.classList.contains("prop")) return true;
+    const base = (cssNumber("--receipt-paper-w") || 460) * (paperMode.startsWith("two") ? 1.65 : 1);
+    let k = Math.min(1.5, paper.parentElement.clientWidth / base);
+    if (k < 0.8) { if (paperMode.startsWith("two")) return false; k = 0.8; }
+    for (;;) {
+      paper.style.setProperty("--paper-k", k.toFixed(3));
+      if (k <= 0.8 || !overflows()) return true;
+      k = Math.max(0.8, k - 0.05);
+    }
+  };
+  // Lo spazio vero: dentro i margini (testata e piede compresi) e sotto il saluto. Ogni colonna deve starci: il contenuto
+  // centrato che sborda andrebbe sopra il saluto. Sul palmare si scorre: conta solo la larghezza.
   const overflows = () => {
     const screen = $("receipt");
+    const style = getComputedStyle(screen);
+    const inner = screen.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    if (grid.scrollWidth > inner + 1) return true;
+    if (layoutName() === "palmare") return false;
+    const room = screen.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom) - $("receiptthanks").offsetHeight - (parseFloat(style.rowGap) || 0);
     const paper = grid.querySelector(".paper");
-    const title = $("receiptthanks").offsetHeight + (parseFloat(getComputedStyle(screen).rowGap) || 0);
-    return grid.scrollWidth > screen.clientWidth - 2 * cssNumber("--pad-x") + 1 || grid.scrollHeight > screen.clientHeight - 20 - title
-      || (paper && layoutName() !== "palmare" && paper.scrollHeight > paper.clientHeight + 1);
+    return stackHeight(grid) > room + 1 || [...grid.children].some((col) => stackHeight(col) > col.clientHeight + 1)
+      || !!(paper && paper.scrollHeight > paper.clientHeight + 1);
   };
-  // Quando manca spazio: la carta va in due colonne, poi raggruppa le righe minori; poi cade la reclame, poi la carta.
-  const attempts = [[[], ""], [[], "two"], [[], "two-limit"], [["reclame"], ""], [["reclame"], "two"], [["reclame"], "two-limit"], [["reclame", "carta"], ""]];
+  // Quando manca spazio: la carta va in due colonne, poi raggruppa le righe minori; poi cade la reclame; poi la carta
+  // tiene solo le prime 12 e poi 8 righe (le altre in "Altri N articoli", il totale c'è sempre); poi cade la carta.
+  const attempts = [[[], ""], [[], "two"], [[], "two-limit"], [[], "limit"], [["reclame"], ""], [["reclame"], "two"], [["reclame"], "two-limit"],
+    [["reclame"], "limit"], [["reclame"], "limit-12"], [["reclame"], "limit-8"], [["reclame", "carta"], ""]];
   for (const [drop, mode] of attempts) {
     if (layoutName() === "palmare" && mode) continue;
     compose(drop, mode);
+    if (!fitPaper(mode)) continue;
     if (!overflows()) return;
   }
 }
@@ -1934,7 +2024,12 @@ function render() {
   if (now === "bill") {
     renderMessage();
     renderLines(noPrices);
-    if (side === "qr") { showQr($("besideqr"), state.payment.png, cssNumber("--qr-beside") || 488); $("besidecaption").textContent = state.payment.caption || ""; }
+    if (side === "qr") {
+      $("besidecaption").textContent = state.payment.caption || "";
+      const box = $("besideqr"), body = $("bill").querySelector(".body");
+      showQr(box, state.payment.png, (cssNumber("--qr-beside") || 488) * qrPercent(screenCfg().dimensioneQrPagamento),
+        () => box.offsetWidth <= $("side").clientWidth + 1 && $("side").scrollHeight <= body.clientHeight + 1);
+    }
     $("totallabel").textContent = state.phase === "payment" ? "Da pagare" : "Totale";
     const total = $("total");
     const changed = renderTotal(total, state.total);
@@ -1955,7 +2050,9 @@ function render() {
   if (now === "pay") {
     $("payamount").textContent = money(state.payment.amount || state.total);
     $("paycaption").textContent = state.payment.caption || "";
-    showQr($("fullqr"), state.payment.png, cssNumber("--qr-full") || 404);
+    const pay = $("pay");
+    showQr($("fullqr"), state.payment.png, (cssNumber("--qr-full") || 404) * qrPercent(screenCfg().dimensioneQrPagamento),
+      () => pay.scrollHeight <= pay.clientHeight + 1 && pay.scrollWidth <= pay.clientWidth + 1);
   }
   if (now === "thanks") renderThanks(before !== "thanks");
   if (now === "thanks" && before !== "thanks") { const section = $("thanks"); section.classList.add("on"); }
